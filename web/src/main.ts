@@ -59,7 +59,7 @@ interface Prefs {
 }
 
 const DEFAULT_PREFS: Prefs = {
-  inputMode: 'keyboard',
+  inputMode: 'controller',
   tiles: 'Standard',
   autoCombat: false,
   poisonKills: false,
@@ -79,7 +79,7 @@ function loadPrefs(): Prefs {
     const saved = raw ? (JSON.parse(raw) as Partial<Prefs>) : {};
     const prefs = { ...DEFAULT_PREFS, ...saved };
     if (!TILE_SETS.includes(prefs.tiles)) prefs.tiles = DEFAULT_PREFS.tiles;
-    if (prefs.inputMode !== 'controller') prefs.inputMode = 'keyboard';
+    if (prefs.inputMode !== 'keyboard') prefs.inputMode = DEFAULT_PREFS.inputMode;
     if (!MAP_MODES.includes(prefs.dungeonMap)) prefs.dungeonMap = 'off';
     if (!STARVATION_MODES.includes(prefs.starvation)) prefs.starvation = 'mild';
     if (!TIMER_MODES.includes(prefs.timer)) prefs.timer = 'fast';

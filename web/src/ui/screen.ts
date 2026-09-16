@@ -186,10 +186,11 @@ export class Screen implements GameIO {
   private highlighted = new Set<number>();
 
   /**
-   * 'keyboard': the Apple II letter commands. 'controller': d-pad movement
-   * and pop-up menus, driven by a gamepad or by WASD/Enter/Escape/ZXCV.
+   * 'controller' (the default): d-pad movement and pop-up menus, driven by
+   * a gamepad or by WASD/Enter/Escape/ZXCV. 'keyboard': the Apple II letter
+   * commands, for the original feel.
    */
-  inputMode: 'keyboard' | 'controller' = 'keyboard';
+  inputMode: 'keyboard' | 'controller' = 'controller';
   /** Called when a gamepad press switches the mode to 'controller'. */
   onModeChange: (() => void) | null = null;
   /** Called on every gamepad button press (the touch pad hides itself). */

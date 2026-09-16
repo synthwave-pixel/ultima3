@@ -11,17 +11,17 @@ Commodore 64, NES, the PC's CGA, EGA, MCGA and VGA, the Ultima V look and
 the Macintosh in black and white. I added a new theme, Standard, and kept
 LairWare's own as an option.
 
-Most modern players will prefer the new Controller mode, inspired by the
-NES version. In Controller mode the whole game is played without a
-keyboard, which suits a handheld or a phone and is far more accessible on
-a desktop too. Its menus put the common actions at the top, and a few
-shortcuts (cast the right heal, open a chest safely, light a dungeon) make
-combat and exploration more fun than typing letters ever was. The cloth
-map that came in the box can be viewed in the game, and a quest journal
-gives just enough in-game hints that most players should finish without
-an external guide. There are options that ease the difficulty a little.
-The party shares one inventory for unequipped gear. And many, many other
-improvements.
+The game starts in the new Controller mode, inspired by the NES version,
+which most modern players will prefer. In Controller mode the whole game
+is played without a keyboard, which suits a handheld or a phone and is far
+more accessible on a desktop too, where the same keys drive it. Its menus
+put the common actions at the top, and a few shortcuts (cast the right
+heal, open a chest safely, light a dungeon) make combat and exploration
+more fun than typing letters ever was. The cloth map that came in the box
+can be viewed in the game, and a quest journal gives just enough in-game
+hints that most players should finish without an external guide. There are
+options that ease the difficulty a little. The party shares one inventory
+for unequipped gear. And many, many other improvements.
 
 All of it is configurable in the game's Settings. If you want the original
 gameplay, it is all still there: classic difficulty, keyboard commands,
@@ -105,10 +105,10 @@ the web version from Safari's Share menu with Add to Home Screen instead.
 
 ### Controller mode
 
-Chosen in Settings (Escape), or by pressing any gamepad button. A tap on a
-touch screen shows a virtual controller, sized to an NES pad on any
-screen. Holding a direction, on a gamepad or the virtual pad, keeps
-walking as a held key does.
+The default; a gamepad button press also switches back to it from keyboard
+mode. A tap on a touch screen shows a virtual controller, sized to an NES
+pad on any screen. Holding a direction, on a gamepad or the virtual pad,
+keeps walking as a held key does.
 
     D-pad   move, or move the cursor in a menu
     A       open the command menu; choose
@@ -121,7 +121,8 @@ Z for A, Escape, X or B for B, C for X, V or Y for Y.
 
 ### Keyboard mode
 
-The Apple II commands, one letter each:
+For the original feel, chosen in Settings (the last entry of the command
+menu). The Apple II commands, one letter each:
 
     Arrows       walk; move in combat      Space   pass a turn
     Escape       settings                  J       journal
