@@ -93,6 +93,7 @@
         "--socket=x11",
         "--share=ipc",
         "--device=all",
+        "--filesystem=/run/udev:ro",
         "--socket=pulseaudio",
         "--filesystem=home"
       ]

@@ -32,6 +32,7 @@ org.freedesktop.Sdk//25.08 org.electronjs.Electron2.BaseApp//25.08`), so
 `npm run dist:linux` elsewhere builds the AppImage alone and the workflow
 asks for both (`--linux AppImage flatpak`). Its permissions are the
 `flatpak` block in `package.json`: display, sound, the home folder for
-Export and Import, and every device so gamepads are seen. Under gamescope
+Export and Import, every device, and read access to udev's device
+database, which Chromium needs before it lists a gamepad. Under gamescope
 (Steam's Game Mode) `main.cjs` turns off GPU acceleration and the
 Chromium sandbox, which have hung other Electron apps there.
