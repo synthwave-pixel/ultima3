@@ -1,0 +1,127 @@
+# Builds the desktop app (desktop/, Electron) for Windows, macOS and Linux
+# and the Android app (mobile/, Capacitor). A push to main that changes the
+# game or an app is a development build: the files stay as workflow
+# artifacts. A manual run (Actions > Run workflow), or a push to the
+# release branch (git push origin main:release), is a release: the same
+# builds are published as a GitHub Release. Either way the version is the
+# major.minor from desktop/package.json with the run number as the patch
+# (1.0.37, say), decided by desktop/version.cjs; a new series starts by
+# changing that major.minor. Desktop builds are unsigned: see the README's
+# Desktop section for what that means on each platform. The APK is signed
+# with the committed sideload key unless the ANDROID_KEYSTORE_* secrets
+# provide a release key.
+name: Desktop and Android builds
+
+on:
+  workflow_dispatch:
+  # No paths filter: GitHub skips a filtered workflow when a push creates the branch, which is how a release starts.
+  push:
+    branches: [main, release]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: linux
+          - os: windows-latest
+            target: win
+          - os: macos-latest
+            target: mac
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            web/package-lock.json
+            desktop/package-lock.json
+      - run: npm ci
+        working-directory: web
+      - run: npm ci
+        working-directory: desktop
+      - run: npm run bundle
+        working-directory: desktop
+      - run: npm run dist -- --${{ matrix.target }}
+        working-directory: desktop
+        env:
+          # Unsigned macOS builds: skip the notarisation step electron-builder would otherwise attempt.
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+      - uses: actions/upload-artifact@v7
+        with:
+          name: ultima3-${{ matrix.target }}
+          path: |
+            desktop/dist/*.AppImage
+            desktop/dist/*.exe
+            desktop/dist/*.dmg
+          if-no-files-found: error
+
+  android:
+    runs-on: ubuntu-latest
+    env:
+      ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            web/package-lock.json
+            mobile/package-lock.json
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 21
+      - run: npm ci
+        working-directory: web
+      - run: npm ci
+        working-directory: mobile
+      - run: npm run bundle
+        working-directory: mobile
+      - run: npx cap sync android
+        working-directory: mobile
+      # A release key from the repository secrets, when there is one; otherwise Gradle falls back to the sideload key.
+      - if: ${{ env.ANDROID_KEYSTORE_BASE64 != '' }}
+        run: |
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.keystore"
+          {
+            echo "ANDROID_KEYSTORE_FILE=$RUNNER_TEMP/release.keystore"
+            echo "ANDROID_KEYSTORE_PASSWORD=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}"
+            echo "ANDROID_KEY_ALIAS=${{ secrets.ANDROID_KEY_ALIAS }}"
+            echo "ANDROID_KEY_PASSWORD=${{ secrets.ANDROID_KEY_PASSWORD }}"
+          } >> "$GITHUB_ENV"
+      - run: npm run apk
+        working-directory: mobile
+      - uses: actions/upload-artifact@v7
+        with:
+          name: ultima3-android
+          path: mobile/dist/*.apk
+          if-no-files-found: error
+
+  # A manual run, or a push to the release branch, publishes one release with every file once all four builds exist;
+  # the tag lands on this commit.
+  release:
+    if: ${{ github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/release' }}
+    needs: [build, android]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - id: v
+        run: echo "version=$(node desktop/version.cjs)" >> "$GITHUB_OUTPUT"
+      - uses: actions/download-artifact@v8
+        with:
+          path: files
+          merge-multiple: true
+      - run: ls -la files
+      - run: gh release create "v$VERSION" files/* --title "v$VERSION" --generate-notes --target "$GITHUB_SHA"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.v.outputs.version }}

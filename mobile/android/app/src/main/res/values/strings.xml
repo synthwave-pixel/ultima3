@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Ultima III</string>
+    <string name="title_activity_main">Ultima III</string>
+    <string name="package_name">com.synthwavepixel.ultima3</string>
+    <string name="custom_url_scheme">com.synthwavepixel.ultima3</string>
+</resources>

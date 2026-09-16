@@ -1,0 +1,93 @@
+{
+  "name": "ultima3-desktop",
+  "productName": "Ultima III",
+  "version": "1.0.0",
+  "description": "Ultima III: Exodus, LairWare's Macintosh port rebuilt for the browser, as a desktop app",
+  "author": "Will Iverson",
+  "license": "MIT",
+  "private": true,
+  "main": "main.cjs",
+  "scripts": {
+    "bundle": "node bundle.cjs",
+    "start": "electron .",
+    "smoke": "node smoke.cjs",
+    "dist": "node dist.cjs",
+    "dist:linux": "node dist.cjs --linux",
+    "dist:win": "node dist.cjs --win",
+    "dist:mac": "node dist.cjs --mac",
+    "version:show": "node version.cjs"
+  },
+  "devDependencies": {
+    "electron": "^33.2.1",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.synthwavepixel.ultima3",
+    "productName": "Ultima III",
+    "artifactName": "Ultima-III-${version}-${os}-${arch}.${ext}",
+    "directories": {
+      "buildResources": "build",
+      "output": "dist"
+    },
+    "files": [
+      "main.cjs",
+      "app/**/*"
+    ],
+    "asar": true,
+    "mac": {
+      "category": "public.app-category.role-playing-games",
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64"
+          ]
+        }
+      ],
+      "identity": null
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "artifactName": "Ultima-III-${version}-${os}-${arch}-setup.${ext}"
+    },
+    "portable": {
+      "artifactName": "Ultima-III-${version}-${os}-${arch}-portable.${ext}"
+    },
+    "linux": {
+      "category": "Game",
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "desktop": {
+        "Name": "Ultima III",
+        "Comment": "Ultima III: Exodus"
+      }
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/synthwave-pixel/ultima3.git"
+  }
+}

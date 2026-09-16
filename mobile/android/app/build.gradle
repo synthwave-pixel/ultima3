@@ -1,0 +1,69 @@
+apply plugin: 'com.android.application'
+
+android {
+    namespace "com.synthwavepixel.ultima3"
+    compileSdk rootProject.ext.compileSdkVersion
+    defaultConfig {
+        applicationId "com.synthwavepixel.ultima3"
+        minSdkVersion rootProject.ext.minSdkVersion
+        targetSdkVersion rootProject.ext.targetSdkVersion
+        // CI passes -PversionCode (the workflow run number, so every build can update the last) and -PversionName.
+        versionCode (project.hasProperty('versionCode') ? project.property('versionCode').toInteger() : 1)
+        versionName (project.hasProperty('versionName') ? project.property('versionName') : '1.0.0')
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        aaptOptions {
+             // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
+             // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
+            ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
+        }
+    }
+    // Release builds are signed with the keystore named by ANDROID_KEYSTORE_FILE (a release key kept in CI
+    // secrets), or else with mobile/sideload.keystore, the committed key that every CI build shares so that one
+    // APK installs over the last and keeps its saved games.
+    signingConfigs {
+        release {
+            def env = System.getenv()
+            storeFile file(env['ANDROID_KEYSTORE_FILE'] ?: "${rootDir}/../sideload.keystore")
+            storePassword env['ANDROID_KEYSTORE_PASSWORD'] ?: 'ultima3sideload'
+            keyAlias env['ANDROID_KEY_ALIAS'] ?: 'ultima3'
+            keyPassword env['ANDROID_KEY_PASSWORD'] ?: 'ultima3sideload'
+        }
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.release
+        }
+    }
+}
+
+repositories {
+    flatDir{
+        dirs '../capacitor-cordova-android-plugins/src/main/libs', 'libs'
+    }
+}
+
+dependencies {
+    implementation fileTree(include: ['*.jar'], dir: 'libs')
+    implementation "androidx.appcompat:appcompat:$androidxAppCompatVersion"
+    implementation "androidx.core:core:$androidxCoreVersion"
+    implementation "androidx.coordinatorlayout:coordinatorlayout:$androidxCoordinatorLayoutVersion"
+    implementation "androidx.core:core-splashscreen:$coreSplashScreenVersion"
+    implementation project(':capacitor-android')
+    testImplementation "junit:junit:$junitVersion"
+    androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
+    androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
+    implementation project(':capacitor-cordova-android-plugins')
+}
+
+apply from: 'capacitor.build.gradle'
+
+try {
+    def servicesJSON = file('google-services.json')
+    if (servicesJSON.text) {
+        apply plugin: 'com.google.gms.google-services'
+    }
+} catch(Exception e) {
+    logger.info("google-services.json not found, google-services plugin not applied. Push Notifications won't work")
+}

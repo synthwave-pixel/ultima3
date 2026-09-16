@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <title>Ultima III</title>
+    <meta name="theme-color" content="#000000" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+    <link rel="icon" href="pwa-192.png" type="image/png" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+    <style>
+      html,
+      body {
+        margin: 0;
+        background: #000;
+        /* No double-tap or pinch zoom: quick taps on the virtual controller must stay taps. */
+        touch-action: manipulation;
+        -webkit-text-size-adjust: 100%;
+      }
+      body {
+        /* The canvas fills the window, keeping its shape: centred in a
+           landscape window, at the top of a portrait one. */
+        min-height: 100vh;
+        min-height: 100dvh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+      /* Strictly taller than wide: a square window counts as landscape. */
+      @media (aspect-ratio < 1 / 1) {
+        body {
+          align-items: flex-start;
+        }
+      }
+      canvas {
+        /* Pixel art: never smooth when the browser scales the canvas. */
+        image-rendering: pixelated;
+        /* 40 by 24 cells of square pixels (5:3): as wide as the window, or
+           as wide as its height allows, whichever is less; the height
+           follows, so nothing stretches. */
+        width: min(100vw, calc(100vh * 40 / 24));
+        width: min(100dvw, calc(100dvh * 40 / 24));
+        aspect-ratio: 40 / 24;
+        outline: none;
+        display: block;
+        touch-action: none;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- The game draws everything, loading and error text included, on this canvas. -->
+    <canvas id="screen" width="1280" height="768" tabindex="0"></canvas>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

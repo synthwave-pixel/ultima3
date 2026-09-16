@@ -1,0 +1,8 @@
+{
+  "appId": "com.synthwavepixel.ultima3",
+  "appName": "Ultima III",
+  "webDir": "app",
+  "android": {
+    "backgroundColor": "#000000"
+  }
+}

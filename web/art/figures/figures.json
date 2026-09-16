@@ -1,0 +1,889 @@
+{
+  "image": "atlas.png",
+  "width": 128,
+  "height": 1248,
+  "cellWidth": 32,
+  "cellHeight": 32,
+  "storageColumns": 4,
+  "normalFrameCount": 2,
+  "frameDurationMs": 350,
+  "rows": [
+    {
+      "tile": 24,
+      "name": "orc",
+      "row": 0,
+      "family": "Orc",
+      "frameCount": 2,
+      "frames": [
+        {
+          "file": "frames/orc-0.png",
+          "x": 0,
+          "y": 0,
+          "w": 32,
+          "h": 32
+        },
+        {
+          "file": "frames/orc-1.png",
+          "x": 32,
+          "y": 0,
+          "w": 32,
+          "h": 32
+        }
+      ]
+    },
+    {
+      "tile": 25,
+      "name": "skeleton",
+      "row": 1,
+      "family": "Skeleton",
+      "frameCount": 2,
+      "frames": [
+        {
+          "file": "frames/skeleton-0.png",
+          "x": 0,
+          "y": 32,
+          "w": 32,
+          "h": 32
+        },
+        {
+          "file": "frames/skeleton-1.png",
+          "x": 32,
+          "y": 32,
+          "w": 32,
+          "h": 32
+        }
+      ]
+    },
+    {
+      "tile": 26,
+      "name": "giant",
+      "row": 2,
+      "family": "Giant",
+      "frameCount": 2,
+      "frames": [
+        {
+          "file": "frames/giant-0.png",
+          "x": 0,
+          "y": 64,
+          "w": 32,
+          "h": 32
+        },
+        {
+          "file": "frames/giant-1.png",
+          "x": 32,
+          "y": 64,
+          "w": 32,
+          "h": 32
+        }
+      ]
+    },
+    {
+      "tile": 27,
+      "name": "daemon",
+      "row": 3,
+      "family": "Daemon",
+      "frameCount": 2,
+      "frames": [
+        {
+          "file": "frames/daemon-0.png",
+          "x": 0,
+          "y": 96,
+          "w": 32,
+          "h": 32
+        },
+        {
+          "file": "frames/daemon-1.png",
+          "x": 32,
+          "y": 96,
+          "w": 32,
+          "h": 32
+        }
+      ]
+    },
+    {
+      "tile": 28,
+      "name": "pincher",
+      "row": 4,
+      "family": "Pincher",
+      "frameCount": 2,
+      "frames": [
+        {
+          "file": "frames/pincher-0.png",
+          "x": 0,
+          "y": 128,
+          "w": 32,
+          "h": 32
+        },
+        {
+          "file": "frames/pincher-1.png",
+          "x": 32,
+          "y": 128,
+          "w": 32,
+          "h": 32
+        }
+      ]
+    },
+    {
+      "tile": 29,
+      "name": "dragon",
+      "row": 5,
+      "family": "Dragon",
+      "frameCount": 2,
+      "frames": [
+        {
+          "file": "frames/dragon-0.png",
+          "x": 0,
+          "y": 160,
+          "w": 32,
+          "h": 32
+        },
+        {
+          "file": "frames/dragon-1.png",
+          "x": 32,
+          "y": 160,
+          "w": 32,
+          "h": 32
+        }
+      ]
+    },
+    {
+      "tile": 30,
+      "name": "balron",
+      "row": 6,
+      "family": "Balron",
+      "frameCount": 2,
+      "frames": [
+        {
+          "file": "frames/balron-0.png",
+          "x": 0,
+          "y": 192,
+          "w": 32,
+          "h": 32
+        },
+        {
+          "file": "frames/balron-1.png",
+          "x": 32,
+          "y": 192,
+          "w": 32,
+          "h": 32
+        }
+      ]
+    },
+    {
+      "tile": 58,
+      "name": "snake-58",
+      "row": 7,
+      "family": "Snake",
+      "frameCount": 1,
+      "frames": [
+        {
+          "file": "frames/snake-58-0.png",
+          "x": 0,
+          "y": 224,
+          "w": 32,
+          "h": 32
+        }
+      ]
+    },
+    {
+      "tile": 59,
+      "name": "snake-59",
+      "row": 8,
+      "family": "Snake",
+      "frameCount": 1,
+      "frames": [
+        {
+          "file": "frames/snake-59-0.png",
+          "x": 0,
+          "y": 256,
+          "w": 32,
+          "h": 32
+        }
+      ]
+    },
+    {
+      "tile": 80,
+      "name": "brigand",
+      "row": 9,
+      "family": "Thief",
+      "frameCount": 2,
+      "frames": [
+        {
+          "file": "frames/brigand-0.png",
+          "x": 0,
+          "y": 288,
+          "w": 32,
+          "h": 32
+        },
+        {
+          "file": "frames/brigand-1.png",
+          "x": 32,
+          "y": 288,
+          "w": 32,
+          "h": 32
+        }
+      ]
+    },
+    {
+      "tile": 81,
+      "name": "cutpurse",
+      "row": 10,
+      "family": "Thief",
+      "frameCount": 2,
+      "frames": [
+        {
+          "file": "frames/cutpurse-0.png",
+          "x": 0,
+          "y": 320,
+          "w": 32,
+          "h": 32
+        },
+        {
+          "file": "frames/cutpurse-1.png",
+          "x": 32,
+          "y": 320,
+          "w": 32,
+          "h": 32
+        }
+      ]
+    },
+    {
+      "tile": 82,
+      "name": "goblin",
+      "row": 11,
+      "family": "Orc",
+      "frameCount": 2,
+      "frames": [
+        {
+          "file": "frames/goblin-0.png",
+          "x": 0,
+          "y": 352,
+          "w": 32,
+          "h": 32
+        },
+        {
+          "file": "frames/goblin-1.png",
+          "x": 32,
+          "y": 352,
+          "w": 32,
+          "h": 32
+        }
+      ]
+    },
+    {
+      "tile": 83,
+      "name": "troll",
+      "row": 12,
+      "family": "Orc",
+      "frameCount": 2,
+      "frames": [
+        {
+          "file": "frames/troll-0.png",
+          "x": 0,
+          "y": 384,
+          "w": 32,
+          "h": 32
+        },
+        {
+          "file": "frames/troll-1.png",
+          "x": 32,
+          "y": 384,
+          "w": 32,
+          "h": 32
+        }
+      ]
+    },
+    {
+      "tile": 84,
+      "name": "ghoul",
+      "row": 13,
+      "family": "Skeleton",
+      "frameCount": 2,
+      "frames": [
+        {
+          "file": "frames/ghoul-0.png",
+          "x": 0,
+          "y": 416,
+          "w": 32,
+          "h": 32
+        },
+        {
+          "file": "frames/ghoul-1.png",
+          "x": 32,
+          "y": 416,
+          "w": 32,
+          "h": 32
+        }
+      ]
+    },
+    {
+      "tile": 85,
+      "name": "zombie",
+      "row": 14,
+      "family": "Skeleton",
+      "frameCount": 2,
+      "frames": [
+        {
+          "file": "frames/zombie-0.png",
+          "x": 0,
+          "y": 448,
+          "w": 32,
+          "h": 32
+        },
+        {
+          "file": "frames/zombie-1.png",
+          "x": 32,
+          "y": 448,
+          "w": 32,
+          "h": 32
+        }
+      ]
+    },
+    {
+      "tile": 86,
+      "name": "golem",
+      "row": 15,
+      "family": "Giant",
+      "frameCount": 2,
+      "frames": [
+        {
+          "file": "frames/golem-0.png",
+          "x": 0,
+          "y": 480,
+          "w": 32,
+          "h": 32
+        },
+        {
+          "file": "frames/golem-1.png",
+          "x": 32,
+          "y": 480,
+          "w": 32,
+          "h": 32
+        }
+      ]
+    },
+    {
+      "tile": 87,
+      "name": "titan",
+      "row": 16,
+      "family": "Giant",
+      "frameCount": 2,
+      "frames": [
+        {
+          "file": "frames/titan-0.png",
+          "x": 0,
+          "y": 512,
+          "w": 32,
+          "h": 32
+        },
+        {
+          "file": "frames/titan-1.png",
+          "x": 32,
+          "y": 512,
+          "w": 32,
+          "h": 32
+        }
+      ]
+    },
+    {
+      "tile": 88,
+      "name": "gargoyle",
+      "row": 17,
+      "family": "Daemon",
+      "frameCount": 2,
+      "frames": [
+        {
+          "file": "frames/gargoyle-0.png",
+          "x": 0,
+          "y": 544,
+          "w": 32,
+          "h": 32
+        },
+        {
+          "file": "frames/gargoyle-1.png",
+          "x": 32,
+          "y": 544,
+          "w": 32,
+          "h": 32
+        }
+      ]
+    },
+    {
+      "tile": 89,
+      "name": "mane",
+      "row": 18,
+      "family": "Daemon",
+      "frameCount": 2,
+      "frames": [
+        {
+          "file": "frames/mane-0.png",
+          "x": 0,
+          "y": 576,
+          "w": 32,
+          "h": 32
+        },
+        {
+          "file": "frames/mane-1.png",
+          "x": 32,
+          "y": 576,
+          "w": 32,
+          "h": 32
+        }
+      ]
+    },
+    {
+      "tile": 90,
+      "name": "snatch",
+      "row": 19,
+      "family": "Pincher",
+      "frameCount": 2,
+      "frames": [
+        {
+          "file": "frames/snatch-0.png",
+          "x": 0,
+          "y": 608,
+          "w": 32,
+          "h": 32
+        },
+        {
+          "file": "frames/snatch-1.png",
+          "x": 32,
+          "y": 608,
+          "w": 32,
+          "h": 32
+        }
+      ]
+    },
+    {
+      "tile": 91,
+      "name": "bradle",
+      "row": 20,
+      "family": "Pincher",
+      "frameCount": 2,
+      "frames": [
+        {
+          "file": "frames/bradle-0.png",
+          "x": 0,
+          "y": 640,
+          "w": 32,
+          "h": 32
+        },
+        {
+          "file": "frames/bradle-1.png",
+          "x": 32,
+          "y": 640,
+          "w": 32,
+          "h": 32
+        }
+      ]
+    },
+    {
+      "tile": 92,
+      "name": "griffon",
+      "row": 21,
+      "family": "Dragon",
+      "frameCount": 2,
+      "frames": [
+        {
+          "file": "frames/griffon-0.png",
+          "x": 0,
+          "y": 672,
+          "w": 32,
+          "h": 32
+        },
+        {
+          "file": "frames/griffon-1.png",
+          "x": 32,
+          "y": 672,
+          "w": 32,
+          "h": 32
+        }
+      ]
+    },
+    {
+      "tile": 93,
+      "name": "wyvern",
+      "row": 22,
+      "family": "Dragon",
+      "frameCount": 2,
+      "frames": [
+        {
+          "file": "frames/wyvern-0.png",
+          "x": 0,
+          "y": 704,
+          "w": 32,
+          "h": 32
+        },
+        {
+          "file": "frames/wyvern-1.png",
+          "x": 32,
+          "y": 704,
+          "w": 32,
+          "h": 32
+        }
+      ]
+    },
+    {
+      "tile": 94,
+      "name": "orcus",
+      "row": 23,
+      "family": "Balron",
+      "frameCount": 2,
+      "frames": [
+        {
+          "file": "frames/orcus-0.png",
+          "x": 0,
+          "y": 736,
+          "w": 32,
+          "h": 32
+        },
+        {
+          "file": "frames/orcus-1.png",
+          "x": 32,
+          "y": 736,
+          "w": 32,
+          "h": 32
+        }
+      ]
+    },
+    {
+      "tile": 95,
+      "name": "devil",
+      "row": 24,
+      "family": "Balron",
+      "frameCount": 2,
+      "frames": [
+        {
+          "file": "frames/devil-0.png",
+          "x": 0,
+          "y": 768,
+          "w": 32,
+          "h": 32
+        },
+        {
+          "file": "frames/devil-1.png",
+          "x": 32,
+          "y": 768,
+          "w": 32,
+          "h": 32
+        }
+      ]
+    },
+    {
+      "tile": 31,
+      "name": "exodus",
+      "row": 25,
+      "family": "Machine",
+      "frameCount": 4,
+      "states": [3, 2, 1, 0],
+      "frames": [
+        {
+          "file": "frames/exodus-0.png",
+          "x": 0,
+          "y": 800,
+          "w": 32,
+          "h": 32
+        },
+        {
+          "file": "frames/exodus-1.png",
+          "x": 32,
+          "y": 800,
+          "w": 32,
+          "h": 32
+        },
+        {
+          "file": "frames/exodus-2.png",
+          "x": 64,
+          "y": 800,
+          "w": 32,
+          "h": 32
+        },
+        {
+          "file": "frames/exodus-3.png",
+          "x": 96,
+          "y": 800,
+          "w": 32,
+          "h": 32
+        }
+      ]
+    },
+    {
+      "tile": 16,
+      "name": "merchant",
+      "row": 26,
+      "family": "People",
+      "frameCount": 2,
+      "frames": [
+        {
+          "file": "frames/merchant-0.png",
+          "x": 0,
+          "y": 832,
+          "w": 32,
+          "h": 32
+        },
+        {
+          "file": "frames/merchant-1.png",
+          "x": 32,
+          "y": 832,
+          "w": 32,
+          "h": 32
+        }
+      ]
+    },
+    {
+      "tile": 17,
+      "name": "jester",
+      "row": 27,
+      "family": "People",
+      "frameCount": 2,
+      "frames": [
+        {
+          "file": "frames/jester-0.png",
+          "x": 0,
+          "y": 864,
+          "w": 32,
+          "h": 32
+        },
+        {
+          "file": "frames/jester-1.png",
+          "x": 32,
+          "y": 864,
+          "w": 32,
+          "h": 32
+        }
+      ]
+    },
+    {
+      "tile": 18,
+      "name": "guard",
+      "row": 28,
+      "family": "People",
+      "frameCount": 2,
+      "frames": [
+        {
+          "file": "frames/guard-0.png",
+          "x": 0,
+          "y": 896,
+          "w": 32,
+          "h": 32
+        },
+        {
+          "file": "frames/guard-1.png",
+          "x": 32,
+          "y": 896,
+          "w": 32,
+          "h": 32
+        }
+      ]
+    },
+    {
+      "tile": 19,
+      "name": "lord-british",
+      "row": 29,
+      "family": "People",
+      "frameCount": 2,
+      "frames": [
+        {
+          "file": "frames/lord-british-0.png",
+          "x": 0,
+          "y": 928,
+          "w": 32,
+          "h": 32
+        },
+        {
+          "file": "frames/lord-british-1.png",
+          "x": 32,
+          "y": 928,
+          "w": 32,
+          "h": 32
+        }
+      ]
+    },
+    {
+      "tile": 10,
+      "name": "horse",
+      "row": 30,
+      "family": "Vehicles",
+      "frameCount": 2,
+      "frames": [
+        {
+          "file": "frames/horse-0.png",
+          "x": 0,
+          "y": 960,
+          "w": 32,
+          "h": 32
+        },
+        {
+          "file": "frames/horse-1.png",
+          "x": 32,
+          "y": 960,
+          "w": 32,
+          "h": 32
+        }
+      ]
+    },
+    {
+      "tile": 11,
+      "name": "frigate",
+      "row": 31,
+      "family": "Vehicles",
+      "frameCount": 2,
+      "frames": [
+        {
+          "file": "frames/frigate-0.png",
+          "x": 0,
+          "y": 992,
+          "w": 32,
+          "h": 32
+        },
+        {
+          "file": "frames/frigate-1.png",
+          "x": 32,
+          "y": 992,
+          "w": 32,
+          "h": 32
+        }
+      ]
+    },
+    {
+      "tile": 15,
+      "name": "pirate-ship",
+      "row": 32,
+      "family": "Vehicles",
+      "frameCount": 2,
+      "frames": [
+        {
+          "file": "frames/pirate-ship-0.png",
+          "x": 0,
+          "y": 1024,
+          "w": 32,
+          "h": 32
+        },
+        {
+          "file": "frames/pirate-ship-1.png",
+          "x": 32,
+          "y": 1024,
+          "w": 32,
+          "h": 32
+        }
+      ]
+    },
+    {
+      "tile": 14,
+      "name": "man-o-war",
+      "row": 33,
+      "family": "Objects",
+      "frameCount": 2,
+      "frames": [
+        {
+          "file": "frames/man-o-war-0.png",
+          "x": 0,
+          "y": 1056,
+          "w": 32,
+          "h": 32
+        },
+        {
+          "file": "frames/man-o-war-1.png",
+          "x": 32,
+          "y": 1056,
+          "w": 32,
+          "h": 32
+        }
+      ]
+    },
+    {
+      "tile": 13,
+      "name": "serpent",
+      "row": 34,
+      "family": "Objects",
+      "frameCount": 2,
+      "frames": [
+        {
+          "file": "frames/serpent-0.png",
+          "x": 0,
+          "y": 1088,
+          "w": 32,
+          "h": 32
+        },
+        {
+          "file": "frames/serpent-1.png",
+          "x": 32,
+          "y": 1088,
+          "w": 32,
+          "h": 32
+        }
+      ]
+    },
+    {
+      "tile": 12,
+      "name": "whirlpool",
+      "row": 35,
+      "family": "Objects",
+      "frameCount": 2,
+      "frames": [
+        {
+          "file": "frames/whirlpool-0.png",
+          "x": 0,
+          "y": 1120,
+          "w": 32,
+          "h": 32
+        },
+        {
+          "file": "frames/whirlpool-1.png",
+          "x": 32,
+          "y": 1120,
+          "w": 32,
+          "h": 32
+        }
+      ]
+    },
+    {
+      "tile": 9,
+      "name": "chest",
+      "row": 36,
+      "family": "Objects",
+      "frameCount": 1,
+      "frames": [
+        {
+          "file": "frames/chest-0.png",
+          "x": 0,
+          "y": 1152,
+          "w": 32,
+          "h": 32
+        }
+      ]
+    },
+    {
+      "tile": 34,
+      "name": "moon-gate",
+      "row": 37,
+      "family": "Objects",
+      "frameCount": 1,
+      "frames": [
+        {
+          "file": "frames/moon-gate-0.png",
+          "x": 0,
+          "y": 1184,
+          "w": 32,
+          "h": 32
+        }
+      ]
+    },
+    {
+      "tile": 62,
+      "name": "shrine",
+      "row": 38,
+      "family": "Objects",
+      "frameCount": 1,
+      "frames": [
+        {
+          "file": "frames/shrine-0.png",
+          "x": 0,
+          "y": 1216,
+          "w": 32,
+          "h": 32
+        }
+      ]
+    }
+  ]
+}
