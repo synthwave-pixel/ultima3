@@ -91,17 +91,23 @@ browser's; Export and Import move a game between them.
   Unsigned as well, so the first launch is refused; right-click the app
   and choose Open, or run `xattr -cr "/Applications/Ultima III.app"` once.
 - **Linux and SteamOS**: a Flatpak bundle and an `AppImage`. The Flatpak
-  is the one for a Steam Deck: in Desktop Mode open the `.flatpak` file in
-  Discover, or run
-  `flatpak install --user Ultima-III-<version>-linux-x86_64.flatpak` (the
-  runtime comes from Flathub), and the game appears in the application
-  menu and in Steam's Add a Non-Steam Game list. Add it there, and in the
-  shortcut's controller settings pick a Gamepad template. The app sees the
-  controller as a gamepad and switches to controller mode on the first
-  press, and starts full screen when Steam launches it. In Game Mode it
-  also turns off GPU acceleration and the browser sandbox, which have hung
-  other Electron apps under gamescope. The AppImage suits any other Linux:
-  make it executable and run it.
+  is the one for a Steam Deck. Install it per user, which needs no
+  password, from Konsole in Desktop Mode: once, tell your user
+  installation about Flathub, where the runtime comes from, then install
+  the file.
+
+      flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+      flatpak install --user Ultima-III-<version>-linux-x86_64.flatpak
+
+  Opening the file in Discover installs it system-wide instead, which asks
+  for a password the deck account does not have. The game then appears in
+  the application menu and in Steam's Add a Non-Steam Game list. Add it
+  there, and in the shortcut's controller settings pick a Gamepad
+  template. The app sees the controller as a gamepad and switches to
+  controller mode on the first press, and starts full screen when Steam
+  launches it. In Game Mode it also turns off GPU acceleration and the
+  browser sandbox, which have hung other Electron apps under gamescope.
+  The AppImage suits any other Linux: make it executable and run it.
 
 ### Android handhelds
 
