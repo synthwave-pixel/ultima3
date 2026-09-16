@@ -9,11 +9,19 @@
 # changing that major.minor. Desktop builds are unsigned: see the README's
 # Desktop section for what that means on each platform. The APK is signed
 # with the committed sideload key unless the ANDROID_KEYSTORE_* secrets
-# provide a release key.
+# provide a release key. Linux gets a Flatpak bundle as well as an
+# AppImage; the Linux job installs (and caches) the runtimes it needs. A
+# manual run with "publish" off keeps every build as an artifact instead
+# of making a release, to try a change first.
 name: Desktop and Android builds
 
 on:
   workflow_dispatch:
+    inputs:
+      publish:
+        description: Publish a GitHub Release (off keeps the builds as artifacts only)
+        type: boolean
+        default: true
   # No paths filter: GitHub skips a filtered workflow when a push creates the branch, which is how a release starts.
   push:
     branches: [main, release]
@@ -29,10 +37,13 @@ jobs:
         include:
           - os: ubuntu-latest
             target: linux
+            args: --linux AppImage flatpak
           - os: windows-latest
             target: win
+            args: --win
           - os: macos-latest
             target: mac
+            args: --mac
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v7
@@ -47,9 +58,22 @@ jobs:
         working-directory: web
       - run: npm ci
         working-directory: desktop
+      # The Flatpak needs flatpak-builder and the Freedesktop runtime, SDK and Electron base app: about a gigabyte, so
+      # the user installation is cached between runs and the install is a no-op when the cache is warm.
+      - if: matrix.target == 'linux'
+        uses: actions/cache@v6
+        with:
+          path: ~/.local/share/flatpak
+          key: flatpak-runtimes-25.08-${{ runner.os }}
+      - if: matrix.target == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y flatpak flatpak-builder elfutils
+          flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+          flatpak install --user -y --noninteractive flathub org.freedesktop.Platform//25.08 org.freedesktop.Sdk//25.08 org.electronjs.Electron2.BaseApp//25.08
       - run: npm run bundle
         working-directory: desktop
-      - run: npm run dist -- --${{ matrix.target }}
+      - run: npm run dist -- ${{ matrix.args }}
         working-directory: desktop
         env:
           # Unsigned macOS builds: skip the notarisation step electron-builder would otherwise attempt.
@@ -59,6 +83,7 @@ jobs:
           name: ultima3-${{ matrix.target }}
           path: |
             desktop/dist/*.AppImage
+            desktop/dist/*.flatpak
             desktop/dist/*.exe
             desktop/dist/*.dmg
           if-no-files-found: error
@@ -106,10 +131,10 @@ jobs:
           path: mobile/dist/*.apk
           if-no-files-found: error
 
-  # A manual run, or a push to the release branch, publishes one release with every file once all four builds exist;
-  # the tag lands on this commit.
+  # A manual run (unless told not to publish), or a push to the release branch, publishes one release with every file
+  # once all four builds exist; the tag lands on this commit.
   release:
-    if: ${{ github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/release' }}
+    if: ${{ (github.event_name == 'workflow_dispatch' && inputs.publish) || github.ref == 'refs/heads/release' }}
     needs: [build, android]
     runs-on: ubuntu-latest
     steps:

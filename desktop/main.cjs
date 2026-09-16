@@ -3,11 +3,23 @@
 // clipboard) without a web server. No menu bar, so every key reaches the
 // game; F11 or Alt+Enter toggles full screen, and the window starts full
 // screen when asked (--fullscreen) or when Steam launched it (the SteamDeck
-// or SteamOS environment variables, set in Game Mode).
+// or SteamOS environment variables, set in Game Mode). Under gamescope,
+// Steam's Game Mode compositor, GPU acceleration and the Chromium sandbox
+// are turned off: see below.
 const { app, BrowserWindow, protocol, net, shell, session } = require('electron');
 const { join, normalize } = require('node:path');
 const { pathToFileURL } = require('node:url');
 const { readFileSync, writeFileSync, existsSync } = require('node:fs');
+
+// Game Mode runs the app under the gamescope compositor, where Chromium's GPU process has hung whole sessions and
+// its seccomp sandbox has killed apps Steam launched. The game is a 2D canvas that needs neither, so under gamescope
+// both are off, and the window is X11 (XWayland), the path gamescope handles best. Desktop Mode is left alone.
+const inGamescope = !!process.env.GAMESCOPE_WAYLAND_DISPLAY || /gamescope/i.test(process.env.XDG_CURRENT_DESKTOP ?? '');
+if (inGamescope) {
+  app.disableHardwareAcceleration();
+  app.commandLine.appendSwitch('no-sandbox');
+  app.commandLine.appendSwitch('ozone-platform', 'x11');
+}
 
 const APP_DIR = join(__dirname, 'app');
 const SCHEME = 'app';

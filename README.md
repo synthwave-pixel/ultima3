@@ -90,13 +90,18 @@ browser's; Export and Import move a game between them.
 - **macOS**: an Apple Silicon `.dmg` (Intel Macs: use the web version).
   Unsigned as well, so the first launch is refused; right-click the app
   and choose Open, or run `xattr -cr "/Applications/Ultima III.app"` once.
-- **Linux and SteamOS**: an `AppImage`. Make it executable and run it. On
-  a Steam Deck, copy it to the Deck (say `~/Games`), make it executable
-  in Desktop Mode, add it to Steam as a non-Steam game, and in the
+- **Linux and SteamOS**: a Flatpak bundle and an `AppImage`. The Flatpak
+  is the one for a Steam Deck: in Desktop Mode open the `.flatpak` file in
+  Discover, or run
+  `flatpak install --user Ultima-III-<version>-linux-x86_64.flatpak` (the
+  runtime comes from Flathub), and the game appears in the application
+  menu and in Steam's Add a Non-Steam Game list. Add it there, and in the
   shortcut's controller settings pick a Gamepad template. The app sees the
   controller as a gamepad and switches to controller mode on the first
-  press; it starts full screen when Steam launches it. Nothing needs a
-  Flatpak permission, since it is not a Flatpak.
+  press, and starts full screen when Steam launches it. In Game Mode it
+  also turns off GPU acceleration and the browser sandbox, which have hung
+  other Electron apps under gamescope. The AppImage suits any other Linux:
+  make it executable and run it.
 
 ### Android handhelds
 

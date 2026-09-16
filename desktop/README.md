@@ -21,4 +21,17 @@ version comes from `version.cjs`: the major.minor of `version` in
 timestamped pre-release (`1.0.0-dev.20260915.2214`) for a build made
 anywhere else; `BUILD_VERSION` overrides both. `npm run dist` passes it
 to electron-builder as metadata, so `package.json` is never edited.
-macOS builds are Apple Silicon only.
+macOS builds are Apple Silicon only. A manual run with "publish" off
+keeps the builds as artifacts instead of making a release.
+
+Linux gets an AppImage and a Flatpak bundle. The Flatpak is built only
+where `flatpak-builder` and the Freedesktop 25.08 runtime, SDK and
+Electron base app are installed, which the Linux job does (on a Linux
+machine: `flatpak install flathub org.freedesktop.Platform//25.08
+org.freedesktop.Sdk//25.08 org.electronjs.Electron2.BaseApp//25.08`), so
+`npm run dist:linux` elsewhere builds the AppImage alone and the workflow
+asks for both (`--linux AppImage flatpak`). Its permissions are the
+`flatpak` block in `package.json`: display, sound, the home folder for
+Export and Import, and every device so gamepads are seen. Under gamescope
+(Steam's Game Mode) `main.cjs` turns off GPU acceleration and the
+Chromium sandbox, which have hung other Electron apps there.
