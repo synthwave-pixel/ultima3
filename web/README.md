@@ -228,7 +228,7 @@ src/ui/     browser only
   screen.ts       Canvas renderer and the GameIO implementation
   dungeonView.ts  the first-person dungeon renderer
   input.ts        keyboard as an awaitable queue
-  menus.ts        controller mode: menu windows, command lists, gamepad reader
+  menus.ts        menu windows (keys, feedback sounds), controller command lists, gamepad reader
   touch.ts        the virtual controller on touch screens
   dungeonArt.ts   dungeon sheets painted per tile set
   moonArt.ts      moon phases painted per tile set

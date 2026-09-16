@@ -51,6 +51,8 @@ import {
   layoutMenu,
   drawMenu,
   moveCursor,
+  applyMenuKey,
+  MENU_SOUNDS,
   GamepadReader,
   type MenuWindow,
   HINT_ROWS,
@@ -590,7 +592,10 @@ export class Screen implements GameIO {
   /**
    * Show a menu and run it until the player picks an item (its index) or
    * cancels (-1). Letter keys still pick the matching option, so a keyboard
-   * works in controller mode too.
+   * works in controller mode too. On the title screens (the main menu and
+   * all it opens) each key is answered with a sound, subject to the Sound
+   * FX setting; over the game frame the game's own sounds are playing, so
+   * its menus stay quiet.
    */
   private async runMenu(title: string, options: MenuOption[], columns = 1, place?: MenuPlacement, cursor = 0): Promise<number> {
     const visible = options.filter((o) => !o.hidden);
@@ -608,31 +613,23 @@ export class Screen implements GameIO {
       if (menu.cursor >= menu.visibleRows) menu.top = menu.cursor - menu.visibleRows + 1;
     }
     this.openMenu(menu);
+    const feedback = !this.frameShown;
     try {
       for (;;) {
         const key = await this.readKey();
         if (key === null) continue;
-        if (moveCursor(menu, key)) {
+        const action = applyMenuKey(menu, options, visible, key);
+        if (action.kind === 'move') {
+          if (feedback) this.sound(MENU_SOUNDS.move);
           this.showMenuNow();
-          continue;
-        }
-        // Enter and Escape serve keyboard users where a menu is shown in both modes.
-        if (key === Key.A || key === Key.Enter) {
-          if (!visible.length) return -1;
-          if (visible[menu.cursor].disabled) {
-            this.sound(Sound.Error1);
-            continue;
-          }
-          return options.indexOf(visible[menu.cursor]);
-        }
-        if (key === Key.B || key === Key.Escape) return -1;
-        const byKey = options.findIndex((o) => o.key === key.toUpperCase());
-        if (byKey >= 0) {
-          if (options[byKey].disabled) {
-            this.sound(Sound.Error1);
-            continue;
-          }
-          return byKey;
+        } else if (action.kind === 'choose') {
+          if (feedback) this.sound(MENU_SOUNDS.choose);
+          return action.index;
+        } else if (action.kind === 'back') {
+          if (feedback) this.sound(MENU_SOUNDS.back);
+          return -1;
+        } else if (action.kind === 'refused') {
+          this.sound(Sound.Error1);
         }
       }
     } finally {

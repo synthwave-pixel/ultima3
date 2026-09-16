@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { Key } from '../src/game/io.ts';
-import { controllerKeyFor, GamepadReader, GAMEPAD_REPEAT_FIRST_MS, GAMEPAD_REPEAT_MS } from '../src/ui/menus.ts';
+import { Key, Sound, type MenuOption } from '../src/game/io.ts';
+import {
+  applyMenuKey,
+  controllerKeyFor,
+  GamepadReader,
+  GAMEPAD_REPEAT_FIRST_MS,
+  GAMEPAD_REPEAT_MS,
+  layoutMenu,
+  MENU_SOUNDS,
+} from '../src/ui/menus.ts';
 
 describe('controller stand-ins on the keyboard', () => {
   it('map WASD to the d-pad and the button row and the pad letters to the buttons', () => {
@@ -71,5 +79,63 @@ describe('gamepad reader', () => {
     hold([pad([], [0.9, 0])]);
     reader.poll();
     expect(pushed).toHaveLength(4);
+  });
+});
+
+describe('keys in a menu window', () => {
+  const options: MenuOption[] = [
+    { key: 'J', label: 'Journey onward' },
+    { key: 'X', label: 'Hidden', hidden: true },
+    { key: 'O', label: 'Organize a party' },
+    { key: 'S', label: 'Settings', disabled: true },
+  ];
+  const setup = () => {
+    const visible = options.filter((o) => !o.hidden);
+    return {
+      menu: layoutMenu(
+        'Options',
+        visible.map((o) => o.label),
+      ),
+      visible,
+    };
+  };
+
+  it('moves the cursor for a direction that changes it, and reports no move for one that does not', () => {
+    const { menu, visible } = setup();
+    expect(applyMenuKey(menu, options, visible, Key.Down)).toEqual({ kind: 'move' });
+    expect(menu.cursor).toBe(1);
+    expect(applyMenuKey(menu, options, visible, Key.Left)).toEqual({ kind: 'none' }); // one column: nowhere to go
+    expect(menu.cursor).toBe(1);
+    expect(applyMenuKey(menu, options, visible, Key.Up)).toEqual({ kind: 'move' });
+    expect(applyMenuKey(menu, options, visible, Key.Up)).toEqual({ kind: 'move' }); // wraps to the bottom
+    expect(menu.cursor).toBe(2);
+  });
+
+  it('chooses the item at the cursor with A or Enter, by its index in the whole list', () => {
+    const { menu, visible } = setup();
+    applyMenuKey(menu, options, visible, Key.Down);
+    expect(applyMenuKey(menu, options, visible, Key.A)).toEqual({ kind: 'choose', index: 2 }); // past the hidden option
+    expect(applyMenuKey(menu, options, visible, Key.Enter)).toEqual({ kind: 'choose', index: 2 });
+  });
+
+  it('chooses by letter in either case, hidden options included, and refuses disabled ones', () => {
+    const { menu, visible } = setup();
+    expect(applyMenuKey(menu, options, visible, 'o')).toEqual({ kind: 'choose', index: 2 });
+    expect(applyMenuKey(menu, options, visible, 'X')).toEqual({ kind: 'choose', index: 1 });
+    expect(applyMenuKey(menu, options, visible, 'S')).toEqual({ kind: 'refused' });
+    applyMenuKey(menu, options, visible, Key.Up); // wraps down to Settings
+    expect(applyMenuKey(menu, options, visible, Key.A)).toEqual({ kind: 'refused' });
+    expect(applyMenuKey(menu, options, visible, 'q')).toEqual({ kind: 'none' });
+  });
+
+  it('backs out with B or Escape, and with A on an empty list', () => {
+    const { menu, visible } = setup();
+    expect(applyMenuKey(menu, options, visible, Key.B)).toEqual({ kind: 'back' });
+    expect(applyMenuKey(menu, options, visible, Key.Escape)).toEqual({ kind: 'back' });
+    expect(applyMenuKey(layoutMenu('Empty', []), [], [], Key.A)).toEqual({ kind: 'back' });
+  });
+
+  it('answers with a footstep, the attack and a swing', () => {
+    expect(MENU_SOUNDS).toEqual({ move: Sound.Step, choose: Sound.Attack, back: 'Swish1' });
   });
 });

@@ -10,7 +10,7 @@
  * menu and what to do with the answer.
  */
 
-import { Key, type CommandScope, type MenuOption } from '../game/io.ts';
+import { Key, Sound, type CommandScope, type MenuOption } from '../game/io.ts';
 import { VIEW_MAP_KEY } from '../game/context.ts';
 import { GraphicsSet } from './graphics.ts';
 import { Keyboard } from './input.ts';
@@ -293,6 +293,39 @@ export function moveCursor(menu: MenuWindow, key: string): boolean {
   if (row < menu.top) menu.top = row;
   if (row >= menu.top + menu.visibleRows) menu.top = row - menu.visibleRows + 1;
   return true;
+}
+
+/** What a title-screen menu answers a key with: a footstep as the cursor moves, the attack for a choice, a swing on backing out. */
+export const MENU_SOUNDS = { move: Sound.Step, choose: Sound.Attack, back: Sound.Swish[0] } as const;
+
+/** What a key did in a menu window. */
+export type MenuAction =
+  | { kind: 'move' } // the cursor moved
+  | { kind: 'choose'; index: number } // an option was chosen: its index in the whole list
+  | { kind: 'refused' } // a disabled option was chosen
+  | { kind: 'back' } // the menu was backed out of
+  | { kind: 'none' }; // the key did nothing
+
+/**
+ * Apply a key to a menu window. A direction moves the cursor (and scrolls
+ * the window with it); A or Enter chooses the item at the cursor; B or
+ * Escape backs out; a letter chooses the option with that key, shown or
+ * hidden, so a keyboard works wherever a menu is shown. A disabled option
+ * is refused. `options` is the whole list and `visible` the options the
+ * window shows, in its order.
+ */
+export function applyMenuKey(menu: MenuWindow, options: MenuOption[], visible: MenuOption[], key: string): MenuAction {
+  const before = menu.cursor;
+  if (moveCursor(menu, key)) return { kind: menu.cursor === before ? 'none' : 'move' };
+  if (key === Key.A || key === Key.Enter) {
+    const at = visible[menu.cursor];
+    if (!at) return { kind: 'back' };
+    return at.disabled ? { kind: 'refused' } : { kind: 'choose', index: options.indexOf(at) };
+  }
+  if (key === Key.B || key === Key.Escape) return { kind: 'back' };
+  const byKey = options.findIndex((o) => o.key === key.toUpperCase());
+  if (byKey < 0) return { kind: 'none' };
+  return options[byKey].disabled ? { kind: 'refused' } : { kind: 'choose', index: byKey };
 }
 
 /** A held direction repeats, as a held key does on a keyboard: after this long, then at this rate. */
