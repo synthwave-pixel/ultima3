@@ -3,7 +3,7 @@
   "productName": "Ultima III",
   "version": "1.0.0",
   "description": "Ultima III: Exodus, LairWare's Macintosh port rebuilt for the browser, as a desktop app",
-  "author": "Will Iverson",
+  "author": "synthwave-pixel",
   "license": "MIT",
   "private": true,
   "main": "main.cjs",

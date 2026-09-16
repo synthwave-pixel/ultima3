@@ -2,35 +2,56 @@
 
 **Play it:** <https://synthwave-pixel.github.io/ultima3/>
 
-I played Ultima III as a kid on both my Apple //c and my Nintendo, and then
-Ultima V on my Apple //gs. This is an updated version of LairWare's
-Macintosh port of Ultima III, rewritten in TypeScript to run in a browser
-and offline as an installable web app. It keeps the original keyboard
-interface and many of the original skins: Apple II in colour and mono,
-Commodore 64, NES, the PC's CGA, EGA, MCGA and VGA, the Ultima V look and
-the Macintosh in black and white. I added a new theme, Standard, and kept
-LairWare's own as an option.
+Background: I played Ultima III on both my Apple //c and my Nintendo, and
+then Ultima V on my Apple //gs. Later I rediscovered the game via the
+LairWare macOS port.
+
+I am pleased to offer an updated version of the title with quite a few
+changes:
+
+1. Rebuilt in TypeScript. Runs in the browser, installs as an offline PWA,
+   and ships as macOS, Windows, Linux and Android builds.
+2. Still offers an experience very close to the original if you choose,
+   building on the LairWare baseline with its full set of period tile
+   sets: Apple II in color and mono, Commodore 64, NES, the PC's CGA,
+   EGA, MCGA and VGA, the Ultima V look and the Macintosh black on
+   white.
+3. Includes an updated Standard experience: controller play, new art and
+   sound, and tweakable settings.
+
+The following were design principles for the updated Standard experience:
+
+1. No changes to the core data files - it's Ultima III.
+2. Changes are all made with the spirit and look of the original, with
+   just enough updates to allow a new player to enjoy the game completely
+   offline and have a great time.
 
 The game starts in the new Controller mode, inspired by the NES version,
 which most modern players will prefer. In Controller mode the whole game
-is played without a keyboard, which suits a handheld or a phone and is far
-more accessible on a desktop too, where the same keys drive it. Its menus
-put the common actions at the top, and a few shortcuts (cast the right
-heal, open a chest safely, light a dungeon) make combat and exploration
-more fun than typing letters ever was. The cloth map that came in the box
-can be viewed in the game, and a quest journal gives just enough in-game
-hints that most players should finish without an external guide. There are
-options that ease the difficulty a little. The party shares one inventory
-for unequipped gear. And many, many other improvements.
+is played using simple, in-game controls and menus.
+
+This controller user experience works as well with a keyboard as with a
+gamepad or a touch screen, and is far more accessible on a desktop than
+typing letters. Menus put the common actions at the top, and a few
+shortcuts (cast the right heal, open a chest safely, light a dungeon) make
+combat and exploration more fun - it's still grindy, but now the grind is
+*fun*. Everything is designed to look like it could have been in the
+original, while still bringing a more modern UX design to the table.
+
+The cloth map that came in the box can be viewed in the game, and a quest
+journal gives just enough in-game hints that most players should be able
+to finish the game without an external guide. There are options that ease
+the difficulty a little. The party shares one inventory for unequipped
+gear. And many, many other subtle improvements.
 
 All of it is configurable in the game's Settings. If you want the original
 gameplay, it is all still there: classic difficulty, keyboard commands,
 the original skins. Not a single data file from the original LairWare
-build has been touched; the port reads them as they are.
+build has been touched.
 
 Ultima III is by Richard Garriott and Origin Systems (1983). The Macintosh
 port is by Leon McNeill of LairWare, whose original README is at the
-bottom of this page. This version is by Will Iverson.
+bottom of this page.
 
 ## Playing
 
@@ -41,29 +62,27 @@ Updates download in the background, and the title menu then offers
 "Update: restart".
 
 The game saves itself at every town, castle and dungeon door and at Quit,
-in the browser's storage, and resumes on the next visit. The title menu's
-Export game copies the saved game as text to the clipboard or a file, and
-Import game reads it back, which is how a game moves between devices. On
-iOS, add the game to the Home Screen: Safari and every other iOS browser
-delete a site's storage after seven days without a visit, and the game
-warns of this once a day in a browser tab.
+in the browser's local storage, and resumes on the next visit. The title
+menu's Export game copies the saved game as text to the clipboard or a
+file, and Import game reads it back, which is how a game moves between
+devices.
+
+**Back up your saved game.** Browsers can clear a site's storage on their
+own: Safari and every other iOS browser delete it after seven days without
+a visit, and any browser may drop it under storage pressure, when site
+data is cleared, or at the end of a private window. Play often, and export
+the game now and then so a copy is on the clipboard or in a file. On iOS,
+add the game to the Home Screen, which keeps its storage; in a browser tab
+the game warns of this once a day. If a browser cannot keep a save at all,
+copy and paste alone is enough to carry a game through.
 
 ### Desktop app, and the Steam Deck
 
 The same game is packaged as a desktop app with Electron, for players who
 want a plain window, an icon in the dock, or a Steam shortcut. Builds for
 Windows, macOS and Linux are on the
-[Releases page](https://github.com/synthwave-pixel/ultima3/releases). They are
-made by the "Desktop and Android builds" workflow under Actions. Every
-push to main that changes the game or an app makes a development build,
-kept as workflow artifacts for ninety days; running the workflow by hand,
-or pushing main to the `release` branch, makes the same builds and
-publishes them as a release. Either way the
-version is the major.minor from `desktop/package.json` with the run
-number as the patch (1.0.37, say), so nothing is numbered by hand, and a
-new series starts by changing that major.minor. A build made outside
-Actions is stamped with its time instead (1.0.0-dev.20260915.2214).
-The saved game lives in the app's own storage, separate from the
+[Releases page](https://github.com/synthwave-pixel/ultima3/releases). The
+desktop app keeps its saved game in its own storage, separate from the
 browser's; Export and Import move a game between them.
 
 - **Windows**: an installer and a portable `.exe`. Both are unsigned, so
@@ -79,24 +98,20 @@ browser's; Export and Import move a game between them.
   press; it starts full screen when Steam launches it. Nothing needs a
   Flatpak permission, since it is not a Flatpak.
 
-Inside the app, F11 or Alt+Enter toggles full screen, `--fullscreen` and
-`--windowed` on the command line force one or the other, and `--new` and
-`--controller` do what the web version's `?new` and `?controller` flags do.
-
 ### Android handhelds
 
 For Android handhelds like the AYN Odin or the Retroid Pocket, and for
 phones and tablets, the same workflow also builds an APK
 (`Ultima-III-<version>-android.apk`), published in the same release as
-the desktop installers. Copy it to the device
-and open it; Android asks once to allow installs from that source. Or
-let [Obtainium](https://github.com/ImranR98/Obtainium) install it and
-keep it updated from the releases: tap the badge on the device, or add
+the desktop installers. Copy it to the device and open it; Android asks
+once to allow installs from that source. Or let
+[Obtainium](https://github.com/ImranR98/Obtainium) install it and keep it
+updated from the releases: tap the badge on the device, or add
 `https://github.com/synthwave-pixel/ultima3` in Obtainium by hand.
 
 <a href="https://apps.obtainium.imranr.dev/redirect?r=obtainium://app/%7B%22id%22%3A%22com.synthwavepixel.ultima3%22%2C%22url%22%3A%22https%3A%2F%2Fgithub.com%2Fsynthwave-pixel%2Fultima3%22%2C%22author%22%3A%22synthwave-pixel%22%2C%22name%22%3A%22Ultima%20III%22%7D"><img src="mobile/badge_obtainium.png" alt="Get it on Obtainium" width="161"></a>
- The
-app runs full screen in landscape, the Back button opens Settings as
+
+The app runs full screen in landscape, the Back button opens Settings as
 Escape does, and built-in controls that Android reports as a gamepad
 switch the game to controller mode on the first press. The APK is signed
 with a key kept in the repository, so a new build installs over the old
@@ -146,62 +161,137 @@ boxes and Enter. The same controls are in the game under Settings > Help.
 ### Settings
 
 Input mode, tile set, auto combat, poison kills, starvation, balanced XP,
-the turn timer, Sound FX (Standard, Lairware or Off), music and
-Help. Every setting is remembered
-by the browser. A new game asks "Choose Thine Adventure!": Modern
-(recommended), Classic (hardcore, the Apple II's rules) or Story
-(relaxed), each a preset of the difficulty settings that can be changed
-afterwards.
+the turn timer, Sound FX (Standard, Lairware or Off), music and Help.
+Every setting is remembered by the browser. A new game asks "Choose Thine
+Adventure!": Modern (recommended), Classic (hardcore, the Apple II's
+rules) or Story (relaxed), each a preset of the difficulty settings that
+can be changed afterwards.
 
 ## What changed
 
-### The Standard theme
+### Changes to all modes
 
-Standard is a new tile set. It is meant to evoke the memory of a classic
-PC VGA look, with a modern sensibility about colour and design: how you
-vaguely remember the game through nostalgia glasses, rather than how any
-one machine drew it. Its terrain descends from LairWare's Macintosh set;
-everything that moves is new.
+These apply whatever tile set and sound set are chosen.
 
-- Every figure is new flat pixel art: the eleven character classes, the
-  townspeople, the eight monsters and their sixteen variants, the Exodus
-  machine's four light states, the horse, the ships, the whirlpool, chest,
-  moongate and shrine. The figures are drawn at 32 pixels on Apple II
-  silhouettes, three tones per material, and doubled into the sheet, so
-  they read as one family from the party grid to the combat arena.
-- Each class has its own figure. Paladins, barbarians, druids, larks,
-  illusionists, alchemists and rangers no longer borrow the fighter,
-  cleric, wizard or jester. The party on the overworld is drawn as its
-  members at half size in a 2x2 grid; in towns and castles the leader
-  walks at full size with the others in a line behind, as on the NES.
-- The Great Serpent that blocks the pass is one tall figure across two
-  tiles, head to the south where the party comes to yell at it.
-- Every figure and object carries a one-pixel rim of half-black, so it
-  stands off water, stone and lava; over the near-black grass it is
-  invisible. It is a build step, not part of the art.
-- The magic and fire balls of combat are flat orbs with the Apple II's
-  diamond core, and a hit is a three-frame red burst rather than a HIT
-  tile. The forcefield is bands of violet and blue that scroll without a
-  seam.
-- The frame, caps and cursor are recoloured from LairWare's teal to a
-  darker copper that recedes behind the map. Moon phases are flat pixel
-  moons in white and yellow. The fountain, mark rod, shrine and Time Lord
-  scenes and the title logo are drawn in the theme's own style.
-- Character boxes colour the name by state (green poisoned, grey dead,
-  blue when Lord British would raise the member), and hit points go
-  yellow under a quarter and red under a tenth.
-- Repairs to the Mac sheet: seams in the scrolling water, lava and
-  moongate tiles, alpha fringe on creature cells, and the Ranger, whose
-  two frames were the same picture, gets a second frame with the sword arm
-  raised. LairWare's own set is untouched, seams and still Ranger and all.
+#### Controller mode
 
-- Casting a spell gives one white pulse at half strength instead of the
-  original's two full inversions of the view: over the caster's square
-  for a bolt or a self-directed spell, over the recipient's for a heal,
-  and over the whole view for spells that change all of it, the light
-  spells included. The other tile sets keep the original flash.
+- The command menu lists what the surroundings call for first: Enter on a
+  town, Board on a horse, Get on a chest, Attack beside a monster. Commands
+  that make no sense where you stand are left out, and ones with nothing
+  on hand (no gem, no torch, no caster alive) are grayed.
+- In combat, a ranged weapon in hand puts "Attack (Bow)" first and a
+  caster gets "Cast (spell)" with their last spell ready. Walking into a
+  foe attacks it.
+- Shortcuts cast at once, with no prompts, choosing the caster with the
+  most mana: "Cast (Heal)" or "Cast (Great heal)" leads the menu when
+  someone is hurt; "Cast (Safe chest)" sits under Get chest on a chest;
+  "Cast (Long light)" or "Cast (Light)" sits under Ignite torch in a dark
+  dungeon, the strongest light spell anyone can cast.
+- Menus replace typed numbers on the title and party screens: the roster
+  is a pick list, the party a list in marching order, attributes a screen
+  where left and right spend the points, and a random name is offered.
+  "Who?" prompts move a pair of arrows through the stats boxes.
+- A virtual controller on touch screens, a gamepad through the Gamepad
+  API, and an on-screen keyboard for names and words.
 
-### Fidelity for the original skins
+#### Journal, map and hints
+
+- A quest journal, which the Apple II never had. It reveals the main line
+  one step at a time: speak to the king, the Mark of Kings, lost Ambrosia,
+  the four cards, exotic arms, the Marks of Fire and Force, the silver
+  snake, the order of the cards, Exodus. Each entry shows its progress and
+  every clue heard about it, kept as the townsperson, king, prayer or
+  *redacted* spoke it, with the town's name. Up and Down move between
+  entries, and H (Y on a controller) prints a hint written for this port.
+  "Journal updated" prints when something real changes.
+- View map shows the cloth map of Sosaria from the box, through a CRT
+  effect. Every moongate the party has come out of is marked on it with the
+  moon that opens it, so the gate table writes itself one trip at a time.
+- A dungeon auto-map, the graph paper of old: cells seen by torchlight are
+  recorded, shown as a small overlay or as the whole level in place of the
+  first-person view, which turns the dungeon into a top-down crawl.
+
+#### Party and inventory
+
+- Gold and food are pooled for the whole party and shown on the top
+  border. Members eat from the pool and go hungry together.
+- Weapons and armor are pooled in one bag; a member's record keeps only
+  what is readied and worn. Ready and Wear draw from the bag, so one sword
+  cannot arm two members. Shops gray what the buyer's class cannot use and
+  offer to ready or wear a purchase on the spot. Forming a party pools the
+  bags; dispersing deals them out. The Hand command is gone.
+- Gems, keys, powders and torches are the party's too, so Peer, Unlock,
+  Negate time and Ignite never ask whose.
+- Lord British's raise adds the hundred hit points as well as the room for
+  them, and his prompt lists only the members due a level.
+
+#### Difficulty and settings
+
+- Poison kills, off by default: poison stops at one hit point so a member
+  limps home; on, it kills as on the Apple II.
+- Starvation: Classic (the Apple II's, to the death), Mild (stops at half
+  hit points, the default) or None.
+- Timer: Fast (the Apple II's turn timer), Slow, or Off, which makes the
+  game turn-based through and through.
+- Balanced XP, on by default: a kill's experience is shared among the
+  living members instead of going all to the killer.
+- Auto combat, LairWare's addition, kept, with a smarter planner: members
+  path round comrades and walls to the nearest square they can strike
+  from.
+
+#### Sound
+
+- Two sets of effects, chosen in Settings: Standard, new and described
+  under the Standard changes below, and Lairware, the Macintosh port's
+  sampled set with a per-effect gain table that evens out its levels. Off
+  silences them.
+- The same effect is not restarted within a few dozen milliseconds, a long
+  one is not restarted while it sounds, and the music dips under a long
+  effect.
+- The title-screen menus answer each key with an effect from the chosen
+  set: a footstep as the cursor moves, the attack for a choice, a swing on
+  backing out.
+
+#### Play
+
+- Bumping into things does what you would have typed next: a townsperson
+  is talked to, a counter opens the shop, a locked door asks for a key, a
+  monster is attacked.
+- Transact asks the direction first and "who" only when it matters.
+- Spell menus name spells by what they do (Magic bolt, Heal, Up a level),
+  with the book name, cost and effect beneath.
+- Other and Yell are one command, and EVOCARE works from either.
+- Repeated turns fold together: "North (x5)" instead of five lines.
+- Fountains and the *redacted* speak when the party steps onto them, not
+  on every turn spent standing there.
+- Direction and "who" prompts sit on the map's border so the map and the
+  combat marker stay in view. The active member in combat has a fading
+  outline instead of a blink.
+- A party wipe offers a choice: try again from the last save, or flee to
+  Lord British as the Apple II did.
+- The game pauses, music included, while the window is not focused.
+- Cheats, on the Help pages: full restore, raise every level, go home,
+  exit dungeon, gold, food, gems, keys and torches. None of it existed in
+  the original; it is there for testing and for anyone who wants it.
+
+#### Bug fixes
+
+- Monsters far to the west of the party headed the long way round: the C
+  port's heading test did not wrap as the Apple II's 8-bit arithmetic did.
+- A new character could throw away their only dagger; now a dagger is
+  thrown only when there is a spare.
+
+#### Left out on purpose
+
+LairWare's Mac additions that were not part of the game: the animated
+intro and attract mode, auto-heal, the LairWare stats dialog, the Diorama
+map and random map generator, text-to-speech, mouse control and the Mac
+dialogs. The Apple II text flow is used instead. Diagonal movement for the
+party, which the Mac allowed, is off: as on the Apple II, monsters may
+move diagonally and the party may not. LairWare had some other updates
+for things like portraits that are not included.
+
+### Changes to the historic modes
 
 Changes that make each of the older tile sets look more like its machine
 than the Mac version did.
@@ -219,142 +309,92 @@ than the Mac version did.
 - Exodus' lights run in every set. The Mac's cycling panels were kept
   in spare cells and copied about; the port draws them where they sit.
 - Creature transparency is read from the sheet's own alpha; the Mac's
-  separate mask files are honoured where a set ships one, and a set with
+  separate mask files are honored where a set ships one, and a set with
   neither draws creatures opaque, as its machine did.
 
-### Controller mode
+### Standard-specific changes
 
-- The command menu lists what the surroundings call for first: Enter on a
-  town, Board on a horse, Get on a chest, Attack beside a monster. Commands
-  that make no sense where you stand are left out, and ones with nothing
-  on hand (no gem, no torch, no caster alive) are greyed.
-- In combat, a ranged weapon in hand puts "Attack (Bow)" first and a
-  caster gets "Cast (spell)" with their last spell ready. Walking into a
-  foe attacks it.
-- Shortcuts cast at once, with no prompts, choosing the caster with the
-  most mana: "Cast (Heal)" or "Cast (Great heal)" leads the menu when
-  someone is hurt; "Cast (Safe chest)" sits under Get chest on a chest;
-  "Cast (Long light)" or "Cast (Light)" sits under Ignite torch in a dark
-  dungeon, the strongest light spell anyone can cast.
-- Menus replace typed numbers on the title and party screens: the roster
-  is a pick list, the party a list in marching order, attributes a screen
-  where left and right spend the points, and a random name is offered.
-  "Who?" prompts move a pair of arrows through the stats boxes.
-- A virtual controller on touch screens, a gamepad through the Gamepad
-  API, and an on-screen keyboard for names and words.
+Standard is the port's own theme. It is meant to evoke the memory of a
+classic PC VGA look, with a modern sensibility about color and design:
+how you vaguely remember the game through nostalgia glasses, rather than
+how any specific machine drew it. As I mentioned earlier - I played on the
+Apple //c and the NES, and this is a fusion incorporating both the best of
+those builds and a modern developer sensibility.
 
-### Journal, map and hints
+#### The look
 
-- A quest journal, which the Apple II never had. It reveals the main line
-  one step at a time: speak to the king, the Mark of Kings, lost Ambrosia,
-  the four cards, exotic arms, the Marks of Fire and Force, the silver
-  snake, the order of the cards, Exodus. Each entry shows its progress and
-  every clue heard about it, kept as the townsperson, king, prayer or Time
-  Lord spoke it, with the town's name. Up and Down move between entries,
-  and H (Y on a controller) prints a hint written for this port.
-  "Journal updated" prints when something real changes.
-- View map shows the cloth map of Sosaria from the box, through a CRT
-  effect. Every moongate the party has come out of is marked on it with the
-  moon that opens it, so the gate table writes itself one trip at a time.
-- A dungeon auto-map, the graph paper of old: cells seen by torchlight are
-  recorded, shown as a small overlay or as the whole level in place of the
-  first-person view, which turns the dungeon into a top-down crawl.
+- Every figure is new flat pixel art: the eleven character classes, the
+  townspeople, the eight monsters and their sixteen variants, the Exodus
+  machine's four light states, the horse, the ships, the whirlpool, chest,
+  moongate and shrine. The figures are drawn at 32 pixels on Apple II
+  silhouettes, three tones per material, and doubled into the sheet, so
+  they read as one family from the party grid to the combat arena.
+- Each class has its own figure. Paladins, barbarians, druids, larks,
+  illusionists, alchemists and rangers no longer borrow the fighter,
+  cleric, wizard or jester. The party on the overworld is drawn as its
+  members at half size in a 2x2 grid; in towns and castles the leader
+  walks at full size with the others in a line behind, as on the NES.
+- Every figure and object carries a one-pixel rim of half-black, so it
+  stands out against water, stone and lava; over the near-black grass it is
+  invisible. It is a build step, not part of the art. This is an
+  example of a tiny cheat for readability - most players won't notice
+  unless they are pixel-peeping, but it does help make game objects
+  easier to read.
+- The magic and fire balls of combat are flat orbs with the Apple II's
+  diamond core, and a hit is a three-frame red burst rather than a HIT
+  tile. The forcefield is bands of violet and blue that scroll without a
+  seam.
+- The frame, caps and cursor are recolored from LairWare's teal to a
+  darker copper that recedes behind the map. Moon phases are flat pixel
+  moons. The fountain, mark rod, shrine and *redacted*
+  scenes and the title logo are drawn in the theme's own style.
+- The first-person dungeon is flat bricks in the VGA palette, painted at
+  run time and cut by the theme's own mask sheet, so the corridors match
+  the tiles.
+- Character boxes color the name by state (green poisoned, gray dead,
+  dark gray ashes, blue when Lord British would raise the member), the
+  whole box taking that gray for the dead, and hit points go yellow under
+  a quarter and red under a tenth. The color stands in for the status
+  letter the other sets print after the name.
+- Casting a spell gives one white pulse at half strength instead of the
+  original's two full inversions of the view: over the caster's square
+  for a bolt or a self-directed spell, over the recipient's for a heal,
+  and over the whole view for spells that change all of it, the light
+  spells included. The other tile sets keep the original flash.
+- Seams in the scrolling water, lava and moongate tiles and the fringe
+  around creatures are repaired in the Standard sheet, and the Ranger has
+  a second animation frame, so he no longer stands still.
 
-### Party and inventory
+#### The sound
 
-- Gold and food are pooled for the whole party and shown on the top
-  border. Members eat from the pool and go hungry together.
-- Weapons and armour are pooled in one bag; a member's record keeps only
-  what is readied and worn. Ready and Wear draw from the bag, so one sword
-  cannot arm two members. Shops grey what the buyer's class cannot use and
-  offer to ready or wear a purchase on the spot. Forming a party pools the
-  bags; dispersing deals them out. The Hand command is gone.
-- Gems, keys, powders and torches are the party's too, so Peer, Unlock,
-  Negate time and Ignite never ask whose.
-- Lord British's raise adds the hundred hit points as well as the room for
-  them, and his prompt lists only the members due a level.
-
-### Difficulty and settings
-
-- Poison kills, off by default: poison stops at one hit point so a member
-  limps home; on, it kills as on the Apple II.
-- Starvation: Classic (the Apple II's, to the death), Mild (stops at half
-  hit points, the default) or None.
-- Timer: Fast (the Apple II's turn timer), Slow, or Off, which makes the
-  game turn-based through and through.
-- Balanced XP, on by default: a kill's experience is shared among the
-  living members instead of going all to the killer.
-- Auto combat, LairWare's addition, kept, with a smarter planner: members
-  path round comrades and walls to the nearest square they can strike
-  from.
-
-### Sound
-
-- Two sets of effects. Standard is new: chip-tune voices (pulse, triangle
-  and noise, as the consoles of the day had) in the spirit of the
-  originals, balanced so that what repeats every turn, a footstep or a
-  bump, sits well below the one-off jingles, and the combat fanfares are
-  short. The repeated effects (steps, bumps, hits, misses, the error
-  blip) are shaped the way a game's most-played footstep is: energy kept
-  low, no hiss, over within a few dozen milliseconds, and each play
-  detuned a little so no two are alike. Lairware is the Macintosh port's sampled set, with a per-effect
-  gain table that evens out its levels. Off silences them.
-- The same effect is not restarted within a few dozen milliseconds, a long
-  one is not restarted while it sounds, and the music dips under a long
-  effect.
-
-### Play
-
-- Bumping into things does what you would have typed next: a townsperson
-  is talked to, a counter opens the shop, a locked door asks for a key, a
-  monster is attacked.
-- Transact asks the direction first and "who" only when it matters.
-- Spell menus name spells by what they do (Magic bolt, Heal, Up a level),
-  with the book name, cost and effect beneath.
-- Other and Yell are one command, and EVOCARE works from either.
-- Repeated turns fold together: "North (x5)" instead of five lines.
-- Fountains and the Time Lord speak when the party steps onto them, not on
-  every turn spent standing there.
-- Direction and "who" prompts sit on the map's border so the map and the
-  combat marker stay in view. The active member in combat has a fading
-  outline instead of a blink.
-- A party wipe offers a choice: try again from the last save, or flee to
-  Lord British as the Apple II did.
-- The game pauses, music included, while the window is not focused.
-- Cheats, on the Help pages: full restore, raise every level, go home,
-  exit dungeon, gold, food, gems, keys and torches. None of it existed in
-  the original; it is there for testing and for anyone who wants it.
-
-### Bug fixes
-
-- Monsters far to the west of the party headed the long way round: the C
-  port's heading test did not wrap as the Apple II's 8-bit arithmetic did.
-- A new character could throw away their only dagger; now a dagger is
-  thrown only when there is a spare.
-- The Ranger stood still in the Mac set, its two animation frames being
-  the same picture.
-- Seams and fringe in the Mac tile sheet, described under the Standard
-  theme.
-
-### Left out on purpose
-
-LairWare's Mac additions that were not part of the game: the animated
-intro and attract mode, auto-heal, the modern stats dialog, the Diorama
-map and random map generator, text-to-speech, mouse control and the Mac
-dialogs. The Apple II text flow is used instead. Diagonal movement for the
-party, which the Mac allowed, is off: as on the Apple II, monsters may
-move diagonally and the party may not.
+- The Standard effects are new: chip-tune voices (pulse, triangle and
+  noise, as the consoles of the day had) in the spirit of the originals,
+  balanced so that what repeats every turn, a footstep or a bump, sits
+  well below the one-off jingles, and the combat fanfares are short. The
+  repeated effects (steps, bumps, hits, misses, the error blip) are shaped
+  the way a game's most-played footstep is: energy kept low, no hiss, over
+  within a few dozen milliseconds, and each play detuned a little so no
+  two are alike. One swing sound, varied at play time, stands in for the
+  Mac's four.
 
 ## For developers
 
+*The new version lives in the `web` directory. The sources, resources and
+Xcode project at the root are the old LairWare build, kept for reference.*
+
 The port is in [`web/`](web/README.md): how to run it, how the code is
-organised, data formats and testing. The desktop app is in
+organized, data formats and testing. The desktop app is in
 [`desktop/`](desktop/), a thin Electron shell around the built game, with
 its own notes in the developer README, and the Android app in
-[`mobile/`](mobile/README.md), the same game wrapped with Capacitor. The art briefs the new figures and
-dungeon sheets were drawn to are in [`web/docs/`](web/docs/). The
-original Macintosh sources and resources are at the root of the
-repository, unchanged.
+[`mobile/`](mobile/README.md), the same game wrapped with Capacitor.
+
+The art briefs the new figures and dungeon sheets were drawn to are in
+[`web/docs/`](web/docs/). The original Macintosh sources and resources are
+at the root of the repository, unchanged.
+
+Inside the app, F11 or Alt+Enter toggles full screen, `--fullscreen` and
+`--windowed` on the command line force one or the other, and `--new` and
+`--controller` do what the web version's `?new` and `?controller` flags do.
 
 ## License
 
@@ -363,6 +403,8 @@ The game's name, maps, music and other assets are Origin Systems' and are
 included as Leon McNeill describes below.
 
 ---
+
+Below is the original LairWare README, including the License information.
 
 # LairWare's Ultima III
 
