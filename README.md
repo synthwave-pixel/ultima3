@@ -11,21 +11,28 @@
   few minutes, and then lives in your Game Mode library.
   1. Switch to Desktop Mode: press the Steam button, choose Power, then
      Switch to Desktop.
-  2. Open this page in a browser there (if the Deck has none yet,
+  2. If the Deck has never had a password, give it one: open Konsole and
+     run `passwd`, choosing any password you like. Discover needs it once,
+     when it registers the game's repository, and it is also what `sudo`
+     asks for; nothing else changes.
+  3. Open this page in a browser there (if the Deck has none yet,
      Discover, its app store, installs Firefox) and tap
      [install Ultima III](https://synthwave-pixel.github.io/ultima3/flatpak/ultima3.flatpakref).
      The browser saves a small file; open it from the browser's downloads
-     and Discover shows Ultima III with an Install button. Install once:
-     later updates arrive in Discover with every other Flatpak's.
-  3. Open Steam, still in Desktop Mode. Click Add a Game at the bottom
+     and Discover shows Ultima III with an Install button, and asks for
+     the password that first time. Install once: later updates arrive in
+     Discover with every other Flatpak's, with no prompt.
+  4. Open Steam, still in Desktop Mode. Click Add a Game at the bottom
      left, then Add a Non-Steam Game, tick Ultima III in the list, and
      click Add Selected Programs.
-  4. Return to Game Mode with the icon on the desktop, or restart. The
+  5. Return to Game Mode with the icon on the desktop, or restart. The
      game is in your library under Non-Steam. If the controls do not
      respond, open the shortcut's controller settings and pick a Gamepad
      template.
 
-  The same link works on any Linux desktop with Flatpak.
+  The same link works on any Linux desktop with Flatpak, and the
+  terminal line at the bottom of this page installs per user with no
+  password at all.
 - **Windows and macOS**: the installers on the
   [Releases page](https://github.com/synthwave-pixel/ultima3/releases/latest),
   a Windows installer or portable `.exe` and an Apple Silicon `.dmg`.
