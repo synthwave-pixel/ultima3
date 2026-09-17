@@ -60,12 +60,21 @@ function fillShapes(world: World, x: number, y: number): Uint8Array {
 
       if (val === MapValue.LetterI && xm > 0 && xm < world.mapSize - 1 && ym > 0) {
         // An "I" is a door unless it is part of a sign: a letter to its left,
-        // right, or above means it is text.
-        const left = world.getXYVal(xm - 1, ym);
-        const right = world.getXYVal(xm + 1, ym);
-        const above = world.getXYVal(xm, ym - 1);
+        // right, or above means it is text. Another "I" never counts, so that
+        // two doors side by side do not vouch for each other. The Mac port
+        // (UltimaGraphics.c) looked only at the tile immediately beside, which
+        // also cost a word ending in "II" its last letter: that letter sees
+        // only its twin and turns into a door. Moon's "CAPESSII" is the one
+        // sign in the game it spoils. Looking past a run of "I"s first reads
+        // the sign correctly and still leaves every real door a door.
         const isText = (v: number) => isLetter(v) && v !== MapValue.LetterI;
-        if (!isText(left) && !isText(right) && !isLetter(above)) shapes[offset] = Shape.Door;
+        const pastAnyIs = (dx: number): number => {
+          let x = xm + dx;
+          while (x > 0 && x < world.mapSize - 1 && world.getXYVal(x, ym) === MapValue.LetterI) x += dx;
+          return world.getXYVal(x, ym);
+        };
+        const above = world.getXYVal(xm, ym - 1);
+        if (!isText(pastAnyIs(-1)) && !isText(pastAnyIs(1)) && !isLetter(above)) shapes[offset] = Shape.Door;
       }
       offset++;
     }

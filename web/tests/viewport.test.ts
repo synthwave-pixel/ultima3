@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { newWorld } from './helpers.ts';
 import { buildViewport, VIEW_SIZE, VIEW_CENTRE } from '../src/game/viewport.ts';
 import { MapValue, Shape } from '../src/game/tiles.ts';
+import type { World } from '../src/game/world.ts';
 
 const centre = VIEW_CENTRE * VIEW_SIZE + VIEW_CENTRE;
 
@@ -126,5 +127,50 @@ describe('the follower line', () => {
     expect(at(-1, 0).follower).toBe(1); // where the leader just was
     expect(at(-1, 1).follower).toBe(2);
     expect(at(-1, 2).follower).toBe(3);
+  });
+});
+
+describe('doors and the letter "I"', () => {
+  // The two share a map value (0xB8), so the renderer guesses from the
+  // neighbours which one a tile is. Moon's shop sign ends in a double "I",
+  // the one word in the game where the Mac port's guess took the last letter
+  // for a door.
+  const MOON = 403;
+  const DEATH_GULCH = 411;
+  /** The shape drawn at map (x, y): the overlay when there is one, else the terrain. */
+  const drawnAt = (world: World, x: number, y: number) => {
+    const view = buildViewport(world);
+    const cell = view.cells[(y - view.originY) * VIEW_SIZE + (x - view.originX)];
+    return cell.overlay ?? cell.base;
+  };
+  const standing = (mapId: number, x: number, y: number): World => {
+    const world = newWorld();
+    world.enterMap(mapId);
+    world.x = x;
+    world.y = y;
+    return world;
+  };
+  const LETTER_I = MapValue.LetterI >> 1;
+
+  it('draws every letter of CAPESSII as a letter, the trailing pair included', () => {
+    const world = standing(MOON, 19, 49);
+    expect(world.getXYVal(21, 50)).toBe(MapValue.LetterI);
+    expect(world.getXYVal(22, 50)).toBe(MapValue.LetterI);
+    expect(drawnAt(world, 21, 50)).toBe(LETTER_I);
+    expect(drawnAt(world, 22, 50)).toBe(LETTER_I); // the one the Mac port drew as a door
+  });
+
+  it('still draws an "I" with no sign around it as a door', () => {
+    // Death Gulch's two gates: an "I" set in a wall with nothing lettered
+    // beside it. The party stands on the open tile next to each, or line of
+    // sight would hide the gate behind its own wall.
+    for (const [doorX, doorY, standX, standY] of [
+      [11, 11, 12, 11],
+      [21, 11, 20, 11],
+    ] as const) {
+      const world = standing(DEATH_GULCH, standX, standY);
+      expect(world.getXYVal(doorX, doorY)).toBe(MapValue.LetterI);
+      expect(drawnAt(world, doorX, doorY)).toBe(Shape.Door);
+    }
   });
 });

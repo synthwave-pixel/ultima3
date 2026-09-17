@@ -329,6 +329,19 @@ These apply whatever tile set and sound set are chosen.
   port's heading test did not wrap as the Apple II's 8-bit arithmetic did.
 - A new character could throw away their only dagger; now a dagger is
   thrown only when there is a spare.
+- The last letter of Moon's "CAPESSII" sign was drawn as a door. A door
+  and the letter "I" share one map value, and the Mac port decided between
+  them by looking at the neighbouring tile, counting another "I" as not a
+  letter so that two doors would not vouch for each other. That also
+  stranded the second "I" of a double, which saw only its twin. It now
+  looks past a run of "I"s, which reads the sign and leaves all thirty
+  doors in the game doors. The eight tile sets that draw one picture for
+  both never showed it.
+- Death Gulch's armoury had a force field running in its east wall, one
+  nibble off a wall tile in the map LairWare shipped. The data files are
+  still untouched; the tile is corrected as the map loads. The party could
+  never reach it, but a force field scrolls, so it flickered over the
+  counter. Both of these were reported by Reddit user behindtimes.
 
 #### Left out on purpose
 

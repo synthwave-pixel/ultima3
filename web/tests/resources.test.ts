@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { loadTestResources } from './helpers.ts';
+import { loadTestResources, newWorld } from './helpers.ts';
 import { MapId } from '../src/data/resources.ts';
 import { MapValue } from '../src/game/tiles.ts';
 
@@ -44,5 +44,27 @@ describe('extracted resources', () => {
     expect(res.defaultParty[1]).toBe(4);
     expect(Array.from(res.defaultParty.subarray(6, 10))).toEqual([1, 2, 3, 4]);
     expect(res.defaultRoster.length).toBe(1280);
+  });
+});
+
+describe('slips in the shipped maps', () => {
+  // Death Gulch's armoury has a force field where its east wall belongs, one
+  // nibble off. The map loader puts it right; the data file keeps the slip.
+  const DEATH_GULCH = 411;
+  const ARMOURY_WALL = { x: 20, y: 56 };
+
+  it('leaves the resource bytes exactly as LairWare shipped them', () => {
+    const map = loadTestResources().maps.get(DEATH_GULCH)!;
+    const size = map[0];
+    expect(map[1 + ARMOURY_WALL.y * size + ARMOURY_WALL.x]).toBe(MapValue.ForceField);
+  });
+
+  it('corrects the tile as the map loads', () => {
+    const world = newWorld();
+    world.enterMap(DEATH_GULCH);
+    expect(world.getXYVal(ARMOURY_WALL.x, ARMOURY_WALL.y)).toBe(MapValue.Wall);
+    // Its neighbours in the same wall were already walls and are untouched.
+    expect(world.getXYVal(ARMOURY_WALL.x, ARMOURY_WALL.y - 1)).toBe(MapValue.Wall);
+    expect(world.getXYVal(ARMOURY_WALL.x, ARMOURY_WALL.y + 1)).toBe(MapValue.Wall);
   });
 });

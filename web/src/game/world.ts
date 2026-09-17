@@ -78,6 +78,22 @@ export function blockExodusApproach(map: MapState, diagonalMoves: boolean): void
   map.tiles[0x35 * map.size + 0x0b] = flank;
 }
 
+/**
+ * Single-byte slips in the shipped maps, put right as a map loads. The
+ * resource files are never touched, and neither is the copy in memory the
+ * bytes came from: `loadMapState` corrects the slice it hands out, the same
+ * way `blockExodusApproach` adjusts Sosaria. Each entry is applied only
+ * where the wrong value is still there, so nothing is forced on data that
+ * has since been corrected.
+ */
+const MAP_SLIPS: { id: number; x: number; y: number; wrong: number; right: number }[] = [
+  // Death Gulch, the armoury's east wall: a force field where a wall belongs,
+  // 0x80 for 0x8C. The party can never reach it (the shop's stock room is
+  // sealed), but a force field scrolls, so it flickers in plain view over the
+  // counter and reads as a rendering fault.
+  { id: 411, x: 20, y: 56, wrong: MapValue.ForceField, right: MapValue.Wall },
+];
+
 /** The state of a fight. See combat.ts. */
 export interface CombatState {
   /** 11x11 arena shapes (same numbering as the viewport). */
@@ -332,6 +348,12 @@ export class World {
       // dx/dy are signed bytes.
       this.whirlpool = { x: raw[t], y: raw[t + 1], dx: (raw[t + 2] << 24) >> 24, dy: (raw[t + 3] << 24) >> 24 };
     }
+    for (const slip of MAP_SLIPS) {
+      if (slip.id !== id) continue;
+      const at = slip.y * size + slip.x;
+      if (tiles[at] === slip.wrong) tiles[at] = slip.right;
+    }
+
     const state = { id, size, tiles, monsters, talk: talk.slice() };
     if (id === MapId.Sosaria) blockExodusApproach(state, this.diagonalMoves);
     return state;
