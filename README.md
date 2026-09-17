@@ -2,6 +2,36 @@
 
 **Play it:** <https://synthwave-pixel.github.io/ultima3/>
 
+## Installation
+
+- **Browser**: <https://synthwave-pixel.github.io/ultima3/>. Nothing to
+  install. Chrome, Edge and Android offer to add it as an app, and it
+  works offline after the first visit.
+- **Steam Deck, and any Linux with Flatpak**:
+  [install from the game's Flatpak repository](https://synthwave-pixel.github.io/ultima3/flatpak/ultima3.flatpakref).
+  Discover installs the game and registers the repository, so updates
+  arrive with every other Flatpak's, in Discover or with `flatpak update`.
+  The same from a terminal, in one line:
+
+      flatpak install --user https://synthwave-pixel.github.io/ultima3/flatpak/ultima3.flatpakref
+
+  On a Steam Deck: switch to Desktop Mode, open that link in the browser
+  (or run the line in Konsole), then open Steam, click Add a Game, then
+  Add a Non-Steam Game, and tick Ultima III. Switch back to Game Mode and
+  it is in your library, controller and all. To remove it:
+
+      flatpak uninstall --user --delete-data com.synthwavepixel.ultima3
+
+- **Windows and macOS**: the installers on the
+  [Releases page](https://github.com/synthwave-pixel/ultima3/releases/latest),
+  a Windows installer or portable `.exe` and an Apple Silicon `.dmg`.
+  They are unsigned; see the Desktop app section below for the one-time
+  step each system asks for.
+- **Android**: the APK on the Releases page, or
+  [Obtainium](https://github.com/ImranR98/Obtainium) to keep it updated;
+  see Android handhelds below.
+- **Other Linux**: the `AppImage` on the Releases page.
+
 Background: I played Ultima III on both my Apple //c and my Nintendo, and
 then Ultima V on my Apple //gs. Later I rediscovered the game via the
 LairWare macOS port.
@@ -90,25 +120,18 @@ browser's; Export and Import move a game between them.
 - **macOS**: an Apple Silicon `.dmg` (Intel Macs: use the web version).
   Unsigned as well, so the first launch is refused; right-click the app
   and choose Open, or run `xattr -cr "/Applications/Ultima III.app"` once.
-- **Linux and SteamOS**: a Flatpak bundle and an `AppImage`. The Flatpak
-  is the one for a Steam Deck. One line in Konsole, in Desktop Mode,
-  fetches the newest release and installs it per user, which needs no
-  password; run the same line again later to update.
-
-      curl -fLo ~/Downloads/ultima3.flatpak "$(curl -fsSL https://api.github.com/repos/synthwave-pixel/ultima3/releases/latest | grep -o 'https://[^"]*linux-x86_64\.flatpak')" && flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo && flatpak install --user ~/Downloads/ultima3.flatpak
-
-  It downloads the bundle from the Releases page, tells your user
-  installation about Flathub, where the runtime comes from, and installs
-  the file. Opening a downloaded bundle in Discover installs it
-  system-wide instead, which asks for a password the deck account does not
-  have. The game then appears in the application menu and in Steam's Add a
-  Non-Steam Game list. Add it there, and in the shortcut's controller
-  settings pick a Gamepad template. The app sees the controller as a
-  gamepad and switches to controller mode on the first press, and starts
-  full screen when Steam launches it. In Game Mode it also turns off GPU
-  acceleration and the browser sandbox, which have hung other Electron
-  apps under gamescope. The AppImage suits any other Linux: make it
-  executable and run it.
+- **Linux and SteamOS**: the Flatpak repository, installed as under
+  Installation above, is the way on a Steam Deck and on any Linux with
+  Flatpak: one click or one line, and updates arrive with every other
+  Flatpak's. Add the game to Steam from the Non-Steam Game list, and in
+  the shortcut's controller settings pick a Gamepad template. The app
+  sees the controller as a gamepad and switches to controller mode on the
+  first press, and starts full screen when Steam launches it. In Game
+  Mode it also turns off GPU acceleration and the browser sandbox, which
+  have hung other Electron apps under gamescope. The `.flatpak` bundle on
+  the Releases page is the same build for an offline install
+  (`flatpak install --user <file>`, which then never updates), and the
+  `AppImage` suits a Linux without Flatpak: make it executable and run it.
 
 ### Android handhelds
 

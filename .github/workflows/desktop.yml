@@ -28,6 +28,7 @@ on:
 
 permissions:
   contents: write
+  actions: write # to start the Pages deploy after a release
 
 jobs:
   build:
@@ -150,3 +151,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VERSION: ${{ steps.v.outputs.version }}
+      # The site serves the newest release as a Flatpak repository: redeploy it now that there is a newer one.
+      - run: gh workflow run pages.yml --ref main
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

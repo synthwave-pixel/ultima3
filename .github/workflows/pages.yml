@@ -1,6 +1,9 @@
 # Builds the browser port in web/ and publishes it to GitHub Pages.
 # The site is served at https://<owner>.github.io/ultima3/, so Vite is told
-# to prefix asset URLs with /ultima3/.
+# to prefix asset URLs with /ultima3/. The site also serves the newest
+# release's Flatpak as a signed repository under /flatpak/ (see
+# desktop/flatpak-repo.sh); the release workflow starts a deploy after
+# each release so the repository follows it.
 name: Deploy to GitHub Pages
 
 # Only main publishes (the github-pages environment rejects other
@@ -40,6 +43,16 @@ jobs:
       - run: VITE_BUILD="${GITHUB_SHA::7}" npm run build
         env:
           VITE_BASE: /ultima3/
+      # The Flatpak repository: the newest release's bundle, imported into a fresh OSTree repository and signed. A
+      # pruned repository holds one commit anyway, so nothing needs keeping between deploys.
+      - run: sudo apt-get install -y -qq flatpak ostree
+      - run: bash desktop/flatpak-repo.sh "$GITHUB_WORKSPACE/web/dist/flatpak"
+        working-directory: ${{ github.workspace }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          FLATPAK_GPG_KEY: ${{ secrets.FLATPAK_GPG_KEY }}
+          FLATPAK_GPG_KEY_ID: ${{ secrets.FLATPAK_GPG_KEY_ID }}
+          SITE: https://synthwave-pixel.github.io/ultima3
       - uses: actions/configure-pages@v6
       - uses: actions/upload-pages-artifact@v5
         with:

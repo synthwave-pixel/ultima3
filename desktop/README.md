@@ -36,3 +36,15 @@ Export and Import, every device, and read access to udev's device
 database, which Chromium needs before it lists a gamepad. Under gamescope
 (Steam's Game Mode) `main.cjs` turns off GPU acceleration and the
 Chromium sandbox, which have hung other Electron apps there.
+
+The site also serves the newest release as a Flatpak repository, at
+`/flatpak/` under the Pages address: the Pages workflow runs
+`flatpak-repo.sh`, which downloads the release's bundle, imports it into
+a fresh OSTree repository, signs it with the key in the `FLATPAK_GPG_KEY`
+and `FLATPAK_GPG_KEY_ID` secrets, and writes the `.flatpakrepo` and
+`.flatpakref` files beside it. The release job starts a Pages deploy
+after publishing, so the repository follows each release; a pruned
+repository holds one commit, so nothing is kept between deploys. The
+service worker leaves `/flatpak/` alone (`navigateFallbackDenylist` in
+`../web/vite.config.ts`), or a browser that had played the game would be
+handed the game instead of the `.flatpakref`.
