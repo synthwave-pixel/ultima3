@@ -1,47 +1,9 @@
-# Ultima III: Exodus, in the browser
+# Ultima III: Exodus
+
+*A modernized port of the original game. Both historic and modern play,
+for the browser, Windows, macOS, Linux, Android and the Steam Deck.*
 
 **Play it:** <https://synthwave-pixel.github.io/ultima3/>
-
-## Installation
-
-- **Browser**: <https://synthwave-pixel.github.io/ultima3/>. Nothing to
-  install. Chrome, Edge and Android offer to add it as an app, and it
-  works offline after the first visit.
-- **Steam Deck**: the game installs as a Flatpak from Desktop Mode, in a
-  few minutes, and then lives in your Game Mode library.
-  1. Switch to Desktop Mode: press the Steam button, choose Power, then
-     Switch to Desktop.
-  2. If the Deck has never had a password, give it one: open Konsole and
-     run `passwd`, choosing any password you like. Discover needs it once,
-     when it registers the game's repository, and it is also what `sudo`
-     asks for; nothing else changes.
-  3. Open this page in a browser there (if the Deck has none yet,
-     Discover, its app store, installs Firefox) and tap
-     [install Ultima III](https://synthwave-pixel.github.io/ultima3/flatpak/ultima3.flatpakref).
-     The browser saves a small file; open it from the browser's downloads
-     and Discover shows Ultima III with an Install button, and asks for
-     the password that first time. Install once: later updates arrive in
-     Discover with every other Flatpak's, with no prompt.
-  4. Open Steam, still in Desktop Mode. Click Add a Game at the bottom
-     left, then Add a Non-Steam Game, tick Ultima III in the list, and
-     click Add Selected Programs.
-  5. Return to Game Mode with the icon on the desktop, or restart. The
-     game is in your library under Non-Steam. If the controls do not
-     respond, open the shortcut's controller settings and pick a Gamepad
-     template.
-
-  The same link works on any Linux desktop with Flatpak, and the
-  terminal line at the bottom of this page installs per user with no
-  password at all.
-- **Windows and macOS**: the installers on the
-  [Releases page](https://github.com/synthwave-pixel/ultima3/releases/latest),
-  a Windows installer or portable `.exe` and an Apple Silicon `.dmg`.
-  They are unsigned; see the Desktop app section below for the one-time
-  step each system asks for.
-- **Android**: the APK on the Releases page, or
-  [Obtainium](https://github.com/ImranR98/Obtainium) to keep it updated;
-  see Android handhelds below.
-- **Linux without Flatpak**: the `AppImage` on the Releases page.
 
 Background: I played Ultima III on both my Apple //c and my Nintendo, and
 then Ultima V on my Apple //gs. Later I rediscovered the game via the
@@ -93,6 +55,47 @@ build has been touched.
 Ultima III is by Richard Garriott and Origin Systems (1983). The Macintosh
 port is by Leon McNeill of LairWare, whose original README is at the
 bottom of this page.
+
+## Installation
+
+- **Browser**: <https://synthwave-pixel.github.io/ultima3/>. Nothing to
+  install. Chrome, Edge and Android offer to add it as an app, and it
+  works offline after the first visit.
+- **Steam Deck**: the game installs as a Flatpak from Desktop Mode, in a
+  few minutes, and then lives in your Game Mode library.
+  1. Switch to Desktop Mode: press the Steam button, choose Power, then
+     Switch to Desktop.
+  2. If the Deck has never had a password, give it one: open Konsole and
+     run `passwd`, choosing any password you like. Discover needs it once,
+     when it registers the game's repository, and it is also what `sudo`
+     asks for; nothing else changes.
+  3. Open this page in a browser there (if the Deck has none yet,
+     Discover, its app store, installs Firefox) and tap
+     [install Ultima III](https://synthwave-pixel.github.io/ultima3/flatpak/ultima3.flatpakref).
+     The browser saves a small file; open it from the browser's downloads
+     and Discover shows Ultima III with an Install button, and asks for
+     the password that first time. Install once: later updates arrive in
+     Discover with every other Flatpak's, with no prompt.
+  4. Open Steam, still in Desktop Mode. Click Add a Game at the bottom
+     left, then Add a Non-Steam Game, tick Ultima III in the list, and
+     click Add Selected Programs.
+  5. Return to Game Mode with the icon on the desktop, or restart. The
+     game is in your library under Non-Steam. If the controls do not
+     respond, open the shortcut's controller settings and pick a Gamepad
+     template.
+
+  The same link works on any Linux desktop with Flatpak, and the
+  terminal line at the bottom of this page installs per user with no
+  password at all.
+- **Windows and macOS**: the installers on the
+  [Releases page](https://github.com/synthwave-pixel/ultima3/releases/latest),
+  a Windows installer or portable `.exe` and an Apple Silicon `.dmg`.
+  They are unsigned; see the Desktop app section below for the one-time
+  step each system asks for.
+- **Android**: the APK on the Releases page, or
+  [Obtainium](https://github.com/ImranR98/Obtainium) to keep it updated;
+  see Android handhelds below.
+- **Linux without Flatpak**: the `AppImage` on the Releases page.
 
 ## Playing
 
@@ -443,22 +446,8 @@ above install per user and need none.
 
 ## For developers
 
-*The new version lives in the `web` directory. The sources, resources and
-Xcode project at the root are the old LairWare build, kept for reference.*
-
-The port is in [`web/`](web/README.md): how to run it, how the code is
-organized, data formats and testing. The desktop app is in
-[`desktop/`](desktop/), a thin Electron shell around the built game, with
-its own notes in the developer README, and the Android app in
-[`mobile/`](mobile/README.md), the same game wrapped with Capacitor.
-
-The art briefs the new figures and dungeon sheets were drawn to are in
-[`web/docs/`](web/docs/). The original Macintosh sources and resources are
-at the root of the repository, unchanged.
-
-Inside the app, F11 or Alt+Enter toggles full screen, `--fullscreen` and
-`--windowed` on the command line force one or the other, and `--new` and
-`--controller` do what the web version's `?new` and `?controller` flags do.
+See [DEVELOPMENT.md](DEVELOPMENT.md): where the code lives, how to run and
+test it, and how the builds and releases are made.
 
 ## License
 
