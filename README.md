@@ -7,21 +7,25 @@
 - **Browser**: <https://synthwave-pixel.github.io/ultima3/>. Nothing to
   install. Chrome, Edge and Android offer to add it as an app, and it
   works offline after the first visit.
-- **Steam Deck, and any Linux with Flatpak**:
-  [install from the game's Flatpak repository](https://synthwave-pixel.github.io/ultima3/flatpak/ultima3.flatpakref).
-  Discover installs the game and registers the repository, so updates
-  arrive with every other Flatpak's, in Discover or with `flatpak update`.
-  The same from a terminal, in one line:
+- **Steam Deck**: the game installs as a Flatpak from Desktop Mode, in a
+  few minutes, and then lives in your Game Mode library.
+  1. Switch to Desktop Mode: press the Steam button, choose Power, then
+     Switch to Desktop.
+  2. Open this page in a browser there (if the Deck has none yet,
+     Discover, its app store, installs Firefox) and tap
+     [install Ultima III](https://synthwave-pixel.github.io/ultima3/flatpak/ultima3.flatpakref).
+     The browser saves a small file; open it from the browser's downloads
+     and Discover shows Ultima III with an Install button. Install once:
+     later updates arrive in Discover with every other Flatpak's.
+  3. Open Steam, still in Desktop Mode. Click Add a Game at the bottom
+     left, then Add a Non-Steam Game, tick Ultima III in the list, and
+     click Add Selected Programs.
+  4. Return to Game Mode with the icon on the desktop, or restart. The
+     game is in your library under Non-Steam. If the controls do not
+     respond, open the shortcut's controller settings and pick a Gamepad
+     template.
 
-      flatpak install --user https://synthwave-pixel.github.io/ultima3/flatpak/ultima3.flatpakref
-
-  On a Steam Deck: switch to Desktop Mode, open that link in the browser
-  (or run the line in Konsole), then open Steam, click Add a Game, then
-  Add a Non-Steam Game, and tick Ultima III. Switch back to Game Mode and
-  it is in your library, controller and all. To remove it:
-
-      flatpak uninstall --user --delete-data com.synthwavepixel.ultima3
-
+  The same link works on any Linux desktop with Flatpak.
 - **Windows and macOS**: the installers on the
   [Releases page](https://github.com/synthwave-pixel/ultima3/releases/latest),
   a Windows installer or portable `.exe` and an Apple Silicon `.dmg`.
@@ -30,7 +34,7 @@
 - **Android**: the APK on the Releases page, or
   [Obtainium](https://github.com/ImranR98/Obtainium) to keep it updated;
   see Android handhelds below.
-- **Other Linux**: the `AppImage` on the Releases page.
+- **Linux without Flatpak**: the `AppImage` on the Releases page.
 
 Background: I played Ultima III on both my Apple //c and my Nintendo, and
 then Ultima V on my Apple //gs. Later I rediscovered the game via the
@@ -411,6 +415,24 @@ those builds and a modern developer sensibility.
   within a few dozen milliseconds, and each play detuned a little so no
   two are alike. One swing sound, varied at play time, stands in for the
   Mac's four.
+
+## Installing from a terminal
+
+On a Steam Deck (Konsole, in Desktop Mode) or any Linux with Flatpak, the
+same as the link under Installation, in one line:
+
+    flatpak install --user https://synthwave-pixel.github.io/ultima3/flatpak/ultima3.flatpakref
+
+It registers the game's repository, so `flatpak update` then updates the
+game with everything else. To remove the game and its saved data:
+
+    flatpak uninstall --user --delete-data com.synthwavepixel.ultima3
+
+The `.flatpak` bundle on the Releases page is the same build for an
+offline install (`flatpak install --user <file>`), which then never
+updates. A bundle opened in Discover installs system-wide instead and asks
+for a password the deck account does not have; the link and the line
+above install per user and need none.
 
 ## For developers
 
