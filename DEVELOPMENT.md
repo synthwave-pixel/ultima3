@@ -13,6 +13,13 @@ The art briefs the new figures and dungeon sheets were drawn to are in
 [`web/docs/`](web/docs/). The original Macintosh sources and resources are
 at the root of the repository, unchanged.
 
+The two sheets the README opens with are in [`promo/`](promo/): six
+720p screenshots of the Standard experience, and the game's view in each
+of the thirteen tile sets with combat and dungeon views for some. They are
+composed from 1280x720 screenshots of the game, laid out in a page and
+captured with Playwright's Chromium. Playwright is not a dependency of this
+repository, so a reshoot needs it installed separately.
+
 Inside the app, F11 or Alt+Enter toggles full screen, `--fullscreen` and
 `--windowed` on the command line force one or the other, and `--new` and
 `--controller` do what the web version's `?new` and `?controller` flags do.

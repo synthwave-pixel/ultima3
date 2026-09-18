@@ -22,6 +22,10 @@ changes:
 3. Includes an updated Standard experience: controller play, new art and
    sound, and tweakable settings.
 
+![The Standard experience: towns, combat, dungeons with an automap, the quest journal, the cloth map and controller mode](promo/features.png)
+
+![Thirteen tile sets: the overworld in each, and combat and dungeon views](promo/tile-sets.png)
+
 The following were design principles for the updated Standard experience:
 
 1. No changes to the core data files - it's Ultima III.
