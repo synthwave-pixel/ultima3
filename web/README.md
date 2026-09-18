@@ -129,7 +129,9 @@ contains except the pooled gold, food and gear.
   `public/graphics/Standard-Tiles.png` doubled to 64 px, then rims every
   figure cell (and the two balls) with one sheet pixel of 50% black where
   a transparent pixel has an opaque 8-neighbour; rim pixels count as
-  neither, so a rerun changes nothing, and `--no-halo` skips it. The Ranger's
+  neither, so a rerun changes nothing, and `--no-halo` skips it. Towne and
+  Castle are terrain, which the map draws opaque, so their atlas rows name
+  a `ground` tile and the script lays them, rim and all, on Grass. The Ranger's
   second frame in the older Standard art was made by turning the arm of
   the Mac's single frame about the shoulder.
 - **Masks**: the Mac shipped a grey Mask image per set for creature

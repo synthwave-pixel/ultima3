@@ -84,45 +84,50 @@ Class set colours, from its `palette.json`. Use these first.
 | Teal          | `#78b7b7` | `#478d92` | `#2b565f` |
 | Olive         | `#bcc65b` | `#879337` | `#515d28` |
 | Red           | `#e77b81` | `#ae4551` | `#713440` |
-| Gold          |           | `#d9b65a` |           |
+| Gold          | `#f2d98c` | `#d9b65a` | `#a07d2e` |
 | Bomb grey     |           | `#444759` |           |
 
 Extension colours for the creatures, taken from the painted Standard tiles so
 the new set keeps the same reading of each monster.
 
-| Material         | Light     | Base      | Shade     | Used by                                     |
-| ---------------- | --------- | --------- | --------- | ------------------------------------------- |
-| Bone             | `#f2f2f1` | `#d8d8d7` | `#a9a7a7` | Skeleton, Ghoul, Horse, sails, Griffon body |
-| Orc green        | `#7dd659` | `#45a81a` | `#319212` | Orc                                         |
-| Troll green      | `#47912d` | `#31771a` | `#2d6115` | Troll                                       |
-| Snake green      | `#7dd659` | `#2e8b3a` | `#15471c` | Snake                                       |
-| Wyvern olive     | `#a4b84a` | `#788b31` | `#637419` | Wyvern                                      |
-| Daemon red-brown | `#dd8d77` | `#c25f46` | `#a73119` | Daemon                                      |
-| Dragon red       | `#ef0504` | `#c00202` | `#920201` | Dragon                                      |
-| Coral            | `#fdaaa2` | `#f7635c` | `#f34c45` | Gargoyle                                    |
-| Flesh pink       | `#f3dbd4` | `#d6958a` | `#be7d73` | Balron, Devil                               |
-| Tan              | `#fdd7a9` | `#f5c18f` | `#dca576` | Giant, Titan                                |
-| Titan orange     |           | `#f47a04` |           | Titan accent                                |
-| Goblin tan       | `#d29260` | `#be7a49` | `#a56132` | Goblin                                      |
-| Lilac            | `#f5edfd` | `#d7c0f9` | `#c2a9f3` | Pincher                                     |
-| Brain pink       | `#eabfbe` | `#d29290` | `#ac605d` | Bradle                                      |
-| Orcus pink       | `#fdd4f8` | `#fdc1f2` | `#f194d4` | Orcus                                       |
-| Stone grey       | `#d7dee8` | `#bfc6d2` | `#a7aeba` | Golem                                       |
-| Slate            | `#7c7c8a` | `#5c5b65` | `#44434c` | Snatch                                      |
-| Blue-grey        | `#71788e` | `#5d6377` | `#494d5d` | Cutpurse                                    |
-| Sea grey         | `#718c94` | `#5b757c` | `#475c61` | Brigand                                     |
-| Olive gold       | `#dbd291` | `#baac61` | `#8c7b30` | Mane                                        |
-| Zombie ochre     | `#d4bc79` | `#bfa560` | `#a98d4a` | Zombie                                      |
-| Guard blue       | `#a3c3f1` | `#7497d4` | `#5e78a8` | Guard                                       |
-| Royal violet     | `#bc90fd` | `#a778f5` | `#9160f3` | Lord British                                |
-| Sky blue         |           | `#2e92f6` |           | Jester motley (with Red)                    |
-| Wood             | `#a7622d` | `#8d491d` | `#622d13` | Chest, hulls                                |
-| Water blue       | `#028ff7` | `#0176f1` | `#0043c3` | Whirlpool, Man-O-War                        |
-| Moongate blue    | `#0629d9` | `#0106a7` |           | Moon Gate                                   |
-| Magic cyan       | `#02effd` | `#017ff3` | `#0265bb` | Magic ball                                  |
-| Fire red         | `#fd1804` | `#fd0301` | `#a70101` | Fire ball                                   |
-| Near black       |           | `#141416` |           | Pirate sails, eyes                          |
-| White            |           | `#fefefe` |           | Shrine, highlights                          |
+| Material         | Light     | Base      | Shade     | Used by                                               |
+| ---------------- | --------- | --------- | --------- | ----------------------------------------------------- |
+| Bone             | `#f2f2f1` | `#d8d8d7` | `#a9a7a7` | Skeleton, Ghoul, Horse, sails, Griffon head and wings |
+| Orc green        | `#7dd659` | `#45a81a` | `#319212` | Orc                                                   |
+| Troll green      | `#47912d` | `#31771a` | `#2d6115` | Troll                                                 |
+| Snake green      | `#7dd659` | `#2e8b3a` | `#15471c` | Snake                                                 |
+| Wyvern olive     | `#a4b84a` | `#788b31` | `#637419` | Wyvern (its wings are the class Olive)                |
+| Daemon red-brown | `#dd8d77` | `#c25f46` | `#a73119` | Daemon                                                |
+| Daemon deep      |           | `#7c2413` |           | Daemon wing membrane, below daemon shade              |
+| Dragon red       | `#ef0504` | `#c00202` | `#920201` | Dragon, Balron wings, Devil                           |
+| Dragon deep      |           | `#640101` |           | Dragon wing membrane, below dragon shade              |
+| Coral            | `#fdaaa2` | `#f7635c` | `#f34c45` | Gargoyle                                              |
+| Coral deep       |           | `#c23a34` |           | Gargoyle wing membrane, below coral shade             |
+| Flesh pink       | `#f3dbd4` | `#d6958a` | `#be7d73` | Ghoul (light and shade)                               |
+| Tan              | `#fdd7a9` | `#f5c18f` | `#dca576` | Giant, Titan, Griffon tail tuft                       |
+| Titan orange     |           | `#f47a04` |           | Titan accent, the Devil's horns                       |
+| Orange shade     |           | `#b85c08` |           | The Devil's chest marks and horn tips                 |
+| Goblin tan       | `#d29260` | `#be7a49` | `#a56132` | Goblin                                                |
+| Lilac            | `#f5edfd` | `#d7c0f9` | `#c2a9f3` | Pincher                                               |
+| Brain pink       | `#eabfbe` | `#d29290` | `#ac605d` | Bradle                                                |
+| Stone grey       | `#d7dee8` | `#bfc6d2` | `#a7aeba` | Golem; the base alone, Orcus' chest marks             |
+| Slate            | `#7c7c8a` | `#5c5b65` | `#44434c` | Snatch                                                |
+| Charcoal         | `#5e5e74` | `#34343f` | `#1c1c24` | Balron body, Orcus and Devil wings and legs           |
+| Iron             | `#a9a9b5` | `#80808b` | `#5c5b65` | Orcus                                                 |
+| Blue-grey        | `#71788e` | `#5d6377` | `#494d5d` | Cutpurse                                              |
+| Sea grey         | `#718c94` | `#5b757c` | `#475c61` | Brigand                                               |
+| Olive gold       | `#dbd291` | `#baac61` | `#8c7b30` | Mane                                                  |
+| Zombie ochre     | `#d4bc79` | `#bfa560` | `#a98d4a` | Zombie                                                |
+| Guard blue       | `#a3c3f1` | `#7497d4` | `#5e78a8` | Guard                                                 |
+| Royal violet     | `#bc90fd` | `#a778f5` | `#9160f3` | Lord British                                          |
+| Sky blue         |           | `#2e92f6` |           | Jester motley (with Red)                              |
+| Wood             | `#a7622d` | `#8d491d` | `#622d13` | Chest, hulls                                          |
+| Water blue       | `#028ff7` | `#0176f1` | `#0043c3` | Whirlpool, Man-O-War                                  |
+| Moongate blue    | `#0629d9` | `#0106a7` |           | Moon Gate                                             |
+| Magic cyan       | `#02effd` | `#017ff3` | `#0265bb` | Magic ball                                            |
+| Fire red         | `#fd1804` | `#fd0301` | `#a70101` | Fire ball                                             |
+| Near black       |           | `#141416` |           | Pirate sails, eyes                                    |
+| White            |           | `#fefefe` |           | Shrine, highlights                                    |
 
 ## 6. Inventory
 
@@ -141,34 +146,34 @@ game a variant reused its base's shape in a different colour. Here each variant
 gets its own drawing, but it must keep the base's silhouette family so a
 player reads Ghoul as a Skeleton kind, Titan as a Giant kind, and so on.
 
-| Index | Name         | Family   | Description and frame 2 action                                                                                                                     |
-| ----- | ------------ | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 24    | Orc          | Orc      | Green humanoid, leather harness, club or scimitar. Frame 2 raises the weapon                                                                       |
-| 25    | Skeleton     | Skeleton | Bone figure, sword. Frame 2 swings                                                                                                                 |
-| 26    | Giant        | Giant    | Broad tan humanoid, loincloth, axe. Frame 2 lifts the axe                                                                                          |
-| 27    | Daemon       | Daemon   | Winged red-brown devil, horns. Frame 2 spreads wings                                                                                               |
-| 28    | Pincher      | Pincher  | Lilac blob with two claws and eyes. Frame 2 opens claws                                                                                            |
-| 29    | Dragon       | Dragon   | Red dragon in profile, wings up. Frame 2 wings down                                                                                                |
-| 30    | Balron       | Balron   | Large winged flesh-pink demon, whip. Frame 2 raises whip                                                                                           |
-| 58    | Snake bottom | Snake    | Lower half of a tall snake: coils and tail. One frame; stacks under 59                                                                             |
-| 59    | Snake top    | Snake    | Upper half: head with tongue, facing down. One frame; stacks over 58                                                                               |
-| 80    | Brigand      | Thief    | Sea-grey hooded figure, cutlass. Frame 2 lunges                                                                                                    |
-| 81    | Cutpurse     | Thief    | Blue-grey masked figure, dagger. Frame 2 lunges                                                                                                    |
-| 82    | Goblin       | Orc      | Small goblin-tan humanoid, horned helm. Frame 2 raises weapon                                                                                      |
-| 83    | Troll        | Orc      | Troll-green hulk, big hands. Frame 2 raises arms                                                                                                   |
-| 84    | Ghoul        | Skeleton | Bone figure with flesh-pink remnants. Frame 2 reaches                                                                                              |
-| 85    | Zombie       | Skeleton | Ochre bandaged figure, arms out. Frame 2 lurches                                                                                                   |
-| 86    | Golem        | Giant    | Stone-grey giant, blocky. Frame 2 raises fist                                                                                                      |
-| 87    | Titan        | Giant    | Tan giant with orange hair or belt, sword. Frame 2 swings                                                                                          |
-| 88    | Gargoyle     | Daemon   | Coral winged stone devil. Frame 2 spreads wings                                                                                                    |
-| 89    | Mane         | Daemon   | Olive-gold hunched fiend. Frame 2 rears                                                                                                            |
-| 90    | Snatch       | Pincher  | Slate-grey clawed blob, red eyes. Frame 2 opens claws                                                                                              |
-| 91    | Bradle       | Pincher  | Brain-pink lobed blob. Frame 2 pulses (lobes shift)                                                                                                |
-| 92    | Griffon      | Dragon   | Bone-and-gold winged lion. Frame 2 wings down                                                                                                      |
-| 93    | Wyvern       | Dragon   | Olive two-legged dragon, barbed tail. Frame 2 wings down                                                                                           |
-| 94    | Orcus        | Balron   | Orcus-pink winged demon. Frame 2 raises arm                                                                                                        |
-| 95    | Devil        | Balron   | Flesh-pink devil with trident. Frame 2 raises trident                                                                                              |
-| 31    | Exodus       | Machine  | Four panel states, not two frames: a machine face with lights. State 3 all lights on, then 2, 1, 0 fewer each. Deliver four 32 px cells in the row |
+| Index | Name         | Family   | Description and frame 2 action                                                                                                                                                        |
+| ----- | ------------ | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 24    | Orc          | Orc      | Green humanoid, leather harness, club or scimitar. Frame 2 raises the weapon                                                                                                          |
+| 25    | Skeleton     | Skeleton | Bone figure, sword. Frame 2 swings                                                                                                                                                    |
+| 26    | Giant        | Giant    | Broad tan humanoid, loincloth, axe. Frame 2 lifts the axe                                                                                                                             |
+| 27    | Daemon       | Daemon   | Winged red-brown devil: bone horns and claws, gold eyes, deep wing membranes. Frame 2 spreads wings                                                                                   |
+| 28    | Pincher      | Pincher  | Lilac blob with two claws and eyes. Frame 2 opens claws                                                                                                                               |
+| 29    | Dragon       | Dragon   | After the PC EGA dragon in flight, facing left, on the 16 px grid doubled: bone horn and claws, gold eye and belly plates, bone-edged wing, barbed tail. Frame 2 wings down           |
+| 30    | Balron       | Balron   | After the NES Balron, on the 16 px grid doubled: charcoal bat-demon, red ears and wings, red eyes, open mouth with white fangs, white claws, a tail. Frame 2 raises the wings         |
+| 58    | Snake bottom | Snake    | Lower half of a tall snake: coils and tail. One frame; stacks under 59                                                                                                                |
+| 59    | Snake top    | Snake    | Upper half: head with tongue, facing down. One frame; stacks over 58                                                                                                                  |
+| 80    | Brigand      | Thief    | Sea-grey hooded figure, cutlass. Frame 2 lunges                                                                                                                                       |
+| 81    | Cutpurse     | Thief    | Blue-grey masked figure, dagger. Frame 2 lunges                                                                                                                                       |
+| 82    | Goblin       | Orc      | Small goblin-tan humanoid, horned helm. Frame 2 raises weapon                                                                                                                         |
+| 83    | Troll        | Orc      | Troll-green hulk, big hands. Frame 2 raises arms                                                                                                                                      |
+| 84    | Ghoul        | Skeleton | Bone figure with flesh-pink remnants. Frame 2 reaches                                                                                                                                 |
+| 85    | Zombie       | Skeleton | Ochre bandaged figure, arms out. Frame 2 lurches                                                                                                                                      |
+| 86    | Golem        | Giant    | Stone-grey giant, blocky. Frame 2 raises fist                                                                                                                                         |
+| 87    | Titan        | Giant    | Tan giant with orange hair or belt, sword. Frame 2 swings                                                                                                                             |
+| 88    | Gargoyle     | Daemon   | The Daemon's build in coral: coral horns, gold eyes, a leather belt and loincloth. Frame 2 spreads wings                                                                              |
+| 89    | Mane         | Daemon   | Olive-gold hunched fiend: bone horns and claws, a light belly, red eyes and fangs. Frame 2 rears                                                                                      |
+| 90    | Snatch       | Pincher  | Slate-grey clawed blob, red eyes. Frame 2 opens claws                                                                                                                                 |
+| 91    | Bradle       | Pincher  | Brain-pink lobed blob. Frame 2 pulses (lobes shift)                                                                                                                                   |
+| 92    | Griffon      | Dragon   | The Dragon's flying pose, plainer (on the 16 px grid, doubled): white eagle head and wings, gold beak and lion body, tail tuft. Frame 2 wings down                                    |
+| 93    | Wyvern       | Dragon   | The Dragon's flying pose, plainer (on the 16 px grid, doubled): olive, two hind legs, gold eye, barbed tail. Frame 2 wings down                                                       |
+| 94    | Orcus        | Balron   | After the NES Orcus, on the 16 px grid doubled: iron-grey demon, red eyes, charcoal wings and legs, steel sword held up. Frame 2 raises wings and sword                               |
+| 95    | Devil        | Balron   | The Orcus build in dragon red, on the 16 px grid doubled: head lowered with gold eyes and orange horns, charcoal wings and legs, a steel and wood pitchfork. Frame 2 raises the wings |
+| 31    | Exodus       | Machine  | Four panel states, not two frames: a machine face with lights. State 3 all lights on, then 2, 1, 0 fewer each. Deliver four 32 px cells in the row                                    |
 
 ### 6.2 People
 
@@ -209,10 +214,29 @@ are listed so the artist checks them against the new figures.
 
 ## 7. Out of scope, decide after seeing 6.1
 
-Terrain (Water, Grass, Brush, Forest, Mountains, Dungeon, Towne, Castle,
-Floor, Lava, both Walls, Void) and the twenty brick letters A to T. Flat
-figures over painted terrain is a common look. If the result jars, terrain
-becomes a second brief with the same rules.
+Terrain (Water, Grass, Brush, Forest, Mountains, Dungeon, Floor, Lava,
+Wall, Void). Flat figures over painted terrain is a common look. If the
+result jars, terrain becomes a second brief with the same rules.
+
+Towne and Castle have since been redrawn as figures under these rules
+(rows 39 and 40 of the atlas): the painted ones sat on ground of their own
+that did not match the Grass around them. The map draws terrain opaque, so
+their atlas rows carry `"ground": 1` and `compose-figures.ts` lays them on
+Grass's first frame. No moat; the flag flies in frame 2.
+
+The twenty sign letters A to T (38-57), the blank board they stand on
+(37, which also makes shop counters) and the door have since been redrawn
+too (rows 41-61 of the atlas): the painted ones were LairWare's carved
+capitals on a wood-grain plank. Each letter is the Apple II's letterform,
+its 14 by 16 bitmap at double size, in gold (light, base, shade from the
+left, with a one-pixel dark wood shadow to the lower right) on a flat
+wooden board with a gold bar along the top and bottom edges, which run on
+from tile to tile so a word reads as one sign. The board fills the cell:
+terrain, drawn opaque. The door is the I's second frame (the two share a
+map value): a full-height wooden panel with plank seams, two iron bands
+and a gold handle, narrower than the cell so the floor shows either side
+of it in the wall line, as every door stands in a wall running north and
+south.
 
 Not in scope at all: the UI sheet, the font, the first-person dungeon walls,
 the four full-window scenes and the title logo.

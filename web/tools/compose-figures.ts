@@ -11,11 +11,17 @@
  *   art/figures/figures.png  + figures.json   monsters, townspeople, vehicles and objects
  *
  * The class figures go to cells 68-78 in career-table order (see
- * game/classFigures.ts) and also replace the old shared party tiles 20-23
- * and 63. The other rows go to the cell their atlas entry names; a
- * single-frame row fills both frame cells unless its second cell holds an
- * Exodus panel (tiles 32-35), and the Exodus row's four states go down the
- * panel column. See docs/figure-art-spec.md for the brief the art follows.
+ * game/classFigures.ts) and also replace the older figures that stood for
+ * them: the townspeople 20-23, the party marker 63 and the shared party
+ * figures 64-67, which this set never draws (it has a figure per class)
+ * but which should not keep the old painted art. The other rows go to the
+ * cell their atlas entry names; a single-frame row fills both frame cells
+ * unless its second cell holds an Exodus panel (tiles 32-35), and the
+ * Exodus row's four states go down the panel column. A row with a
+ * `ground` (Towne and Castle, which the map draws as terrain, opaque) is
+ * laid over that tile's first frame, rim and all, so the cell holds the
+ * grass it stands on. See docs/figure-art-spec.md for the brief the art
+ * follows.
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import { deflateSync, inflateSync, crc32 } from 'node:zlib';
@@ -31,8 +37,8 @@ const EXODUS_PANEL_COLUMN = 5;
 /** Career-table order (Fighter, Cleric, Wizard, Thief, Paladin, Barbarian, Lark, Illusionist, Druid, Alchemist, Ranger) to atlas row name. */
 const CAREERS = ['fighter', 'cleric', 'wizard', 'thief', 'paladin', 'barbarian', 'lark', 'illusionist', 'druid', 'alchemist', 'ranger'];
 const FIRST_CLASS_TILE = 68;
-/** The old shared party tiles the class figures also replace. */
-const OLD_PARTY: Record<string, number> = { fighter: 20, cleric: 21, wizard: 22, thief: 23, ranger: 63 };
+/** Older figures the class figures also replace: townspeople 20-23, the party marker 63, shared figures 64-67. */
+const OLD_PARTY: Record<string, number[]> = { fighter: [20, 64], cleric: [21, 65], wizard: [22, 66], thief: [23, 67], ranger: [63] };
 
 // --- a small PNG codec: 8-bit, colour types 0/2/3/4/6, non-interlaced ---
 interface Rgba {
@@ -50,7 +56,8 @@ interface ClassAtlas {
   classes: { name: string; frames: Rect[] }[];
 }
 interface FigureAtlas {
-  rows: { tile: number; name: string; frames: Rect[] }[];
+  /** `ground`: the terrain tile to flatten the figure onto, for tiles the map draws opaque. */
+  rows: { tile: number; name: string; frames: Rect[]; ground?: number }[];
 }
 
 function decodePng(buf: Buffer): Rgba {
@@ -169,6 +176,8 @@ function blit(src: Rgba, sx: number, sy: number, col: number, row: number): void
 }
 const cellOf = (tile: number, frame: number) => ({ col: Math.floor(tile / TILE_ROWS) * 2 + frame, row: tile % TILE_ROWS });
 let written = 0;
+/** Cells laid over a terrain tile once rimmed (rows with a `ground`). */
+const grounded: { col: number; row: number; ground: number }[] = [];
 /** Cells that get the rim (every figure cell written here, plus the balls). */
 const haloCells = new Set<string>();
 const place = (src: Rgba, rect: Rect, tile: number, frame: number) => {
@@ -186,7 +195,7 @@ CAREERS.forEach((name, career) => {
   if (!entry) throw new Error(`classes.json has no ${name}`);
   entry.frames.forEach((rect, frame) => {
     place(classes, rect, FIRST_CLASS_TILE + career, frame);
-    if (name in OLD_PARTY) place(classes, rect, OLD_PARTY[name], frame);
+    for (const tile of OLD_PARTY[name] ?? []) place(classes, rect, tile, frame);
   });
 });
 
@@ -203,7 +212,10 @@ for (const row of atlas.rows) {
     continue;
   }
   const frames = row.frames.length === 1 && !(row.tile >= 32 && row.tile <= 35) ? [row.frames[0], row.frames[0]] : row.frames;
-  frames.forEach((rect, frame) => place(figures, rect, row.tile, frame));
+  frames.forEach((rect, frame) => {
+    place(figures, rect, row.tile, frame);
+    if (row.ground !== undefined) grounded.push({ ...cellOf(row.tile, frame), ground: row.ground });
+  });
 }
 /**
  * The rim: one sheet pixel of 50% black around every figure, so it stands
@@ -235,5 +247,24 @@ if (HALO) {
   }
   console.log(`rimmed ${haloCells.size} cells`);
 }
+/**
+ * Terrain drawn as a figure: the map draws terrain opaque, so the figure,
+ * with its rim, goes over the ground tile's first frame and the cell comes
+ * out with no transparency. The ground is painted terrain this script
+ * never writes, so a rerun gives the same cell.
+ */
+function flatten(col: number, row: number, ground: number): void {
+  const g = cellOf(ground, 0);
+  for (let y = 0; y < CELL; y++)
+    for (let x = 0; x < CELL; x++) {
+      const o = ((row * CELL + y) * sheet.width + col * CELL + x) * 4;
+      const u = ((g.row * CELL + y) * sheet.width + g.col * CELL + x) * 4;
+      const a = sheet.data[o + 3] / 255;
+      for (let c = 0; c < 3; c++) sheet.data[o + c] = Math.round(sheet.data[o + c] * a + sheet.data[u + c] * (1 - a));
+      sheet.data[o + 3] = 255;
+    }
+}
+for (const { col, row, ground } of grounded) flatten(col, row, ground);
+if (grounded.length) console.log(`laid ${grounded.length} cells on their ground`);
 writeFileSync(SHEET, encodePng(sheet));
 console.log(`wrote ${written} cells into ${SHEET}`);

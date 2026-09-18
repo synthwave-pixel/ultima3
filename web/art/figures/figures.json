@@ -1,7 +1,7 @@
 {
   "image": "atlas.png",
   "width": 128,
-  "height": 1248,
+  "height": 1984,
   "cellWidth": 32,
   "cellHeight": 32,
   "storageColumns": 4,
@@ -880,6 +880,397 @@
           "file": "frames/shrine-0.png",
           "x": 0,
           "y": 1216,
+          "w": 32,
+          "h": 32
+        }
+      ]
+    },
+    {
+      "tile": 6,
+      "name": "towne",
+      "row": 39,
+      "family": "Terrain",
+      "frameCount": 2,
+      "ground": 1,
+      "frames": [
+        {
+          "file": "frames/towne-0.png",
+          "x": 0,
+          "y": 1248,
+          "w": 32,
+          "h": 32
+        },
+        {
+          "file": "frames/towne-1.png",
+          "x": 32,
+          "y": 1248,
+          "w": 32,
+          "h": 32
+        }
+      ]
+    },
+    {
+      "tile": 7,
+      "name": "castle",
+      "row": 40,
+      "family": "Terrain",
+      "frameCount": 2,
+      "ground": 1,
+      "frames": [
+        {
+          "file": "frames/castle-0.png",
+          "x": 0,
+          "y": 1280,
+          "w": 32,
+          "h": 32
+        },
+        {
+          "file": "frames/castle-1.png",
+          "x": 32,
+          "y": 1280,
+          "w": 32,
+          "h": 32
+        }
+      ]
+    },
+    {
+      "tile": 37,
+      "name": "board",
+      "row": 41,
+      "family": "Letters",
+      "frameCount": 1,
+      "frames": [
+        {
+          "file": "frames/board-0.png",
+          "x": 0,
+          "y": 1312,
+          "w": 32,
+          "h": 32
+        }
+      ]
+    },
+    {
+      "tile": 38,
+      "name": "letter-a",
+      "row": 42,
+      "family": "Letters",
+      "frameCount": 1,
+      "frames": [
+        {
+          "file": "frames/letter-a-0.png",
+          "x": 0,
+          "y": 1344,
+          "w": 32,
+          "h": 32
+        }
+      ]
+    },
+    {
+      "tile": 39,
+      "name": "letter-b",
+      "row": 43,
+      "family": "Letters",
+      "frameCount": 1,
+      "frames": [
+        {
+          "file": "frames/letter-b-0.png",
+          "x": 0,
+          "y": 1376,
+          "w": 32,
+          "h": 32
+        }
+      ]
+    },
+    {
+      "tile": 40,
+      "name": "letter-c",
+      "row": 44,
+      "family": "Letters",
+      "frameCount": 1,
+      "frames": [
+        {
+          "file": "frames/letter-c-0.png",
+          "x": 0,
+          "y": 1408,
+          "w": 32,
+          "h": 32
+        }
+      ]
+    },
+    {
+      "tile": 41,
+      "name": "letter-d",
+      "row": 45,
+      "family": "Letters",
+      "frameCount": 1,
+      "frames": [
+        {
+          "file": "frames/letter-d-0.png",
+          "x": 0,
+          "y": 1440,
+          "w": 32,
+          "h": 32
+        }
+      ]
+    },
+    {
+      "tile": 42,
+      "name": "letter-e",
+      "row": 46,
+      "family": "Letters",
+      "frameCount": 1,
+      "frames": [
+        {
+          "file": "frames/letter-e-0.png",
+          "x": 0,
+          "y": 1472,
+          "w": 32,
+          "h": 32
+        }
+      ]
+    },
+    {
+      "tile": 43,
+      "name": "letter-f",
+      "row": 47,
+      "family": "Letters",
+      "frameCount": 1,
+      "frames": [
+        {
+          "file": "frames/letter-f-0.png",
+          "x": 0,
+          "y": 1504,
+          "w": 32,
+          "h": 32
+        }
+      ]
+    },
+    {
+      "tile": 44,
+      "name": "letter-g",
+      "row": 48,
+      "family": "Letters",
+      "frameCount": 1,
+      "frames": [
+        {
+          "file": "frames/letter-g-0.png",
+          "x": 0,
+          "y": 1536,
+          "w": 32,
+          "h": 32
+        }
+      ]
+    },
+    {
+      "tile": 45,
+      "name": "letter-h",
+      "row": 49,
+      "family": "Letters",
+      "frameCount": 1,
+      "frames": [
+        {
+          "file": "frames/letter-h-0.png",
+          "x": 0,
+          "y": 1568,
+          "w": 32,
+          "h": 32
+        }
+      ]
+    },
+    {
+      "tile": 46,
+      "name": "letter-i",
+      "row": 50,
+      "family": "Letters",
+      "frameCount": 2,
+      "frames": [
+        {
+          "file": "frames/letter-i-0.png",
+          "x": 0,
+          "y": 1600,
+          "w": 32,
+          "h": 32
+        },
+        {
+          "file": "frames/letter-i-1.png",
+          "x": 32,
+          "y": 1600,
+          "w": 32,
+          "h": 32
+        }
+      ]
+    },
+    {
+      "tile": 47,
+      "name": "letter-u",
+      "row": 51,
+      "family": "Letters",
+      "frameCount": 1,
+      "frames": [
+        {
+          "file": "frames/letter-u-0.png",
+          "x": 0,
+          "y": 1632,
+          "w": 32,
+          "h": 32
+        }
+      ]
+    },
+    {
+      "tile": 48,
+      "name": "letter-y",
+      "row": 52,
+      "family": "Letters",
+      "frameCount": 1,
+      "frames": [
+        {
+          "file": "frames/letter-y-0.png",
+          "x": 0,
+          "y": 1664,
+          "w": 32,
+          "h": 32
+        }
+      ]
+    },
+    {
+      "tile": 49,
+      "name": "letter-l",
+      "row": 53,
+      "family": "Letters",
+      "frameCount": 1,
+      "frames": [
+        {
+          "file": "frames/letter-l-0.png",
+          "x": 0,
+          "y": 1696,
+          "w": 32,
+          "h": 32
+        }
+      ]
+    },
+    {
+      "tile": 50,
+      "name": "letter-m",
+      "row": 54,
+      "family": "Letters",
+      "frameCount": 1,
+      "frames": [
+        {
+          "file": "frames/letter-m-0.png",
+          "x": 0,
+          "y": 1728,
+          "w": 32,
+          "h": 32
+        }
+      ]
+    },
+    {
+      "tile": 51,
+      "name": "letter-n",
+      "row": 55,
+      "family": "Letters",
+      "frameCount": 1,
+      "frames": [
+        {
+          "file": "frames/letter-n-0.png",
+          "x": 0,
+          "y": 1760,
+          "w": 32,
+          "h": 32
+        }
+      ]
+    },
+    {
+      "tile": 52,
+      "name": "letter-o",
+      "row": 56,
+      "family": "Letters",
+      "frameCount": 1,
+      "frames": [
+        {
+          "file": "frames/letter-o-0.png",
+          "x": 0,
+          "y": 1792,
+          "w": 32,
+          "h": 32
+        }
+      ]
+    },
+    {
+      "tile": 53,
+      "name": "letter-p",
+      "row": 57,
+      "family": "Letters",
+      "frameCount": 1,
+      "frames": [
+        {
+          "file": "frames/letter-p-0.png",
+          "x": 0,
+          "y": 1824,
+          "w": 32,
+          "h": 32
+        }
+      ]
+    },
+    {
+      "tile": 54,
+      "name": "letter-w",
+      "row": 58,
+      "family": "Letters",
+      "frameCount": 1,
+      "frames": [
+        {
+          "file": "frames/letter-w-0.png",
+          "x": 0,
+          "y": 1856,
+          "w": 32,
+          "h": 32
+        }
+      ]
+    },
+    {
+      "tile": 55,
+      "name": "letter-r",
+      "row": 59,
+      "family": "Letters",
+      "frameCount": 1,
+      "frames": [
+        {
+          "file": "frames/letter-r-0.png",
+          "x": 0,
+          "y": 1888,
+          "w": 32,
+          "h": 32
+        }
+      ]
+    },
+    {
+      "tile": 56,
+      "name": "letter-s",
+      "row": 60,
+      "family": "Letters",
+      "frameCount": 1,
+      "frames": [
+        {
+          "file": "frames/letter-s-0.png",
+          "x": 0,
+          "y": 1920,
+          "w": 32,
+          "h": 32
+        }
+      ]
+    },
+    {
+      "tile": 57,
+      "name": "letter-t",
+      "row": 61,
+      "family": "Letters",
+      "frameCount": 1,
+      "frames": [
+        {
+          "file": "frames/letter-t-0.png",
+          "x": 0,
+          "y": 1952,
           "w": 32,
           "h": 32
         }
