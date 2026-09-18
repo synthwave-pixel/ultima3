@@ -362,11 +362,13 @@ for things like portraits that are not included.
 Changes that make each of the older tile sets look more like its machine
 than the Mac version did.
 
-- Each set paints its own first-person dungeon: wireframe corridors for the
-  Apple II, Commodore 64 and Macintosh sets, blue and cyan for CGA, flat
-  bricks in each palette for the NES and the EGA, MCGA, VGA and Ultima V
-  sets. The Mac drew one photographic dungeon whatever the tiles; that
-  pairing is the Lairware set.
+- Each set paints its own first-person dungeon: wireframe corridors for
+  the Apple II, Commodore 64 and Macintosh sets, blue and cyan for CGA,
+  flat bricks in each palette for the NES and the EGA, MCGA, VGA and
+  Ultima V sets. The Mac drew one photographic dungeon whatever the tiles;
+  that pairing is the Lairware set. The Apple II dungeons carry the same
+  scanlines as their tiles, and the monochrome set draws its corridors in
+  the same green phosphor.
 - Each set has its own frame and cursor in its own palette; the five PC
   sets had borrowed the Mac's. Moon phases are shown as pictures in every
   set, flat pixel moons for the sets whose machines had them.

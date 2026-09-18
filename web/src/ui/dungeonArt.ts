@@ -46,6 +46,13 @@ export interface DungeonStyle {
   /** What a doorway is filled with (default black) and outlined with (default nothing). */
   doorFill?: string;
   doorLine?: string;
+  /**
+   * Scanlines, as the set's tiles have them: the brightness of each screen row in a repeating group, top row first
+   * ([1, 1, 0.5, 0.5] dims two rows in four to half). The renderer lays them over the finished view rather than the
+   * sheet, because it scales some pieces. The view sits a multiple of four rows below the map's top, so its dimmed
+   * rows fall on the same screen rows as the tiles'.
+   */
+  scanlines?: number[];
 }
 
 const VGA: DungeonStyle = {
@@ -68,8 +75,26 @@ const VGA: DungeonStyle = {
 export const DUNGEON_STYLES: Record<string, DungeonStyle> = {
   Standard: VGA,
   'PC VGA': VGA,
-  'Apple II Mono': { kind: 'wire', bg: '#000', line: '#fff', wood: '#fff', doorFill: '#000', doorLine: '#fff' },
-  'Apple II Color': { kind: 'wire', bg: '#000', line: '#fff', wood: '#ff8000', doorFill: '#000', doorLine: '#fff' },
+  // The monochrome set's tiles are green phosphor with every other pair of rows at half; the colour sets dim one
+  // row in four to 80%.
+  'Apple II Mono': {
+    kind: 'wire',
+    bg: '#000',
+    line: '#8cf88c',
+    wood: '#8cf88c',
+    doorFill: '#000',
+    doorLine: '#8cf88c',
+    scanlines: [1, 1, 0.5, 0.5],
+  },
+  'Apple II Color': {
+    kind: 'wire',
+    bg: '#000',
+    line: '#fff',
+    wood: '#ff8000',
+    doorFill: '#000',
+    doorLine: '#fff',
+    scanlines: [1, 1, 1, 0.8],
+  },
   'Apple II Color TV': {
     kind: 'wire',
     bg: '#000',
@@ -78,6 +103,7 @@ export const DUNGEON_STYLES: Record<string, DungeonStyle> = {
     wood: '#ff8000',
     doorFill: '#000',
     doorLine: '#f0f0f0',
+    scanlines: [1, 1, 1, 0.8],
   },
   'Commodore 64': { kind: 'wire', bg: '#000', line: '#8e8dff', wood: '#a57a4c', doorFill: '#000', doorLine: '#8e8dff' },
   'Macintosh B&W': { kind: 'wire', bg: '#fff', line: '#000', wood: '#000', doorFill: '#000' },

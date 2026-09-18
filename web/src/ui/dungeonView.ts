@@ -199,7 +199,31 @@ export class DungeonRenderer {
       ctx.fillStyle = 'rgba(0,0,0,0.57)';
       ctx.fillRect(0, 0, 600, 512);
     }
+    // Scanlines last, over everything, as the monitor drew them (see DungeonStyle.scanlines).
+    const scan = this.scanlines();
+    if (scan) {
+      ctx.fillStyle = scan;
+      ctx.fillRect(0, 0, DUNGEON_VIEW_WIDTH, DUNGEON_VIEW_HEIGHT);
+    }
     return this.canvas;
+  }
+
+  /** The style's scanlines as a repeating fill, made once: black as deep as each row is dimmed. Null for none. */
+  private scanlineFill?: CanvasPattern | null;
+  private scanlines(): CanvasPattern | null {
+    if (this.scanlineFill !== undefined) return this.scanlineFill;
+    const rows = this.style?.scanlines;
+    if (!rows) return (this.scanlineFill = null);
+    const tile = document.createElement('canvas');
+    tile.width = 1;
+    tile.height = rows.length;
+    const t = tile.getContext('2d')!;
+    rows.forEach((level, y) => {
+      if (level >= 1) return;
+      t.fillStyle = `rgba(0,0,0,${1 - level})`;
+      t.fillRect(0, y, 1, 1);
+    });
+    return (this.scanlineFill = this.ctx.createPattern(tile, 'repeat'));
   }
 
   /** Mirrors `DrawWall()`. */
