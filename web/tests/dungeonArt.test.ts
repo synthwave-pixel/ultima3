@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { DUNGEON_STYLES } from '../src/ui/dungeonArt.ts';
+import { DISPLAY_STYLES } from '../src/ui/display.ts';
 import { MOON_STYLES, moonPixel } from '../src/ui/moonArt.ts';
 import { TILE_SETS } from '../src/ui/help.ts';
 import { sheetRegions, DUNGEON_SHEET_WIDTH, DUNGEON_SHEET_HEIGHT } from '../src/ui/dungeonView.ts';
@@ -20,33 +21,13 @@ describe('dungeon art styles', () => {
     }
   });
 
-  it('gives the Apple II sets the scanlines their tiles have, and no one else', () => {
-    // Measured from the tiles as drawn: Mono dims two rows in four to half, the colour sets one row in four to 80%.
-    expect(DUNGEON_STYLES['Apple II Mono'].scanlines).toEqual([1, 1, 0.5, 0.5]);
-    expect(DUNGEON_STYLES['Apple II Color'].scanlines).toEqual([1, 1, 1, 0.8]);
-    expect(DUNGEON_STYLES['Apple II Color TV'].scanlines).toEqual([1, 1, 1, 0.8]);
-    for (const [name, style] of Object.entries(DUNGEON_STYLES)) {
-      if (!name.startsWith('Apple II')) expect(style.scanlines, name).toBeUndefined();
-    }
-  });
-
-  it("lines scanlines up with the tiles: a whole number of groups per tile, and per row of the view's offset", () => {
-    // Tiles are 64 screen rows tall and start at row 32; the view is drawn at row 128. A group that divides both
-    // keeps the view's dimmed rows on the tiles' dimmed rows.
-    for (const [name, style] of Object.entries(DUNGEON_STYLES)) {
-      if (!style.scanlines) continue;
-      expect(64 % style.scanlines.length, name).toBe(0);
-      expect((128 - 32) % style.scanlines.length, name).toBe(0);
-      for (const level of style.scanlines) expect(level, name).toBeGreaterThan(0);
-    }
-  });
-
-  it('draws the monochrome dungeon in the same green phosphor as its tiles', () => {
+  it("draws the monochrome dungeon in its monitor's phosphor green, the colour of its tiles and moons", () => {
+    const green = DISPLAY_STYLES['Apple II Mono'].phosphor;
     const mono = DUNGEON_STYLES['Apple II Mono'];
-    expect(mono.line).toBe('#8cf88c');
-    expect(mono.wood).toBe('#8cf88c');
-    expect(mono.doorLine).toBe('#8cf88c');
-    expect(MOON_STYLES['Apple II Mono'].trammel).toBe('#8cf88c'); // the moons already use it
+    expect(mono.line).toBe(green);
+    expect(mono.wood).toBe(green);
+    expect(mono.doorLine).toBe(green);
+    expect(MOON_STYLES['Apple II Mono'].trammel).toBe(green);
   });
 
   it('describes a sheet whose pieces all lie inside it', () => {
@@ -60,7 +41,7 @@ describe('dungeon art styles', () => {
 
 describe('painted moons', () => {
   it('cover Standard and the 8-bit and 16-colour sets and leave the rest to their sheets', () => {
-    for (const set of ['Standard', 'Commodore 64', 'Apple II Color', 'Apple II Color TV', 'Apple II Mono', 'PC CGA', 'PC EGA'])
+    for (const set of ['Standard', 'Commodore 64', 'Apple II Color', 'Apple II Mono', 'PC CGA', 'PC EGA'])
       expect(MOON_STYLES[set], set).toBeDefined();
     expect(MOON_STYLES.Standard).toEqual(MOON_STYLES['PC EGA']);
     for (const set of ['Lairware', 'PC VGA', 'PC MCGA', 'PC Ultima V', 'Nintendo', 'Macintosh B&W'])

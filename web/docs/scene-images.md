@@ -55,21 +55,20 @@ fallback, but none ships.)
 Tile size is the set's own sprite size. Native size is that times 11,
 the map window's width in tiles, and gives crisp pixels at 704.
 
-| Set               | Tile | Native picture | Scale to 704 | Colours in the set's sheet                 |
-| ----------------- | ---- | -------------- | ------------ | ------------------------------------------ |
-| Standard          | 64   | 704            | 1            | full colour                                |
-| Lairware          | 64   | 704            | 1            | full colour (the current renders fit here) |
-| PC VGA            | 32   | 352            | 2            | 8 flat colours                             |
-| PC MCGA           | 32   | 352            | 2            | about 340, VGA 256-colour art              |
-| PC Ultima V       | 32   | 352            | 2            | about 110                                  |
-| Nintendo          | 32   | 352            | 2            | 48 from the NES palette                    |
-| Apple II Color    | 48   | 528            | 1.33         | Apple hi-res six, anti-aliased             |
-| Apple II Color TV | 48   | 528            | 1.33         | the same through composite blur            |
-| Apple II Mono     | 32   | 352            | 2            | 31 greens, phosphor glow                   |
-| Macintosh B&W     | 24   | 264            | 2.67         | black and white only                       |
-| PC EGA            | 16   | 176            | 4            | 16 EGA colours                             |
-| PC CGA            | 16   | 176            | 4            | 4                                          |
-| Commodore 64      | 16   | 176            | 4            | 9 of the C64's 16                          |
+| Set            | Tile | Native picture | Scale to 704 | Colours in the set's sheet                 |
+| -------------- | ---- | -------------- | ------------ | ------------------------------------------ |
+| Standard       | 64   | 704            | 1            | full colour                                |
+| Lairware       | 64   | 704            | 1            | full colour (the current renders fit here) |
+| PC VGA         | 32   | 352            | 2            | 8 flat colours                             |
+| PC MCGA        | 32   | 352            | 2            | about 340, VGA 256-colour art              |
+| PC Ultima V    | 32   | 352            | 2            | about 110                                  |
+| Nintendo       | 32   | 352            | 2            | 48 from the NES palette                    |
+| Apple II Color | 32   | 352            | 2            | the Apple hi-res six, flat                 |
+| Apple II Mono  | 32   | 352            | 2            | 31 greens, phosphor glow                   |
+| Macintosh B&W  | 24   | 264            | 2.67         | black and white only                       |
+| PC EGA         | 16   | 176            | 4            | 16 EGA colours                             |
+| PC CGA         | 16   | 176            | 4            | 4                                          |
+| Commodore 64   | 16   | 176            | 4            | 9 of the C64's 16                          |
 
 For the Apple II colour sets and the Macintosh set the native size does
 not divide 704. Their tiles already scale unevenly in play, so either
@@ -99,12 +98,9 @@ larger than what the sheet uses, any colour from the machine is fair.
   `#6b0000` dark red, black, `#ff8473` salmon, `#b5197c` magenta,
   `#b53221` red. The NES limit of three colours plus black per 16 by 16
   block is optional; nothing enforces it.
-- **Apple II Color**: the hi-res six: black, white, green, violet,
-  orange, blue. The sheet has black, white, `#15cffd` light blue,
-  `#11a6ca` blue, `#ff6a3c` orange and the rest anti-aliased. Six flat
-  colours look right.
-- **Apple II Color TV**: reuse the Apple II Color picture unchanged; the
-  set is the same art blurred as a composite TV showed it.
+- **Apple II Color**: the hi-res six: black, white, `#14f53c` green,
+  `#ff44fd` violet, `#ff6a3c` orange and `#15cffd` blue, flat. The sheet
+  is exactly these.
 - **Apple II Mono**: green on black. `#8cf88c` full brightness, `#467c46
 #408540 #204320` for glow. Two greens and black is enough.
 - **Macintosh B&W**: pure one-bit, `#000000` and `#ffffff`. Dither for
@@ -113,15 +109,14 @@ larger than what the sheet uses, any colour from the machine is fair.
 
 ## Reuse
 
-Six or seven pieces of art per scene cover all thirteen sets:
+Six or seven pieces of art per scene cover all twelve sets:
 
 - One 352 picture in the MCGA palette serves PC VGA, PC MCGA and PC
   Ultima V.
 - One 176 picture in EGA colours serves PC EGA; reduce its colours to
   four for CGA and to the C64 nine for the Commodore. The three share a
   size.
-- Apple II Color and Color TV share one file. Apple II Mono can be a
-  green recolour of it at 352.
+- Apple II Mono can be a green recolour of the Apple II Color picture at 352.
 - Nintendo and Macintosh B&W each want their own.
 - Standard gets its own painted set; Lairware keeps the renders.
 

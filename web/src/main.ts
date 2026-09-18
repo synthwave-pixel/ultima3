@@ -44,6 +44,8 @@ const AUTOMAP_KEY = 'ultima3.automap';
 interface Prefs {
   inputMode: 'keyboard' | 'controller';
   tiles: string;
+  /** CRT lines over the whole game (scanlines.ts); off unless asked for. */
+  scanlines: boolean;
   autoCombat: boolean;
   poisonKills: boolean;
   starvation: Starvation;
@@ -61,6 +63,7 @@ interface Prefs {
 const DEFAULT_PREFS: Prefs = {
   inputMode: 'controller',
   tiles: 'Standard',
+  scanlines: false,
   autoCombat: false,
   poisonKills: false,
   starvation: 'mild',
@@ -78,7 +81,10 @@ function loadPrefs(): Prefs {
     const raw = localStorage.getItem(PREFS_KEY);
     const saved = raw ? (JSON.parse(raw) as Partial<Prefs>) : {};
     const prefs = { ...DEFAULT_PREFS, ...saved };
+    // Apple II Color TV was dropped when scanlines became a setting; Apple II Color is its art without the fringing.
+    if (prefs.tiles === 'Apple II Color TV') prefs.tiles = 'Apple II Color';
     if (!TILE_SETS.includes(prefs.tiles)) prefs.tiles = DEFAULT_PREFS.tiles;
+    if (typeof prefs.scanlines !== 'boolean') prefs.scanlines = DEFAULT_PREFS.scanlines;
     if (prefs.inputMode !== 'keyboard') prefs.inputMode = DEFAULT_PREFS.inputMode;
     if (!MAP_MODES.includes(prefs.dungeonMap)) prefs.dungeonMap = 'off';
     if (!STARVATION_MODES.includes(prefs.starvation)) prefs.starvation = 'mild';
@@ -223,6 +229,7 @@ async function start(): Promise<void> {
   // ?controller starts in controller mode whatever was remembered (a Steam shortcut, a kiosk).
   screen.inputMode = params.has('controller') ? 'controller' : prefs.inputMode;
   screen.tileSetName = prefs.tiles;
+  screen.scanlines = prefs.scanlines;
   canvas.focus();
 
   // Whatever changes a setting (the menu, a gamepad press, Escape in a fight), remember it.
@@ -230,6 +237,7 @@ async function start(): Promise<void> {
     savePrefs({
       inputMode: screen.inputMode,
       tiles: screen.tileSetName,
+      scanlines: screen.scanlines,
       autoCombat: world.autoCombat,
       poisonKills: world.poisonKills,
       starvation: world.starvation,

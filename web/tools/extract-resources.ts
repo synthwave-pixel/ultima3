@@ -174,6 +174,9 @@ function main(): void {
     mkdirSync(join(OUT, dst), { recursive: true });
     for (const file of readdirSync(join(RESOURCES, src))) {
       if (file.startsWith('_') || file.startsWith('.')) continue;
+      // LairWare's Apple II Color TV set is not shipped: it is the Apple II Color art with a television's fringes and
+      // scanlines, and scanlines are a setting now (src/ui/scanlines.ts).
+      if (file.startsWith('Apple II Color TV-')) continue;
       // "&" cannot travel in a URL safely: "Macintosh B&W-Tiles.gif" is served as "Macintosh BW-Tiles.gif" (see fileStem in graphics.ts).
       // LairWare's teal UI sheet is the Lairware set's; the Standard set's is a copper recolour of it kept in public/graphics.
       const name = file === 'Standard-UI.png' ? 'Lairware-UI.png' : file.replace(/&/g, '');

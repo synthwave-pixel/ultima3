@@ -10,7 +10,7 @@
 /**
  * Tile sets shipped in public/graphics, as the Settings menu lists them:
  * best first. Standard is LairWare's 64-pixel art, drawn at native size;
- * then the 32-pixel colour sets, the tripled Apple II colour sets, the
+ * then the 32-pixel colour sets, the Apple II colour set, the
  * monochrome sets, and the 16-pixel 8-bit and early PC sets.
  */
 export const TILE_SETS = [
@@ -21,7 +21,6 @@ export const TILE_SETS = [
   'PC Ultima V',
   'PC MCGA',
   'Apple II Color',
-  'Apple II Color TV',
   'Apple II Mono',
   'Macintosh B&W',
   'PC EGA',

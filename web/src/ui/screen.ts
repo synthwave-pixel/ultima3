@@ -28,6 +28,8 @@ import { Keyboard } from './input.ts';
 import { SoundPlayer } from './sound.ts';
 import { MusicPlayer } from './music.ts';
 import { DungeonRenderer } from './dungeonView.ts';
+import { markerColour } from './display.ts';
+import { ScanlineOverlay } from './scanlines.ts';
 import { World, STARVATION_MODES, TIMER_MODES } from '../game/world.ts';
 import { PlayerRecord, levelUpDue } from '../game/player.ts';
 import { commandMenu, hasMagic } from '../game/context.ts';
@@ -206,11 +208,12 @@ export class Screen implements GameIO {
   private underPaused: { image: HTMLCanvasElement; x: number; y: number } | null = null;
   /** While set, the frame loop paints this instead of the game (the map through its CRT effect). */
   private overlay: ((time: number) => void) | null = null;
-  private scanlines: CanvasPattern | null = null;
   /** Called when anything in the Settings menu changes, so the page can remember it. */
   onSettingsChange: (() => void) | null = null;
   /** Name of the tile set in use (see help.ts TILE_SETS). */
   tileSetName = 'Standard';
+  /** CRT lines laid over the whole game when the Scanlines setting is on (scanlines.ts). */
+  private readonly crt: ScanlineOverlay;
   /**
    * How the party on foot is drawn here: 'grid' is the 2x2 of members (Standard,
    * overworld), 'line' the leader with the others following in a line (Standard
@@ -245,6 +248,7 @@ export class Screen implements GameIO {
     this.cell = Math.floor(canvas.width / COLUMNS);
     for (let r = 0; r < TEXT_BOTTOM - TEXT_TOP; r++) this.textRows.push(Array<string>(TEXT_RIGHT - TEXT_LEFT).fill(' '));
     this.dungeonRenderer = DungeonRenderer.forSet(gfx);
+    this.crt = new ScanlineOverlay(canvas);
     // A pause (window not focused) holds the music and should not eat into a combat turn's timer.
     keyboard.onPause = () => this.musicPlayer.pause();
     keyboard.onResume = (pausedMs) => {
@@ -665,6 +669,15 @@ export class Screen implements GameIO {
     if (!this.frameShown) this.black(1, place.row, COLUMNS - 2, menu.visibleRows + 2 + (menu.hints ? HINT_ROWS : 0));
   }
 
+  /** The Scanlines setting: on, the whole game shows CRT lines, whatever tile set is in use. */
+  get scanlines(): boolean {
+    return this.crt.enabled;
+  }
+
+  set scanlines(on: boolean) {
+    this.crt.enabled = on;
+  }
+
   /**
    * The Settings menu, on the title screen or over the map. Each toggle
    * shows its state and flips in place; Tiles opens the list of sets; Help
@@ -679,6 +692,7 @@ export class Screen implements GameIO {
       const options: MenuOption[] = [
         { key: 'I', label: `Input: ${this.inputMode === 'controller' ? 'Controller' : 'Keyboard'}` },
         { key: 'T', label: `Tiles: ${this.tileSetName}` },
+        { key: 'L', label: `Scanlines: ${onOff(this.scanlines)}` },
         { key: 'A', label: `Auto combat: ${onOff(w.autoCombat)}` },
         { key: 'P', label: `Poison kills: ${onOff(w.poisonKills)}` },
         { key: 'V', label: `Starving: ${w.starvation[0].toUpperCase()}${w.starvation.slice(1)}` },
@@ -699,6 +713,9 @@ export class Screen implements GameIO {
           break;
         case 'T':
           await this.chooseTiles();
+          break;
+        case 'L':
+          this.scanlines = !this.scanlines;
           break;
         case 'A':
           w.autoCombat = !w.autoCombat;
@@ -891,10 +908,10 @@ export class Screen implements GameIO {
 
   /**
    * The cloth map of Sosaria from the box, over the whole screen and
-   * through a CRT effect (scanlines, a ghost image, a rolling band, a
-   * flicker, the odd sideways jitter and dark corners), animated until a
-   * key is pressed. The Mac
-   * showed the map from a menu item; the Apple II box had it on cloth.
+   * through a CRT effect (a ghost image, a rolling band, a flicker and
+   * dark corners), animated until a key is pressed; the Scanlines setting
+   * lays its lines over it as over everything. The Mac showed the map
+   * from a menu item; the Apple II box had it on cloth.
    */
   async showMap(): Promise<void> {
     const map = this.images.get('SosariaMap');
@@ -947,30 +964,14 @@ export class Screen implements GameIO {
     ctx.save();
     ctx.fillStyle = '#000';
     ctx.fillRect(0, 0, width, height);
-    // The map is square: as tall as the screen, centred. Now and then the
-    // picture jitters a pixel or two sideways, as a tube losing sync did.
+    // The map is square: as tall as the screen, centred.
     const size = height;
-    const wobble = Math.sin(time / 230) * Math.sin(time / 3100) > 0.9 ? Math.round(Math.sin(time / 17) * 3) : 0;
-    const left = (width - size) / 2 + wobble;
+    const left = (width - size) / 2;
     ctx.drawImage(map, left, 0, size, size);
     // A ghost of the picture a little to the right, the way a tube's edges doubled.
     ctx.globalAlpha = 0.35;
     ctx.drawImage(map, left + 4, 1, size, size);
     ctx.globalAlpha = 1;
-    // Scanlines: a dark line every fourth pixel row, tiled from a small pattern.
-    if (!this.scanlines) {
-      const tile = document.createElement('canvas');
-      tile.width = 1;
-      tile.height = 4;
-      const tctx = tile.getContext('2d')!;
-      tctx.fillStyle = 'rgba(0,0,0,0.4)';
-      tctx.fillRect(0, 2, 1, 2);
-      this.scanlines = ctx.createPattern(tile, 'repeat');
-    }
-    if (this.scanlines) {
-      ctx.fillStyle = this.scanlines;
-      ctx.fillRect(left, 0, size, size);
-    }
     // A pale band rolling down the screen every four seconds.
     const bandTop = ((time / 4000) % 1) * (height + size / 4) - size / 4;
     const band = ctx.createLinearGradient(0, bandTop, 0, bandTop + size / 4);
@@ -1434,15 +1435,15 @@ export class Screen implements GameIO {
     // A menu opened during the wait freezes the fade where it was: the turn can no longer expire.
     const now = c.markedFrozenAt || performance.now();
     const elapsed = c.markedFor > 0 ? (now - c.markedAt) / c.markedFor : 0;
-    // White fading to mid grey on the dark sets; the Macintosh set's ground is white, so there it is black fading to grey.
-    const fade = 127 * Math.max(0, Math.min(1, elapsed));
-    const level = Math.round(this.tileSetName === 'Macintosh B&W' ? fade : 255 - fade);
+    // White fading to half on the dark sets, black fading up on the Macintosh set's white ground, and in a monochrome
+    // monitor's colour where there is one, so the outline matches the figures it frames.
+    const colour = `rgb(${markerColour(this.gfx.display, elapsed).join(',')})`;
     ctx.save();
     ctx.beginPath();
     ctx.rect(cell, cell, 22 * cell, 22 * cell); // never paint over the border
     ctx.clip();
     ctx.lineWidth = width;
-    ctx.strokeStyle = `rgb(${level},${level},${level})`;
+    ctx.strokeStyle = colour;
     ctx.beginPath();
     if (typeof ctx.roundRect === 'function') ctx.roundRect(x, y, tile + width, tile + width, 3 * gamePixel);
     else ctx.rect(x, y, tile + width, tile + width);

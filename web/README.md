@@ -147,6 +147,30 @@ contains except the pooled gold, food and gear.
 - **The combat marker** is a rounded outline two game pixels wide, fading
   white to grey over the turn timer (black to grey on the Macintosh B&W
   set).
+- **Display per set** (`display.ts`): what the machine did to the picture
+  beyond the sheets, Mono's green phosphor and the Macintosh set's white
+  ground, so what the game draws in code (the dungeon view, the combat
+  marker) matches the tiles around it.
+- **Scanlines** (`scanlines.ts`) are a setting, not a set's: a canvas over
+  the game's with a dark band for each of the Apple II's 192 lines, at a
+  whole-pixel pitch in device pixels, redrawn when the window changes.
+  Drawing them into the game's canvas made them uneven, since that canvas
+  is scaled to the window. The Apple II sheets had them baked in (Color
+  dimmed one row in three to 80%, Mono one in two to half), and the copies
+  in `public/graphics` have them taken out, each dimmed row restored from
+  the row above it. LairWare's Apple II Color TV set is not copied
+  (`npm run extract` skips it).
+- **The Apple II Color tiles** are rebuilt, not LairWare's: that sheet was
+  the 14 by 16 Apple bitmap scaled to 48 pixels with a smear three or four
+  pixels wide across every edge. Each bitmap pixel is now read from the
+  middle of its place in two sheets, lit or not from Mono (whose own
+  scaling left only a one-pixel soft edge) and its colour from Color,
+  snapped to the hi-res six. A lit pixel takes its colour, white where
+  Color shows none; an unlit one stays black unless Color shows a clear
+  colour there, the gap a colour monitor filled in a run of alternate
+  pixels. The result is drawn flat on Mono's grid, 32-pixel cells with
+  columns 2 or 3 pixels wide at `round(i * 32 / 14)`, and cells Color left
+  empty stay empty.
 - **Hits** on the Standard set are a three-frame burst on the 16-pixel
   grid; the other sets keep their HIT tile.
 - **Repeated turns** fold when a turn prints exactly what the previous one
@@ -232,6 +256,8 @@ src/ui/     browser only
   touch.ts        the virtual controller on touch screens
   dungeonArt.ts   dungeon sheets painted per tile set
   moonArt.ts      moon phases painted per tile set
+  display.ts      per-set display: phosphor colour, light ground
+  scanlines.ts    the Scanlines setting: CRT lines over the whole game
   platform.ts     iOS detection and the storage warning
   sound.ts        Web Audio effects: two sets, a gain table, repeat rules
   music.ts        QuickTime music decoder and synthesizer

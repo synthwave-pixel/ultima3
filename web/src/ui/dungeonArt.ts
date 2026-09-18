@@ -28,8 +28,6 @@ export interface DungeonStyle {
   line: string;
   /** Wire only: fill walls with this instead of `bg` (CGA's magenta). */
   fill?: string;
-  /** Wire only: 1-pixel colour fringes either side of the lines, as an NTSC television showed them. */
-  fringe?: [string, string];
   /** Brick: the facing wall colour. */
   face?: string;
   /** Brick: the side wall colour (a shade darker). */
@@ -46,13 +44,6 @@ export interface DungeonStyle {
   /** What a doorway is filled with (default black) and outlined with (default nothing). */
   doorFill?: string;
   doorLine?: string;
-  /**
-   * Scanlines, as the set's tiles have them: the brightness of each screen row in a repeating group, top row first
-   * ([1, 1, 0.5, 0.5] dims two rows in four to half). The renderer lays them over the finished view rather than the
-   * sheet, because it scales some pieces. The view sits a multiple of four rows below the map's top, so its dimmed
-   * rows fall on the same screen rows as the tiles'.
-   */
-  scanlines?: number[];
 }
 
 const VGA: DungeonStyle = {
@@ -75,8 +66,7 @@ const VGA: DungeonStyle = {
 export const DUNGEON_STYLES: Record<string, DungeonStyle> = {
   Standard: VGA,
   'PC VGA': VGA,
-  // The monochrome set's tiles are green phosphor with every other pair of rows at half; the colour sets dim one
-  // row in four to 80%.
+  // Mono draws in its monitor's green phosphor, as its tiles do (display.ts).
   'Apple II Mono': {
     kind: 'wire',
     bg: '#000',
@@ -84,7 +74,6 @@ export const DUNGEON_STYLES: Record<string, DungeonStyle> = {
     wood: '#8cf88c',
     doorFill: '#000',
     doorLine: '#8cf88c',
-    scanlines: [1, 1, 0.5, 0.5],
   },
   'Apple II Color': {
     kind: 'wire',
@@ -93,17 +82,6 @@ export const DUNGEON_STYLES: Record<string, DungeonStyle> = {
     wood: '#ff8000',
     doorFill: '#000',
     doorLine: '#fff',
-    scanlines: [1, 1, 1, 0.8],
-  },
-  'Apple II Color TV': {
-    kind: 'wire',
-    bg: '#000',
-    line: '#f0f0f0',
-    fringe: ['#20d020', '#c040ff'],
-    wood: '#ff8000',
-    doorFill: '#000',
-    doorLine: '#f0f0f0',
-    scanlines: [1, 1, 1, 0.8],
   },
   'Commodore 64': { kind: 'wire', bg: '#000', line: '#8e8dff', wood: '#a57a4c', doorFill: '#000', doorLine: '#8e8dff' },
   'Macintosh B&W': { kind: 'wire', bg: '#fff', line: '#000', wood: '#000', doorFill: '#000' },
@@ -257,26 +235,12 @@ class SheetPainter {
     this.ctx.fillRect(r.sx, r.sy, r.w, r.h);
   }
 
-  /** A line in the style's colour, with television fringes when asked for. */
+  /** A line in the style's colour. */
   private stroke(path: () => void, width = 2): void {
     const { ctx, style } = this;
     ctx.lineWidth = width;
     ctx.lineCap = 'butt';
     ctx.lineJoin = 'miter';
-    if (style.fringe) {
-      for (const [dx, colour] of [
-        [-1, style.fringe[0]],
-        [1, style.fringe[1]],
-      ] as const) {
-        ctx.save();
-        ctx.translate(dx, 0);
-        ctx.strokeStyle = colour;
-        ctx.beginPath();
-        path();
-        ctx.stroke();
-        ctx.restore();
-      }
-    }
     ctx.strokeStyle = style.line;
     ctx.beginPath();
     path();

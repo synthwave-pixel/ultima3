@@ -23,6 +23,7 @@
 
 import { DUNGEON_STYLES, paintDungeonSheet, type DungeonStyle } from './dungeonArt.ts';
 import { MOON_STYLES, MOON_CELL, paintMoons } from './moonArt.ts';
+import { displayOf, type DisplayStyle } from './display.ts';
 import { MapValue, Shape, CLASS_COUNT, CLASS_FALLBACK_TILE, FIRST_CLASS_TILE, classFallbackTile, isClassTile } from '../game/tiles.ts';
 
 export const TILE_COLUMNS = 12;
@@ -187,6 +188,8 @@ export class GraphicsSet {
     readonly moons: HTMLCanvasElement | null = null,
     /** Whether the sheet draws cells 68-78, one figure per class (see CLASS_FIGURE_SETS); if not, `tileRect` shows the shared figures. */
     readonly hasClassFigures = false,
+    /** How the set's machine showed its picture (display.ts): a monochrome colour, a light ground. */
+    readonly display: DisplayStyle = {},
   ) {
     this.tileSize = tiles.width / TILE_COLUMNS;
     this.opaqueTiles = document.createElement('canvas');
@@ -253,6 +256,7 @@ export class GraphicsSet {
       scenes,
       moons,
       CLASS_FIGURE_SETS.has(name),
+      displayOf(name),
     );
   }
 
