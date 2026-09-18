@@ -249,8 +249,14 @@ export class Screen implements GameIO {
     keyboard.onPause = () => this.musicPlayer.pause();
     keyboard.onResume = (pausedMs) => {
       this.musicPlayer.resume();
-      if (this.world.combat) this.world.combat.markedAt += pausedMs;
+      // A frozen outline (a menu open) gets the whole time back when the menu closes.
+      const c = this.world.combat;
+      if (c && !c.markedFrozenAt) c.markedAt += pausedMs;
     };
+    // The buttons never repeat on a gamepad or the touch screen, so their keys do not either: B held past a closing
+    // menu would otherwise pass turn after turn. Held directions still repeat, for walking.
+    const buttons: string[] = [Key.A, Key.B, Key.X, Key.Y];
+    keyboard.dropRepeat = (key) => this.inputMode === 'controller' && buttons.includes(controllerKeyFor(key));
     this.gamepads = new GamepadReader(keyboard, () => {
       this.useController();
       this.onGamepadPress?.();
@@ -1096,23 +1102,33 @@ export class Screen implements GameIO {
   }
 
   async waitCommand(scope: CommandScope, timeoutMs?: number): Promise<string | null> {
-    const key = await this.readKey(timeoutMs);
-    if (key === null || this.promptMode === 'keyboard') return key;
-    if (DIRECTION_KEYS.includes(key)) return key;
-    const shortcuts = BUTTON_SHORTCUTS[scope];
-    if (key === Key.B) return shortcuts.B;
-    if (key === Key.X) return shortcuts.X;
-    if (key === Key.Y) return shortcuts.Y;
-    if (key === Key.A) {
+    // Null means the time ran out (the turn passes), so a menu closed with B goes back to waiting instead.
+    let left = timeoutMs;
+    for (;;) {
+      const asked = this.keyboard.activeTime();
+      const key = await this.readKey(left);
+      if (key === null || this.promptMode === 'keyboard') return key;
+      if (DIRECTION_KEYS.includes(key)) return key;
+      const shortcuts = BUTTON_SHORTCUTS[scope];
+      if (key === Key.B) return shortcuts.B;
+      if (key === Key.X) return shortcuts.X;
+      if (key === Key.Y) return shortcuts.Y;
+      if (key !== Key.A) return key;
+      if (left !== undefined) left = Math.max(0, left - (this.keyboard.activeTime() - asked));
       // With the menu open the turn cannot pass by itself, so the outline's fade stops where it is.
       const c = this.world.combat;
-      if (c && c.markedFor > 0 && !c.markedFrozenAt) c.markedFrozenAt = performance.now();
+      const fading = c && c.markedFor > 0 && !c.markedFrozenAt ? c : null;
+      if (fading) fading.markedFrozenAt = performance.now();
       // The commands the surroundings call for come first.
       const options = [...commandMenu(this.world, scope, COMMAND_MENUS[scope]), { key: Key.Escape, label: 'Settings' }];
       const picked = await this.runMenu('Command', options);
-      return picked < 0 ? null : options[picked].key;
+      if (picked >= 0) return options[picked].key;
+      // Closed: the turn's time and the outline's fade go on from where they stopped.
+      if (fading) {
+        fading.markedAt += performance.now() - fading.markedFrozenAt;
+        fading.markedFrozenAt = 0;
+      }
     }
-    return key;
   }
 
   /**

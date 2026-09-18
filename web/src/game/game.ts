@@ -120,8 +120,10 @@ export class Game {
         await io.showMap(); // no turn passes
         continue;
       }
+      world.commandCancelled = false;
       await this.dispatch(key);
       if (world.done) return;
+      if (world.takeCancelled()) continue; // backed out at a prompt: no turn passes
       await endTurn(world, io, this.hooks);
       const wanted = this.locationMusic();
       if (world.music !== wanted && world.party.location !== Location.Combat) this.setMusic(wanted);
@@ -131,17 +133,19 @@ export class Game {
   /**
    * Wait for a key while the whirlpool keeps moving. After the idle time
    * (IDLE_PASS_MS under the Fast timer) with no input the turn passes by
-   * itself, as on the Apple II; with the timer off it never does.
+   * itself, as on the Apple II; with the timer off it never does. The idle
+   * time is counted in ticks that ran out with no input, so time the window
+   * was paused, or a command menu was open and closed again, does not count.
    */
   private async waitForCommand(): Promise<string> {
-    const limit = this.world.timeLimit(IDLE_PASS_MS);
-    const deadline = limit === undefined ? Infinity : performance.now() + limit;
+    let remaining = this.world.timeLimit(IDLE_PASS_MS) ?? Infinity;
     for (;;) {
       await whirlpoolTick(this.world, this.io, this.hooks);
-      const remaining = deadline - performance.now();
       if (remaining <= 0) return Key.Space;
-      const key = await this.io.waitCommand('field', Math.min(WHIRLPOOL_TICK_MS, remaining));
+      const tick = Math.min(WHIRLPOOL_TICK_MS, remaining);
+      const key = await this.io.waitCommand('field', tick);
       if (key !== null) return key;
+      remaining -= tick;
     }
   }
 

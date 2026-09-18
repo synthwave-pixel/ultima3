@@ -15,7 +15,7 @@ import type { PlayerRecord } from './player.ts';
 import { Location } from './party.ts';
 import { MapValue, Shape } from './tiles.ts';
 import { type GameIO, Sound, Music, deathSound, letterOptions } from './io.ts';
-import { getDirection, notHere, what2, counterWithMerchant, Msg as CmdMsg, PartyShape } from './commands.ts';
+import { getDirection, notHere, what2, cancelled, counterWithMerchant, Msg as CmdMsg, PartyShape } from './commands.ts';
 import { getChest, incapacitated, stealDisarmFails } from './actions.ts';
 import { shop } from './shops.ts';
 import { attackMonster, monsterName } from './combat.ts';
@@ -83,7 +83,7 @@ export { speech };
 export async function transact(world: World, io: GameIO): Promise<void> {
   io.printMessage(Msg.Direction);
   const dir = await getDirection(world, io);
-  if (!dir) return;
+  if (!dir) return cancelled(world, io);
   await transactToward(world, io, dir.dx, dir.dy);
 }
 
@@ -98,6 +98,7 @@ export async function whoSeesLordBritish(world: World, io: GameIO): Promise<numb
   const due = [0, 1, 2, 3].filter((m) => world.memberAlive(m) && levelUpDue(world.member(m)));
   io.printMessage(Msg.WhoTransacts);
   const n = await io.chooseMember(due.length ? due : undefined);
+  if (n === 0) cancelled(world, io);
   if (n < 1 || n > 4) return -1;
   if (!world.memberAlive(n - 1)) {
     incapacitated(io);
@@ -110,6 +111,7 @@ export async function whoSeesLordBritish(world: World, io: GameIO): Promise<numb
 export async function whoTransacts(world: World, io: GameIO): Promise<number> {
   io.printMessage(Msg.WhoTransacts);
   const n = await io.chooseMember();
+  if (n === 0) cancelled(world, io);
   if (n < 1 || n > 4) return -1;
   const member = n - 1;
   if (!world.memberAlive(member)) {
@@ -219,7 +221,7 @@ async function lordBritishSpeaks(world: World, io: GameIO, p: PlayerRecord): Pro
 export async function attack(world: World, io: GameIO): Promise<void> {
   io.printMessage(Msg.Attack);
   const dir = await getDirection(world, io);
-  if (!dir) return;
+  if (!dir) return cancelled(world, io);
   await attackToward(world, io, dir.dx, dir.dy);
 }
 
@@ -236,7 +238,7 @@ export async function fire(world: World, io: GameIO): Promise<void> {
   if (world.party.shape !== PartyShape.Frigate) return what2(io);
   io.printMessage(Msg.FireDirect);
   const dir = await getDirection(world, io);
-  if (!dir) return;
+  if (!dir) return cancelled(world, io);
   io.sound(Sound.Shoot);
   let xs = world.x;
   let ys = world.y;
@@ -272,12 +274,13 @@ export async function fire(world: World, io: GameIO): Promise<void> {
 export async function steal(world: World, io: GameIO): Promise<void> {
   io.printMessage(Msg.Steal);
   const n = await io.chooseMember();
+  if (n === 0) return cancelled(world, io);
   if (n < 1 || n > 4) return;
   const member = n - 1;
   if (!world.memberAlive(member)) return incapacitated(io);
   io.printMessage(Msg.Direction);
   const dir = await getDirection(world, io);
-  if (!dir) return;
+  if (!dir) return cancelled(world, io);
 
   const fail = () => {
     if ((world.rng.range(0, 255) & 0x03) !== 0) return io.printMessage(Msg.Failed);
@@ -303,7 +306,7 @@ export async function steal(world: World, io: GameIO): Promise<void> {
 export async function unlock(world: World, io: GameIO): Promise<void> {
   io.printMessage(Msg.Unlock);
   const dir = await getDirection(world, io, false, false);
-  if (!dir) return;
+  if (!dir) return cancelled(world, io);
   await unlockToward(world, io, dir.dx, dir.dy);
 }
 
@@ -368,6 +371,7 @@ export const OTHER_WORDS = ['SEARCH', 'BRIBE', 'PRAY', 'EVOCARE', 'INSERT', 'DIG
 export async function otherCommand(world: World, io: GameIO, fromYell = false): Promise<void> {
   if (!fromYell) io.printMessage(Msg.OtherCommand);
   const n = await io.chooseMember();
+  if (n === 0) return cancelled(world, io);
   if (n < 1 || n > 4) return;
   const member = n - 1;
   if (!world.memberAlive(member)) return incapacitated(io);
@@ -375,6 +379,7 @@ export async function otherCommand(world: World, io: GameIO, fromYell = false): 
   io.printMessage(Msg.Cmd);
   const word = (await io.inputText(8, false, OTHER_WORDS)).toUpperCase();
   io.print('\n');
+  if (!word) return cancelled(world, io);
 
   switch (word) {
     case 'PAXUM': {
@@ -414,7 +419,7 @@ export async function otherCommand(world: World, io: GameIO, fromYell = false): 
     case 'BRIBE': {
       io.printMessage(Msg.Dir);
       const dir = await getDirection(world, io);
-      if (!dir) return;
+      if (!dir) return cancelled(world, io);
       const mon = world.monsters.at(world.constrain(dir.xs), world.constrain(dir.ys));
       if (mon < 0) return notHere(io);
       if (world.party.gold < 100) {
@@ -460,13 +465,14 @@ async function insertCard(world: World, io: GameIO, member: number): Promise<voi
   const p = world.member(member);
   io.printMessage(Msg.Dir);
   const dir = await getDirection(world, io);
-  if (!dir) return;
+  if (!dir) return cancelled(world, io);
   if (world.getXYVal(dir.xs, dir.ys) !== MapValue.Exodus) return notHere(io);
   io.printMessage(Msg.Cards);
   const key = await io.chooseOption(
     letterOptions('DSLM', (l) => ({ D: 'Card of Death', S: 'Card of Sol', L: 'Card of Love', M: 'Card of Moons' })[l]!),
     'line',
   );
+  if (!key) return cancelled(world, io);
   const slot = { L: 0x1e, S: 0x1f, M: 0x20, D: 0x21 }[key];
   if (!slot) return what2(io);
   if (!(p.marks & (1 << (slot - 0x1e)))) return io.printMessage(Msg.NoneLeft);
@@ -540,6 +546,7 @@ export async function enterShrine(world: World, io: GameIO): Promise<void> {
   io.printMessage(CmdMsg.Enter);
   io.printMessage(Msg.EnterShrine);
   const n = await io.chooseMember();
+  if (n === 0) return cancelled(world, io);
   if (n < 1 || n > 4) return io.sound(Sound.Error1);
   const member = n - 1;
   if (!world.memberAlive(member)) return incapacitated(io);

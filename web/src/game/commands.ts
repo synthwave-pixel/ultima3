@@ -37,6 +37,7 @@ export const Msg = {
   ArrowWhat: 107,
   NotHere: 108,
   InvalidMove: 116,
+  Cancelled: 120,
   Southwest: 250,
   Southeast: 251,
   Northwest: 252,
@@ -65,6 +66,16 @@ export function what(io: GameIO): void {
 export function what2(io: GameIO): void {
   io.printMessage(Msg.ArrowWhat);
   io.sound(Sound.Error1);
+}
+
+/**
+ * The player backed out of a command at a prompt before it did anything:
+ * "Cancelled.", and the turn is not spent (World.commandCancelled). This
+ * port; the original spent the turn on a command with no answer.
+ */
+export function cancelled(world: World, io: GameIO): void {
+  io.printMessage(Msg.Cancelled);
+  world.commandCancelled = true;
 }
 
 /** "Not here!" (`NotHere`) */
@@ -352,7 +363,7 @@ export function exit(world: World, io: GameIO): void {
 export async function look(world: World, io: GameIO): Promise<void> {
   io.printMessage(Msg.Look);
   const dir = await getDirection(world, io);
-  if (!dir) return;
+  if (!dir) return cancelled(world, io);
   const { xs, ys } = dir;
   io.print('->');
   const value = world.getXYVal(xs, ys);

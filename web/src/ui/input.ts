@@ -31,11 +31,15 @@ export class Keyboard {
   onResume: ((pausedMs: number) => void) | null = null;
   /** Called on every key from any source, the gamepad included (audio is unlocked from here). */
   onInput: (() => void) | null = null;
+  /** Whether a held key's auto-repeat is dropped (a key standing in for a controller button, which never repeats). */
+  dropRepeat: ((key: string) => boolean) | null = null;
   /** True while the game is blocked on a key press and none is queued (a driver script can wait on this). */
   get waiting(): boolean {
     return this.waiter !== null && this.queue.length === 0;
   }
   private pausedAt = 0;
+  /** Time spent paused before the current pause, ms. */
+  private pausedFor = 0;
 
   constructor(
     target: EventTarget = window,
@@ -49,28 +53,42 @@ export class Keyboard {
     }
   }
 
-  private pause(): void {
+  /** The window lost focus (blur, or the page hidden): stop the idle timers. */
+  pause(): void {
     if (this.paused) return;
     this.paused = true;
-    this.pausedAt = performance.now();
+    this.pausedAt = this.now();
     const t = this.timed;
     if (t && t.timer !== null) {
       clearTimeout(t.timer);
       t.timer = null;
-      t.remaining -= performance.now() - t.started;
+      t.remaining -= this.now() - t.started;
     }
     this.onPause?.();
   }
 
-  private resume(): void {
+  /** The window has focus again: the idle timers go on with the time they had left. */
+  resume(): void {
     if (!this.paused) return;
     this.paused = false;
     const t = this.timed;
     if (t && t.timer === null) {
-      t.started = performance.now();
+      t.started = this.now();
       t.timer = setTimeout(t.fire, Math.max(0, t.remaining));
     }
-    this.onResume?.(performance.now() - this.pausedAt);
+    const away = this.now() - this.pausedAt;
+    this.pausedFor += away;
+    this.onResume?.(away);
+  }
+
+  /**
+   * A clock (ms) that stands still while paused, as the timed waits do, so
+   * the time between two readings is how long the player had: what is left
+   * of a timed wait that a key cut short can be carried into the next one.
+   */
+  activeTime(): number {
+    const now = this.now();
+    return now - this.pausedFor - (this.paused ? now - this.pausedAt : 0);
   }
 
   private onKeyDown(e: KeyboardEvent): void {
@@ -79,6 +97,7 @@ export class Keyboard {
     const key = translate(e);
     if (key === null) return;
     e.preventDefault();
+    if (e.repeat && this.dropRepeat?.(key)) return;
     this.push(key);
   }
 

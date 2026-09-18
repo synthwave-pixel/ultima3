@@ -206,9 +206,11 @@ export async function runDungeon(world: World, io: GameIO): Promise<void> {
       continue;
     }
     const before = `${d.level}:${world.x}:${world.y}`;
+    world.commandCancelled = false;
     await dispatch(world, io, key);
     const arrived = `${d.level}:${world.x}:${world.y}` !== before;
     if (world.resurrecting || d.exit) return;
+    if (world.takeCancelled()) continue; // backed out at a prompt: no turn passes
 
     // End of turn. (`dungeonmech`)
     if (d.level < 0) {

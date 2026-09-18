@@ -17,7 +17,7 @@ import { World, type CombatState, type Combatant } from './world.ts';
 import { Location } from './party.ts';
 import { MapValue, Shape, classTile } from './tiles.ts';
 import { type GameIO, Key, Sound, Music, deathSound } from './io.ts';
-import { getDirection, moveForKey, moveDelta, what2, DIAGONAL_KEYS, Msg as CmdMsg } from './commands.ts';
+import { getDirection, moveForKey, moveDelta, what2, cancelled, DIAGONAL_KEYS, Msg as CmdMsg } from './commands.ts';
 import { ageChars } from './turn.ts';
 import { cast, quickCast } from './spells.ts';
 import { QUICK_CAST_KEY } from './context.ts';
@@ -469,6 +469,7 @@ async function scriptTurn(world: World, io: GameIO, member: number): Promise<voi
 async function memberTurn(world: World, io: GameIO, member: number): Promise<void> {
   const c = world.combat!;
   for (;;) {
+    world.commandCancelled = false;
     io.printMessage(Msg.PlayerTurnPrefix);
     io.print(String(member + 1));
     io.printMessage(Msg.PlayerTurnSuffix);
@@ -500,6 +501,7 @@ async function memberTurn(world: World, io: GameIO, member: number): Promise<voi
         return;
       case 'A':
         await combatAttack(world, io, member);
+        if (world.takeCancelled()) continue; // backed out at the direction: ask again
         return;
       case 'C':
         io.printMessage(Msg.CastSpell);
@@ -508,16 +510,20 @@ async function memberTurn(world: World, io: GameIO, member: number): Promise<voi
         continue; // cancelled: ask again
       case QUICK_CAST_KEY:
         io.printMessage(Msg.CastSpell);
-        if (await quickCast(world, io, member)) return;
-        io.printMessage(Msg.NotUsable);
-        io.sound(Sound.Error2);
-        continue;
+        if (!(await quickCast(world, io, member))) {
+          io.printMessage(Msg.NotUsable);
+          io.sound(Sound.Error2);
+          continue;
+        }
+        if (world.takeCancelled()) continue; // backed out at the spell's direction, the mana given back
+        return;
       case 'N':
         await negateTime(world, io);
         return;
       case 'R':
         io.printMessage(Msg.ReadyWeapon);
         await readyWeapon(world, io, member);
+        if (world.takeCancelled()) continue; // backed out of the list: ask again
         return;
       case 'V':
         volume(world, io);
@@ -525,7 +531,7 @@ async function memberTurn(world: World, io: GameIO, member: number): Promise<voi
       case 'Z':
         io.printMessage(Msg.Ztats);
         await stats(world, io, member);
-        return;
+        continue; // looking at the sheet is not acting: the turn is not spent (this port)
       default:
         if (/^[A-Za-z]$/.test(key)) {
           io.printMessage(Msg.NotUsable);
@@ -625,7 +631,8 @@ async function combatAttack(world: World, io: GameIO, member: number, preset?: {
   } else {
     dir = await getDirection(world, io, true);
   }
-  if (!dir || (dir.dx === 0 && dir.dy === 0)) return;
+  if (!dir) return cancelled(world, io);
+  if (dir.dx === 0 && dir.dy === 0) return;
   io.sound(Sound.Swish[member]);
 
   const missed = () => {

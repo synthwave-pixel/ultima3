@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { Key } from '../src/game/io.ts';
 import { Keyboard, STALE_KEY_MS } from '../src/ui/input.ts';
 
 describe('keyboard queue', () => {
@@ -28,6 +29,35 @@ describe('keyboard queue', () => {
     keyboard.push('z');
     at(STALE_KEY_MS + 100);
     expect(await keyboard.nextKey()).toBe('z');
+    expect(keyboard.waiting).toBe(false);
+  });
+
+  it('keeps a clock that stands still while paused', () => {
+    const { keyboard, at } = setup();
+    at(1000);
+    const start = keyboard.activeTime();
+    at(1400);
+    keyboard.pause();
+    at(9000);
+    expect(keyboard.activeTime() - start).toBe(400); // paused: the clock waits
+    keyboard.resume();
+    at(9100);
+    expect(keyboard.activeTime() - start).toBe(500);
+  });
+
+  it('drops the auto-repeat of the keys it is told to, and keeps the rest', async () => {
+    const target = new EventTarget();
+    const keyboard = new Keyboard(target, () => 0);
+    keyboard.dropRepeat = (key) => key === 'x'; // x stands in for the B button
+    const keydown = (key: string, repeat: boolean) => target.dispatchEvent(Object.assign(new Event('keydown'), { key, repeat }));
+    keydown('x', false);
+    keydown('x', true);
+    keydown('x', true);
+    keydown('ArrowUp', false);
+    keydown('ArrowUp', true);
+    expect(await keyboard.nextKey()).toBe('x');
+    expect(await keyboard.nextKey()).toBe(Key.Up);
+    expect(await keyboard.nextKey()).toBe(Key.Up); // a held direction still walks
     expect(keyboard.waiting).toBe(false);
   });
 

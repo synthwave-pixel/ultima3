@@ -105,7 +105,9 @@ export interface GameIO {
   /**
    * Read the next top-level command: a movement key, a command letter, or
    * null when `timeoutMs` passes with no input (the turn then passes).
-   * Without a limit it waits for a key (the timer setting Off).
+   * Without a limit it waits for a key (the timer setting Off). A command
+   * menu closed without a choice is no answer: the wait goes on, with the
+   * time that was left.
    */
   waitCommand(scope: CommandScope, timeoutMs?: number): Promise<string | null>;
   /**

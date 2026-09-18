@@ -6,9 +6,10 @@ import { endTurn, placeMoongates, type TurnHooks } from '../src/game/turn.ts';
 import { spawnMonster, moveMonsters, monsterCanEnter } from '../src/game/monsters.ts';
 import { MapValue } from '../src/game/tiles.ts';
 import { Location } from '../src/game/party.ts';
-import { Key } from '../src/game/io.ts';
+import { Key, type CommandScope } from '../src/game/io.ts';
 import { MapId } from '../src/data/resources.ts';
 import { World } from '../src/game/world.ts';
+import { Game, IDLE_PASS_MS } from '../src/game/game.ts';
 
 /** A flat grass Sosaria with the party at (32, 32) and no monsters. */
 function flatWorld(): { world: World; io: FakeIO } {
@@ -394,6 +395,20 @@ describe('the turn timer', () => {
     expect([4000, 5000, 6000].map((ms) => world.timeLimit(ms))).toEqual([10000, 12000, 14000]);
     world.timer = 'off';
     expect(world.timeLimit(4000)).toBeUndefined();
+  });
+
+  it('passes an idle field turn once its waits run out, however long they took (a pause, a menu closed)', async () => {
+    const world = newWorld();
+    const waits: number[] = [];
+    const io = new (class extends FakeIO {
+      override async waitCommand(_scope: CommandScope, timeoutMs?: number): Promise<string | null> {
+        waits.push(timeoutMs ?? Infinity);
+        return null; // each wait runs out, whatever the clock says
+      }
+    })(world.resources);
+    const game = new Game(world, io) as unknown as { waitForCommand(): Promise<string> };
+    expect(await game.waitForCommand()).toBe(Key.Space);
+    expect(waits.reduce((a, b) => a + b, 0)).toBe(IDLE_PASS_MS);
   });
 });
 

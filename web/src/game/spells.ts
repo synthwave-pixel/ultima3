@@ -14,13 +14,12 @@ import { World } from './world.ts';
 import { Location } from './party.ts';
 import { MapValue, Shape } from './tiles.ts';
 import { type GameIO, Sound, inputNumber, type MenuOption, type SpellFlash } from './io.ts';
-import { getDirection } from './commands.ts';
+import { getDirection, cancelled } from './commands.ts';
 import { shoot, showBall, damageMonster } from './combat.ts';
 import { getChest, incapacitated, chestHere } from './actions.ts';
 
 const Msg = {
   CastByWhom: 119,
-  Cancelled: 120,
   NotAMage: 121,
   MpTooLow: 122,
   SpellType: 123,
@@ -59,6 +58,7 @@ export async function cast(world: World, io: GameIO, member?: number): Promise<b
   if (member === undefined) {
     io.printMessage(Msg.CastByWhom);
     const n = await io.chooseMember();
+    if (n === 0) cancelled(world, io);
     if (n < 1 || n > 4) return false;
     member = n - 1;
     if (!world.memberAlive(member)) {
@@ -88,7 +88,7 @@ export async function cast(world: World, io: GameIO, member?: number): Promise<b
       break;
   }
   if (spell === CANCELLED) {
-    io.printMessage(Msg.Cancelled);
+    cancelled(world, io);
     return false;
   }
   if (spell === NOT_A_MAGE) {
@@ -96,6 +96,7 @@ export async function cast(world: World, io: GameIO, member?: number): Promise<b
     return false;
   }
   await processMagic(world, io, member, spell);
+  if (world.commandCancelled) return false; // backed out at the spell's own prompt, the mana given back
   world.lastSpell[member] = spell; // for the combat menu's "Cast (spell)" shortcut
   return true;
 }
@@ -393,6 +394,17 @@ export function failed(io: GameIO): void {
 }
 
 /**
+ * Backed out at a spell's own prompt (whom, or which way), after it was
+ * paid for: the mana comes back and the turn is not spent. This port; the
+ * original said "Failed" and kept the mana.
+ */
+function refund(world: World, io: GameIO, caster: number, spell: number): void {
+  world.member(caster).mana += spellCost(spell);
+  io.updateStats();
+  cancelled(world, io);
+}
+
+/**
  * Where each spell's flash lands with the Standard tiles: bolts and
  * self-directed spells flash the caster's square, heals the recipient's,
  * and spells that change the whole arena or the whole view flash all of
@@ -499,7 +511,7 @@ async function spellEffect(world: World, io: GameIO, member: number, spell: numb
       world.chestTrapsArmed = false;
       return getChest(world, io, member, 'spell');
     case 18: // Sanctu
-      return heal(world, io, spell, world.rng.range(0, 20) + 10);
+      return heal(world, io, member, spell, world.rng.range(0, 20) + 10);
     case 22: // Lib Rec: random spot on this dungeon level
       await flashriek(io, spell, member);
       if (world.party.location !== Location.Dungeon) return failed(io);
@@ -508,6 +520,7 @@ async function spellEffect(world: World, io: GameIO, member: number, spell: numb
       // Alcort: cure poison
       io.printMessage(Msg.CureWhom);
       const n = await io.chooseMember();
+      if (n === 0) return refund(world, io, member, spell);
       if (n < 1 || n > 4) return failed(io);
       await io.flashMember(n - 1);
       await flashriek(io, spell, n - 1);
@@ -523,7 +536,7 @@ async function spellEffect(world: World, io: GameIO, member: number, spell: numb
       world.dungeon.exit = true;
       return;
     case 26: // Sanctu Mani
-      return heal(world, io, spell, world.rng.range(0, 80) + 20);
+      return heal(world, io, member, spell, world.rng.range(0, 80) + 20);
     case 27: // Vieda: show the map
       await flashriek(io, spell, member);
       if (world.party.location === Location.Dungeon) await io.showMiniDungeon();
@@ -534,6 +547,7 @@ async function spellEffect(world: World, io: GameIO, member: number, spell: numb
       if (inCombat) return failed(io);
       io.printMessage(Msg.ResurrectWhom);
       const n = await io.chooseMember();
+      if (n === 0) return refund(world, io, member, spell);
       if (n < 1 || n > 4) return failed(io);
       await io.flashMember(n - 1);
       await flashriek(io, spell, n - 1);
@@ -551,6 +565,7 @@ async function spellEffect(world: World, io: GameIO, member: number, spell: numb
       if (inCombat) return failed(io);
       io.printMessage(Msg.RecallWhom);
       const n = await io.chooseMember();
+      if (n === 0) return refund(world, io, member, spell);
       if (n < 1 || n > 4) return failed(io);
       await io.flashMember(n - 1);
       await flashriek(io, spell, n - 1);
@@ -565,7 +580,7 @@ async function spellEffect(world: World, io: GameIO, member: number, spell: numb
       if (inCombat) return failed(io);
       io.printMessage(Msg.Direction);
       const dir = await getDirection(world, io);
-      if (!dir) return failed(io);
+      if (!dir) return refund(world, io, member, spell);
       io.print('TypeNum-');
       const value = await inputNumber(io);
       await flashriek(io, spell, member);
@@ -633,7 +648,7 @@ async function projectile(world: World, io: GameIO, member: number, spell: numbe
   if (!c) return failed(io);
   io.printMessage(Msg.Direction);
   const dir = await getDirection(world, io);
-  if (!dir) return failed(io);
+  if (!dir) return refund(world, io, member, spell);
   await flashriek(io, spell, member);
   const me = c.members[member];
   const hit = await shoot(world, io, me.x, me.y, dir.dx, dir.dy, Shape.MagicBall);
@@ -673,9 +688,10 @@ async function necorp(world: World, io: GameIO, spell: number): Promise<void> {
 }
 
 /** Mirrors `Heal()`: ask whom, then heal them. */
-async function heal(world: World, io: GameIO, spell: number, amount: number): Promise<void> {
+async function heal(world: World, io: GameIO, caster: number, spell: number, amount: number): Promise<void> {
   io.printMessage(Msg.HealWhom);
   const n = await io.chooseMember();
+  if (n === 0) return refund(world, io, caster, spell);
   if (n < 1 || n > 4) return failed(io);
   await healMember(world, io, spell, amount, n - 1);
 }

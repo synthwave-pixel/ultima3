@@ -223,6 +223,21 @@ export class World {
   resurrecting = false;
 
   /**
+   * Set when the player backs out of a command at one of its prompts (B or
+   * Escape at "Who?", a direction or a list) before it did anything: the
+   * loop that ran the command reads it with takeCancelled() and asks for
+   * another instead of spending the turn. This port; the original spent it.
+   */
+  commandCancelled = false;
+
+  /** Whether the last command was backed out of (see commandCancelled), clearing the flag. */
+  takeCancelled(): boolean {
+    const cancelled = this.commandCancelled;
+    this.commandCancelled = false;
+    return cancelled;
+  }
+
+  /**
    * Combat in progress, or null. Set by combat.ts; the viewport draws the
    * arena instead of the map while it is set.
    */

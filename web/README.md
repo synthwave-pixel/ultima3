@@ -270,7 +270,7 @@ explained in `tiles.ts`, and the music event format in `ui/music.ts`.
 
 ### Testing
 
-`npm test` runs the Vitest suite (187 tests) against the real extracted data: records,
+`npm test` runs the Vitest suite against the real extracted data: records,
 viewport line of sight, movement, monsters, turn processing, combat,
 spells, shops, dialogue, doors and chests, dungeons, menus, save
 round-trips and the music decoder. The renderer is exercised in headless

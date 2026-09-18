@@ -13,6 +13,7 @@ import { Location, GOLD_MAX } from './party.ts';
 import { MapValue } from './tiles.ts';
 import { type GameIO, Key, Sound, deathSound, type MenuOption } from './io.ts';
 import { PlayerRecord } from './player.ts';
+import { cancelled } from './commands.ts';
 
 const Msg = {
   GetChest: 40,
@@ -156,6 +157,7 @@ export async function getChest(world: World, io: GameIO, member: number, how: 'c
     world.chestTrapsArmed = true;
     io.printMessage(Msg.GetChest);
     const n = await io.chooseMember();
+    if (n === 0) return cancelled(world, io);
     if (n < 1 || n > 4) {
       io.printMessage(Msg.NoSuchPlayer);
       io.sound(Sound.Error1);
@@ -282,9 +284,11 @@ export async function igniteTorch(world: World, io: GameIO): Promise<void> {
 export async function modifyOrder(world: World, io: GameIO): Promise<void> {
   io.printMessage(Msg.ModifyOrder);
   const a = await io.chooseMember();
+  if (a === 0) return cancelled(world, io);
   if (a < 1 || a > 4) return io.printMessage(Msg.Aborted);
   io.printMessage(Msg.Plr);
   const b = await io.chooseMember();
+  if (b === 0) return cancelled(world, io);
   if (b < 1 || b > 4 || a === b) return io.printMessage(Msg.Aborted);
   const ra = world.party.memberRosterNumber(a - 1);
   world.party.setMemberRosterNumber(a - 1, world.party.memberRosterNumber(b - 1));
@@ -356,13 +360,15 @@ export async function readyWeapon(world: World, io: GameIO, member?: number): Pr
   if (member === undefined) {
     io.printMessage(Msg.ReadyFor);
     const n = await io.chooseMember();
+    if (n === 0) return cancelled(world, io);
     if (n < 1 || n > 4) return error(Msg.NoSuchPlayer);
     member = n - 1;
   }
   const p = world.member(member);
   io.printMessage(Msg.Weapon);
   const key = await io.chooseOption(ownedItems(world, p, true, 'P'), 'key');
-  if (!key || key < 'A' || key > 'P') return error(Msg.NotOwned);
+  if (!key) return cancelled(world, io);
+  if (key < 'A' || key > 'P') return error(Msg.NotOwned);
   const index = key.charCodeAt(0) - 'A'.charCodeAt(0);
   if (!world.canUse(p, true, index)) return error(Msg.NotAllowed);
   if (!world.equip(p, true, index)) return error(Msg.NotOwned);
@@ -379,11 +385,13 @@ export async function wearArmour(world: World, io: GameIO): Promise<void> {
   };
   io.printMessage(Msg.WearFor);
   const n = await io.chooseMember();
+  if (n === 0) return cancelled(world, io);
   if (n < 1 || n > 4) return error(Msg.NoSuchPlayer);
   const p = world.member(n - 1);
   io.printMessage(Msg.Armour);
   const key = await io.chooseOption(ownedItems(world, p, false, 'H'), 'key');
-  if (!key || key < 'A' || key > 'H') return error(Msg.NotOwned);
+  if (!key) return cancelled(world, io);
+  if (key < 'A' || key > 'H') return error(Msg.NotOwned);
   const index = key.charCodeAt(0) - 'A'.charCodeAt(0);
   if (!world.canUse(p, false, index)) return error(Msg.NotAllowed);
   if (!world.equip(p, false, index)) return error(Msg.NotOwned);
@@ -411,6 +419,7 @@ export async function stats(world: World, io: GameIO, member?: number): Promise<
   if (member === undefined) {
     io.printMessage(Msg.Ztats);
     const n = await io.chooseMember();
+    if (n === 0) return cancelled(world, io);
     if (n < 1 || n > 4) return io.print('\n');
     member = n - 1;
   }
