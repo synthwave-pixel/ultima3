@@ -6,8 +6,12 @@
 # builds are published as a GitHub Release. Either way the version is the
 # major.minor from desktop/package.json with the run number as the patch
 # (1.0.37, say), decided by desktop/version.cjs; a new series starts by
-# changing that major.minor. Desktop builds are unsigned: see the README's
-# Desktop section for what that means on each platform. The APK is signed
+# changing that major.minor. A release's notes are the root README's
+# changelog section headed with its version ("### v1.0.37, <date>"), so
+# that heading names the run number the release push will get (the push
+# to main just before it takes the one below). Desktop builds are
+# unsigned: see the README's Desktop section for what that means on each
+# platform. The APK is signed
 # with the committed sideload key unless the ANDROID_KEYSTORE_* secrets
 # provide a release key. Linux gets a Flatpak bundle as well as an
 # AppImage; the Linux job installs (and caches) the runtimes it needs. A
@@ -147,7 +151,13 @@ jobs:
           path: files
           merge-multiple: true
       - run: ls -la files
-      - run: gh release create "v$VERSION" files/* --title "v$VERSION" --generate-notes --target "$GITHUB_SHA"
+      # The notes are the README changelog's section for this version (desktop/release-notes.cjs), above GitHub's
+      # generated compare link; without a section the release still goes out, with a warning and the link alone.
+      - run: |
+          node desktop/release-notes.cjs "$VERSION" > notes.md
+          notes=()
+          if [ -s notes.md ]; then notes=(--notes-file notes.md); else echo "::warning::README.md has no changelog section for v$VERSION"; fi
+          gh release create "v$VERSION" files/* --title "v$VERSION" --generate-notes "${notes[@]}" --target "$GITHUB_SHA"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VERSION: ${{ steps.v.outputs.version }}

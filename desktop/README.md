@@ -24,6 +24,16 @@ to electron-builder as metadata, so `package.json` is never edited.
 macOS builds are Apple Silicon only. A manual run with "publish" off
 keeps the builds as artifacts instead of making a release.
 
+A release's notes come from the changelog in the root README:
+`release-notes.cjs` prints the section headed with the release's version
+(`### v1.0.27, September 18, 2026`), each wrapped item joined onto one
+line, and the release job puts it above GitHub's generated compare link.
+Since the patch is the run number, the heading names the number the push
+to `release` will get: one more than the push to `main` made just before
+it, which `gh run list --workflow desktop.yml` shows. Without a section
+for its version a release still goes out, with a warning and the compare
+link alone.
+
 Linux gets an AppImage and a Flatpak bundle. The Flatpak is built only
 where `flatpak-builder` and the Freedesktop 25.08 runtime, SDK and
 Electron base app are installed, which the Linux job does (on a Linux
