@@ -24,7 +24,7 @@ changes:
 
 ![The Standard experience: a town, combat, controller mode, a dungeon with the map off, small and full, the quest journal, the cloth map and Settings](promo/features.jpg)
 
-![Thirteen tile sets, each at the opening, in combat and in a dungeon](promo/tile-sets.jpg)
+![Twelve tile sets, each at the opening, in combat and in a dungeon](promo/tile-sets.jpg)
 
 The following were design principles for the updated Standard experience:
 
@@ -213,8 +213,9 @@ boxes and Enter. The same controls are in the game under Settings > Help.
 
 ### Settings
 
-Input mode, tile set, auto combat, poison kills, starvation, balanced XP,
-the turn timer, Sound FX (Standard, Lairware or Off), music and Help.
+Input mode, tile set, scanlines, auto combat, poison kills, starvation,
+balanced XP, the turn timer, Sound FX (Standard, Lairware or Off), music
+and Help.
 Every setting is remembered by the browser. A new game asks "Choose Thine
 Adventure!": Modern (recommended), Classic (hardcore, the Apple II's
 rules) or Story (relaxed), each a preset of the difficulty settings that
@@ -288,6 +289,10 @@ These apply whatever tile set and sound set are chosen.
   game turn-based through and through.
 - Balanced XP, on by default: a kill's experience is shared among the
   living members instead of going all to the killer.
+- Scanlines, off by default: the look of a CRT over the whole game, in
+  any tile set, one line for each of the Apple II's 192 screen lines.
+  They are drawn in the screen's own pixels, so they stay even at any
+  window size.
 - Auto combat, LairWare's addition, kept, with a smarter planner: members
   path round comrades and walls to the nearest square they can strike
   from.
@@ -311,6 +316,10 @@ These apply whatever tile set and sound set are chosen.
   is talked to, a counter opens the shop, a locked door asks for a key, a
   monster is attacked.
 - Transact asks the direction first and "who" only when it matters.
+- Backing out of a command with B or Escape, at a direction, a "who" or a
+  list, says "Cancelled." and spends no turn, where the Apple II spent it.
+  A spell backed out of at its own prompt gets its mana back, and Ztats in
+  combat no longer uses up the member's turn.
 - Spell menus name spells by what they do (Magic bolt, Heal, Up a level),
   with the book name, cost and effect beneath.
 - Other and Yell are one command, and EVOCARE works from either.
@@ -339,7 +348,7 @@ These apply whatever tile set and sound set are chosen.
   letter so that two doors would not vouch for each other. That also
   stranded the second "I" of a double, which saw only its twin. It now
   looks past a run of "I"s, which reads the sign and leaves all thirty
-  doors in the game doors. The eight tile sets that draw one picture for
+  doors in the game doors. The seven tile sets that draw one picture for
   both never showed it.
 - Death Gulch's armoury had a force field running in its east wall, one
   nibble off a wall tile in the map LairWare shipped. The data files are
@@ -366,9 +375,16 @@ than the Mac version did.
   the Apple II, Commodore 64 and Macintosh sets, blue and cyan for CGA,
   flat bricks in each palette for the NES and the EGA, MCGA, VGA and
   Ultima V sets. The Mac drew one photographic dungeon whatever the tiles;
-  that pairing is the Lairware set. The Apple II dungeons carry the same
-  scanlines as their tiles, and the monochrome set draws its corridors in
-  the same green phosphor.
+  that pairing is the Lairware set. The monochrome set draws its
+  corridors, and the combat marker, in its green phosphor.
+- Scanlines are the Scanlines setting's, not the tile sets': the Apple II
+  sheets had them baked in, and here they are taken out. LairWare's
+  Apple II Color TV set, the Color art with a television's color fringes
+  and scanlines, is not included.
+- The Apple II Color tiles are crisp: LairWare's sheet smeared every edge
+  across three or four pixels, so each tile is rebuilt from the Apple II
+  bitmap, the pixels from the Mono sheet and the colors from the Color
+  sheet, in the machine's six colors.
 - Each set has its own frame and cursor in its own palette; the five PC
   sets had borrowed the Mac's. Moon phases are shown as pictures in every
   set, flat pixel moons for the sets whose machines had them.
@@ -394,9 +410,12 @@ those builds and a modern developer sensibility.
 - Every figure is new flat pixel art: the eleven character classes, the
   townspeople, the eight monsters and their sixteen variants, the Exodus
   machine's four light states, the horse, the ships, the whirlpool, chest,
-  moongate and shrine. The figures are drawn at 32 pixels on Apple II
-  silhouettes, three tones per material, and doubled into the sheet, so
-  they read as one family from the party grid to the combat arena.
+  moongate and shrine, the towns and castles, which stand on the same
+  grass as the squares around them, and the town signs and doors, the
+  Apple II's lettering in gold on flat wood. The figures are drawn at 32
+  pixels on Apple II silhouettes, three tones per material, and doubled
+  into the sheet, so they read as one family from the party grid to the
+  combat arena.
 - Each class has its own figure. Paladins, barbarians, druids, larks,
   illusionists, alchemists and rangers no longer borrow the fighter,
   cleric, wizard or jester. The party on the overworld is drawn as its
@@ -463,10 +482,85 @@ updates. A bundle opened in Discover installs system-wide instead and asks
 for a password the deck account does not have; the link and the line
 above install per user and need none.
 
+## Changelog
+
+Every release, with the desktop and Android downloads, is on the
+[releases page](https://github.com/synthwave-pixel/ultima3/releases). The
+web version always runs the newest.
+
+### v1.0.27, September 18, 2026
+
+- The Standard town and castle on the overworld are redrawn to match the
+  rest of the set, on the same grass as the squares around them. The town
+  signs and doors are the Apple II's lettering in gold on flat wood.
+- New Standard monsters: a Dragon after the PC EGA dragon; a Balron, an
+  Orcus and a Devil after the NES art, the Devil with orange horns and a
+  pitchfork; a Griffon and a Wyvern in the Dragon's pose; and a more
+  detailed Daemon, Gargoyle and Mane.
+- A Scanlines setting, off by default, lays a CRT's scanlines over the
+  whole game in any tile set. The Apple II sheets no longer have them
+  baked in, so the Apple II Color TV set is gone; a saved choice of it
+  becomes Apple II Color. The cloth map no longer shakes.
+- The Apple II Color tiles are crisp, rebuilt from the Apple II bitmaps in
+  the machine's six colors.
+- The PC MCGA shrine and the PC VGA Devil show the right pictures. The
+  flags on castles, towns and the frigate flap at the Apple II's pace; the
+  frigate's had been a flicker.
+- Backing out of a command with B or Escape says "Cancelled." and spends
+  no turn. A spell backed out of at its own prompt gets its mana back, and
+  Ztats in combat no longer uses up the member's turn.
+- In controller mode, B closes a combat menu without also passing, a held
+  button no longer repeats into extra turns, and backing out of a menu
+  leaves the turn timer where it was.
+- The [tile sets page](https://synthwave-pixel.github.io/ultima3/tiles.html)
+  draws every tile of every set, animated, on any ground.
+
+### v1.0.22, September 17, 2026
+
+- Moon's "CAPESSII" sign shows its last letter, which had been drawn as a
+  door, and Death Gulch's armoury has a wall where a force field was. Both
+  were reported by Reddit user behindtimes.
+- Linux and the Steam Deck can install from the site's Flatpak
+  repository, which brings updates like any other Flatpak.
+
+### v1.0.16, September 16, 2026
+
+- The Flatpak can see gamepads, so the Steam Deck's controls reach the
+  game.
+
+### v1.0.11, September 16, 2026
+
+- A Flatpak bundle for Linux and the Steam Deck, beside the AppImage.
+- Safeguards for Steam's Game Mode: no GPU acceleration or Chromium
+  sandbox under gamescope, and an X11 window.
+
+### v1.0.7, September 16, 2026
+
+- The README is rewritten around what changed; the game is the same.
+
+### v1.0.5, September 16, 2026
+
+- Controller mode is the default for a first visit. Keyboard mode, the
+  Apple II letter commands, stays in Settings.
+
+### v1.0.4, September 16, 2026
+
+- The title-screen menus answer each key with a sound from the current
+  set.
+
+### v1.0.2, September 16, 2026
+
+- The first release: the browser port, the desktop app for Windows, macOS
+  and Linux, and the Android app.
+
 ## For developers
 
 See [DEVELOPMENT.md](DEVELOPMENT.md): where the code lives, how to run and
 test it, and how the builds and releases are made.
+
+Every tile of every tile set, drawn and animated as the game draws it, is
+on the [tile sets page](https://synthwave-pixel.github.io/ultima3/tiles.html)
+of the web version.
 
 ## License
 

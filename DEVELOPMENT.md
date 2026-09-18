@@ -14,7 +14,7 @@ The art briefs the new figures and dungeon sheets were drawn to are in
 at the root of the repository, unchanged.
 
 The two sheets the README opens with are in [`promo/`](promo/): nine
-screenshots of the Standard experience, and each of the thirteen tile sets
+screenshots of the Standard experience, and each of the twelve tile sets
 at the opening, in one fight and in one dungeon corridor. The tile-set shots
 are the game canvas captured through the debug hook `window.u3` in a
 development build: each scene is set up once and redrawn in every set, so
