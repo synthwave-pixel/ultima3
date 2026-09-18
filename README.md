@@ -22,9 +22,9 @@ changes:
 3. Includes an updated Standard experience: controller play, new art and
    sound, and tweakable settings.
 
-![The Standard experience: towns, combat, dungeons with an automap, the quest journal, the cloth map and controller mode](promo/features.png)
+![The Standard experience: a town, combat, controller mode, a dungeon with the map off, small and full, the quest journal, the cloth map and Settings](promo/features.jpg)
 
-![Thirteen tile sets: the overworld in each, and combat and dungeon views](promo/tile-sets.png)
+![Thirteen tile sets, each at the opening, in combat and in a dungeon](promo/tile-sets.jpg)
 
 The following were design principles for the updated Standard experience:
 
