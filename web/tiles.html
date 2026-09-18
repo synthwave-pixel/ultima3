@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex" />
+    <title>Tile sets</title>
+    <link rel="icon" href="pwa-192.png" type="image/png" />
+    <!--
+      A test page for checking the tile sets by eye; the game does not link
+      to it. Every tile of a set, drawn as the game draws it (src/tiles.ts).
+    -->
+    <style>
+      :root {
+        color-scheme: dark;
+      }
+      body {
+        margin: 0;
+        background: #111;
+        color: #ddd;
+        font:
+          14px/1.4 -apple-system,
+          'Segoe UI',
+          Helvetica,
+          Arial,
+          sans-serif;
+      }
+      header {
+        position: sticky;
+        top: 0;
+        z-index: 1;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px 18px;
+        align-items: center;
+        padding: 10px 16px;
+        background: #1c1c1c;
+        border-bottom: 1px solid #333;
+      }
+      h1 {
+        font-size: 16px;
+        margin: 0 8px 0 0;
+      }
+      header div {
+        display: flex;
+        gap: 6px;
+        align-items: center;
+      }
+      select {
+        font: inherit;
+      }
+      .legend {
+        margin: 0;
+        color: #999;
+        font-size: 12px;
+      }
+      .legend b {
+        color: #8cc8ff;
+        font-weight: normal;
+      }
+      main {
+        padding: 8px 16px 32px;
+      }
+      h2 {
+        font-size: 15px;
+        margin: 18px 0 6px;
+        color: #eee;
+      }
+      canvas {
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Tile sets</h1>
+      <div>
+        <label for="set">Set</label>
+        <select id="set"></select>
+      </div>
+      <div>
+        <label for="ground">Ground</label>
+        <select id="ground"></select>
+      </div>
+      <div>
+        <label for="size">Size</label>
+        <select id="size"></select>
+      </div>
+      <div>
+        <input type="checkbox" id="frames" checked />
+        <label for="frames">Frames</label>
+      </div>
+      <div>
+        <input type="checkbox" id="animate" checked />
+        <label for="animate">Animate</label>
+      </div>
+      <div>
+        <input type="checkbox" id="grouped" checked />
+        <label for="grouped">Variants with their monster</label>
+      </div>
+      <p class="legend">
+        Each tile as the map draws it, its two sheet frames beneath. <b>Blue</b> names are terrain, drawn opaque. The I's second frame is
+        the door, shown last, and those of 32-35 are Exodus' four light panels, shown under Exodus.
+      </p>
+    </header>
+    <main id="sets"></main>
+    <script type="module" src="/src/tiles.ts"></script>
+  </body>
+</html>

@@ -263,6 +263,7 @@ src/ui/     browser only
   music.ts        QuickTime music decoder and synthesizer
 src/main.ts       bootstrap, service worker, export/import transfer
 tools/compose-figures.ts   art/figures/ -> the Standard tile sheet
+tiles.html, src/tiles.ts   the tile test page (below)
 tools/chip-sfx.ts          renders the Standard sound effects (npm run sfx)
 ```
 
@@ -306,3 +307,14 @@ Prettier (single quotes, 140 columns; see `.prettierrc.json`) and
 `npm run lint` runs ESLint (typescript-eslint's type-checked rules, with
 unawaited promises as errors; see `eslint.config.js`). The CI workflow
 runs the format check, the lint, the tests and the build, in that order.
+
+The tile sets are checked by eye on `tiles.html`
+(<http://localhost:5173/tiles.html> under `npm run dev`, and `tiles.html`
+beside the game in a build; nothing links to it). It draws every tile of
+a set, or of all of them, through the game's own `GraphicsSet`: terrain
+opaque and everything else over a chosen ground (any terrain tile, a
+checkerboard for transparency, or black), animated at the game's rate,
+with each tile's two sheet frames still beneath it, and each monster's two
+variants beside it unless sheet order is asked for. The choices stay in
+the URL, so a view can be shared. The service worker neither caches the
+page nor answers for it.
