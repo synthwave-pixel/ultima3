@@ -35,6 +35,24 @@ export const FONT_GLYPHS = 96;
 export const UI_COLUMNS = 16;
 export const UI_ROWS = 3;
 
+/** The flags that flap (castle, town, ship), and how many idle ticks each waits between flaps. (`twiddleFlag`) */
+const FLAG_SHAPES = [Shape.Castle, Shape.Town, Shape.Frigate];
+const FLAG_WAITS = [3, 2, 1];
+
+/**
+ * One idle tick of `TwiddleFlags()`: count each flag's counter down, and
+ * flap the flag when the count goes past zero, then wait again. From the
+ * original's counts (3, 2, 1) the castle flaps every 4th tick, the town
+ * every 3rd and the ship every 2nd. Returns which flags flap this tick.
+ */
+export function twiddleFlags(counters: number[]): boolean[] {
+  return counters.map((_, i) => {
+    if (--counters[i] >= 0) return false;
+    counters[i] = FLAG_WAITS[i];
+    return true;
+  });
+}
+
 export interface SourceRect {
   x: number;
   y: number;
@@ -357,14 +375,9 @@ export class GraphicsSet {
     if ((this.exodusSkip ^= 1) === 1) this.exodusFrame = (this.exodusFrame + 3) & 3;
 
     // Flags: castle every 4th tick, town every 3rd, ship every 2nd.
-    const flagShapes = [Shape.Castle, Shape.Town, Shape.Frigate];
-    const flagPeriods = [3, 2, 1];
-    for (let i = 0; i < 3; i++) {
-      if (--this.twiddle[i] < 1) {
-        this.twiddle[i] = flagPeriods[i];
-        this.swap(flagShapes[i]);
-      }
-    }
+    twiddleFlags(this.twiddle).forEach((flap, i) => {
+      if (flap) this.swap(FLAG_SHAPES[i]);
+    });
 
     // Creatures: every tick but the 5th, advance one creature type.
     for (;;) {
