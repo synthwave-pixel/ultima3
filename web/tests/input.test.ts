@@ -45,6 +45,20 @@ describe('keyboard queue', () => {
     expect(keyboard.activeTime() - start).toBe(500);
   });
 
+  it('remembers what the last press came from, so the menu knows what the player is holding', async () => {
+    const target = new EventTarget();
+    const keyboard = new Keyboard(target, () => 0);
+    expect(keyboard.lastSource).toBe('keyboard');
+    keyboard.push(Key.A, 'touch');
+    expect(keyboard.lastSource).toBe('touch');
+    keyboard.push(Key.Up, 'gamepad');
+    expect(keyboard.lastSource).toBe('gamepad');
+    keyboard.push(Key.Pause); // the game's own, when a window loses focus: the player's last still stands
+    expect(keyboard.lastSource).toBe('gamepad');
+    target.dispatchEvent(Object.assign(new Event('keydown'), { key: 'a', repeat: false }));
+    expect(keyboard.lastSource).toBe('keyboard');
+  });
+
   it('drops the auto-repeat of the keys it is told to, and keeps the rest', async () => {
     const target = new EventTarget();
     const keyboard = new Keyboard(target, () => 0);

@@ -182,7 +182,7 @@ export class TouchPad {
 
   private press(key: string): void {
     this.options.onPress();
-    this.options.keyboard.push(key);
+    this.options.keyboard.push(key, 'touch');
   }
 
   private release(): void {

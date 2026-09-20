@@ -21,6 +21,9 @@ export const STALE_KEY_MS = 300;
 /** What holds the game paused: the window is not focused, or the Pause menu is open. */
 export type PauseReason = 'focus' | 'menu';
 
+/** Where a press came from: a real keyboard, a gamepad, or the on-screen pad. */
+export type InputSource = 'keyboard' | 'gamepad' | 'touch';
+
 export class Keyboard {
   private queue: { key: string; at: number }[] = [];
   private waiter: ((key: string) => void) | null = null;
@@ -44,6 +47,13 @@ export class Keyboard {
   onInput: (() => void) | null = null;
   /** Whether a held key's auto-repeat is dropped (a key standing in for a controller button, which never repeats). */
   dropRepeat: ((key: string) => boolean) | null = null;
+  /**
+   * Where the last press came from. What the player is holding decides what
+   * the Settings menu offers: only someone pressing real keys is shown the
+   * switch between keyboard and controller mode, since choosing keyboard
+   * mode with a thumb would leave a touch screen with no way back.
+   */
+  lastSource: InputSource = 'keyboard';
   /** True while the game is blocked on a key press and none is queued (a driver script can wait on this). */
   get waiting(): boolean {
     return this.waiter !== null && this.queue.length === 0;
@@ -110,7 +120,7 @@ export class Keyboard {
     if (key === null) return;
     e.preventDefault();
     if (e.repeat && this.dropRepeat?.(key)) return;
-    this.push(key);
+    this.push(key, 'keyboard');
   }
 
   /** The oldest queued press that is still fresh, dropping any that went stale. */
@@ -157,8 +167,13 @@ export class Keyboard {
     this.queue.length = 0;
   }
 
-  /** Inject a key from another source, such as a gamepad button. */
-  push(key: string): void {
+  /**
+   * Inject a key from another source, such as a gamepad button. Without a
+   * `source` the last one stands, for a key the game gives itself (the
+   * Pause a lost focus asks for) rather than one the player pressed.
+   */
+  push(key: string, source?: InputSource): void {
+    if (source) this.lastSource = source;
     this.onInput?.();
     if (this.waiter) {
       const w = this.waiter;

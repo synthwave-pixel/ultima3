@@ -721,6 +721,11 @@ export class Screen implements GameIO {
    * place; Tiles opens the list of sets; Help shows the pages for the
    * current input mode. Auto combat is not here: it is a command in game
    * (see AUTO_COMBAT_KEY), where a fight is what it is for.
+   *
+   * Input is offered only to a player pressing real keys (`lastSource`).
+   * Keyboard mode wants a keyboard: chosen from a gamepad or the on-screen
+   * pad it left the player with buttons the letter commands ignore, and
+   * choosing it again only switched the mode back for the press itself.
    */
   private async settingsMenu(title: 'Settings' | 'Paused'): Promise<void> {
     const w = this.world;
@@ -729,9 +734,13 @@ export class Screen implements GameIO {
     const resume: MenuOption[] = title === 'Paused' ? [{ key: 'E', label: 'Resume' }] : [];
     let cursor = 0;
     for (;;) {
+      const input: MenuOption[] =
+        this.keyboard.lastSource === 'keyboard'
+          ? [{ key: 'I', label: `Input: ${this.inputMode === 'controller' ? 'Controller' : 'Keyboard'}` }]
+          : [];
       const options: MenuOption[] = [
         ...resume,
-        { key: 'I', label: `Input: ${this.inputMode === 'controller' ? 'Controller' : 'Keyboard'}` },
+        ...input,
         { key: 'T', label: `Tiles: ${this.tileSetName}` },
         { key: 'L', label: `Scanlines: ${onOff(this.scanlines)}` },
         { key: 'P', label: `Poison kills: ${onOff(w.poisonKills)}` },

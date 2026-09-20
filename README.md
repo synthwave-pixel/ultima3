@@ -192,8 +192,8 @@ touch screen the pause button is at the top of the virtual pad.
 
 ### Keyboard mode
 
-For the original feel, chosen in the Pause menu (the last entry of the
-command menu). The Apple II commands, one letter each:
+For the original feel, chosen in the Pause menu when it is opened with a
+key press. The Apple II commands, one letter each:
 
     Arrows       walk; move in combat      Space   pass a turn
     Escape       pause menu                J       journal
@@ -224,12 +224,15 @@ until Resume. A window that loses focus pauses itself and opens the same
 menu, which stays up until you close it, so nothing runs on while you are
 away.
 
-The menu holds the settings: input mode, tile set, scanlines, poison
-kills, starvation, balanced XP, the turn timer, Sound FX (Standard,
-Lairware or Off), music and Help. The title screen shows the same list
-under Settings. Auto combat is not there: it is a command in play, H on a
-keyboard and an entry in the command menu, where the fight it is for is.
-Every setting is remembered by the browser. A new game asks "Choose Thine
+The menu holds the settings: tile set, scanlines, poison kills,
+starvation, balanced XP, the turn timer, Sound FX (Standard, Lairware or
+Off), music and Help. The title screen shows the same list under Settings.
+The input mode is there too, but only when the menu was opened with a key
+press: keyboard mode wants a keyboard, and choosing it with a thumb or a
+gamepad used to leave a player pressing buttons the letter commands ignore.
+Auto combat is not there either: it is a command in play, H on a keyboard
+and an entry in the command menu, where the fight it is for is. Every
+setting is remembered by the browser. A new game asks "Choose Thine
 Adventure!": Modern (recommended), Classic (hardcore, the Apple II's
 rules) or Story (relaxed), each a preset of the difficulty settings that
 can be changed afterwards.

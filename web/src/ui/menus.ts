@@ -385,14 +385,14 @@ export class GamepadReader {
         }
         if (!was) {
           this.held.set(id, { since: t, last: t });
-          this.keyboard.push(key);
+          this.keyboard.push(key, 'gamepad');
           this.onActivity();
           continue;
         }
         const repeats = DIRECTION_KEYS.includes(key);
         if (repeats && t - was.since >= GAMEPAD_REPEAT_FIRST_MS && t - was.last >= GAMEPAD_REPEAT_MS && this.keyboard.waiting) {
           was.last = t;
-          this.keyboard.push(key);
+          this.keyboard.push(key, 'gamepad');
         }
       }
     }

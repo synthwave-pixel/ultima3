@@ -307,6 +307,21 @@ gamepad reader maps buttons 8 and 9, the system buttons either side of the
 logo, to `Key.Pause`, the virtual pad has a button for it, and
 `applyMenuKey` treats it as backing out.
 
+### What the player is holding
+
+`Keyboard.lastSource` is where the last press came from: `'keyboard'` for a
+real key, `'gamepad'` for the pad reader, `'touch'` for the on-screen one. A
+key the game gives itself (the Pause a blur asks for) passes no source and
+leaves the last one standing.
+
+The settings offer the Input entry only when that is `'keyboard'`. Keyboard
+mode chosen from a thumb or a gamepad left the player pressing buttons the
+letter commands ignore, and choosing it again did not undo it: the pad's own
+press calls `useController()` first, so the mode flipped to controller and
+the entry flipped it straight back. A pad press still calls
+`useController()`, so anyone left in keyboard mode is in controller mode
+again on their next tap.
+
 ### Data formats
 
 The byte layouts of the character record, party record, monster table,

@@ -9,6 +9,7 @@ import {
   layoutMenu,
   MENU_SOUNDS,
 } from '../src/ui/menus.ts';
+import type { InputSource } from '../src/ui/input.ts';
 
 describe('controller stand-ins on the keyboard', () => {
   it('map WASD to the d-pad and the button row and the pad letters to the buttons', () => {
@@ -34,24 +35,32 @@ describe('gamepad reader', () => {
     let t = 0;
     let pads: (Gamepad | null)[] = [];
     const pushed: string[] = [];
-    const keyboard = { push: (k: string) => pushed.push(k), waiting: true };
+    const sources: (string | undefined)[] = [];
+    const keyboard = {
+      push: (k: string, source?: InputSource) => {
+        sources.push(source);
+        pushed.push(k);
+      },
+      waiting: true,
+    };
     const reader = new GamepadReader(
       keyboard,
       () => {},
       () => t,
       () => pads,
     );
-    return { reader, pushed, keyboard, hold: (p: (Gamepad | null)[]) => (pads = p), at: (ms: number) => (t = ms) };
+    return { reader, pushed, sources, keyboard, hold: (p: (Gamepad | null)[]) => (pads = p), at: (ms: number) => (t = ms) };
   };
 
   it('presses a button once however long it is held', () => {
-    const { reader, pushed, hold, at } = setup();
+    const { reader, pushed, sources, hold, at } = setup();
     hold([pad([0])]);
     for (let ms = 0; ms < 2000; ms += 16) {
       at(ms);
       reader.poll();
     }
     expect(pushed).toEqual([Key.A]);
+    expect(sources).toEqual(['gamepad']); // so the Settings menu knows a pad, not a keyboard, is in hand
   });
 
   it('repeats a held direction after a pause, at the repeat rate, only while the game waits', () => {
