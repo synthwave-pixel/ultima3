@@ -504,6 +504,25 @@ Every release, with the desktop and Android downloads, is on the
 [releases page](https://github.com/synthwave-pixel/ultima3/releases). The
 web version always runs the newest.
 
+### v1.0.31, September 20, 2026
+
+- A Pause menu stops the game where it stands: the idle timer, a combat
+  turn's timer and the music all hold until Resume. It opens from a
+  controller's View or Menu button, Escape on a keyboard, the new pause
+  button on the touch pad, or the last entry of the command menu. A window
+  that loses focus pauses and opens it, and it stays open until you close
+  it, so nothing runs on while you are away.
+- The settings moved into the Pause menu; the title screen keeps them under
+  Settings. The input mode is offered only when the menu was opened with a
+  key press: chosen with a thumb, keyboard mode left a touch player pressing
+  buttons the letter commands ignore, with no way back.
+- Auto combat left the settings and is a command in play: H on a keyboard,
+  or an entry in the command menu that shows whether it is on. It spends no
+  turn.
+- In controller mode Escape pauses instead of standing in for the B button.
+  X and B still stand in for it, and Escape still backs out of a menu or
+  cancels a prompt.
+
 ### v1.0.27, September 18, 2026
 
 - The Standard town and castle on the overworld are redrawn to match the
