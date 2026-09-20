@@ -16,7 +16,7 @@ Add to Home Screen.
 - Runs full screen in landscape with the system bars hidden; a swipe from
   an edge shows them for a moment.
 - Maps the system Back button (and a handheld's Back key) to Escape, which
-  opens the game's Settings menu.
+  opens the game's Pause menu.
 - Physical controls that Android reports as a gamepad switch the game to
   controller mode on the first press; a tap on the screen shows the
   virtual controller instead.

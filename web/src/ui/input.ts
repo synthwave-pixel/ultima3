@@ -18,16 +18,27 @@ const MAX_QUEUED = 8;
 /** A queued press older than this when the game asks for a key is dropped. */
 export const STALE_KEY_MS = 300;
 
+/** What holds the game paused: the window is not focused, or the Pause menu is open. */
+export type PauseReason = 'focus' | 'menu';
+
 export class Keyboard {
   private queue: { key: string; at: number }[] = [];
   private waiter: ((key: string) => void) | null = null;
-  /** True while the window has lost focus: idle timers stop, so turns do not pass unattended. */
-  paused = false;
+  /**
+   * True while the game is paused: idle timers stop, so turns do not pass
+   * unattended. Two things pause it (see `PauseReason`), and it runs again
+   * only when both have let go: a window that regains focus while the Pause
+   * menu is open leaves the game paused, as the menu is still up.
+   */
+  get paused(): boolean {
+    return this.holds.size > 0;
+  }
+  private readonly holds = new Set<PauseReason>();
   /** The pending timed wait, so it can be stopped and restarted around a pause. */
   private timed: { remaining: number; started: number; timer: ReturnType<typeof setTimeout> | null; fire: () => void } | null = null;
-  /** Called when the window loses focus (the game pauses). */
-  onPause: (() => void) | null = null;
-  /** Called when the window regains focus, with how long it was away (ms). */
+  /** Called when the game pauses, with what paused it. */
+  onPause: ((reason: PauseReason) => void) | null = null;
+  /** Called when the game runs again, with how long it was paused (ms). */
   onResume: ((pausedMs: number) => void) | null = null;
   /** Called on every key from any source, the gamepad included (audio is unlocked from here). */
   onInput: (() => void) | null = null;
@@ -47,16 +58,18 @@ export class Keyboard {
   ) {
     target.addEventListener('keydown', (e) => this.onKeyDown(e as KeyboardEvent));
     if (typeof window !== 'undefined') {
-      window.addEventListener('blur', () => this.pause());
-      window.addEventListener('focus', () => this.resume());
-      document.addEventListener('visibilitychange', () => (document.hidden ? this.pause() : this.resume()));
+      window.addEventListener('blur', () => this.pause('focus'));
+      window.addEventListener('focus', () => this.resume('focus'));
+      document.addEventListener('visibilitychange', () => (document.hidden ? this.pause('focus') : this.resume('focus')));
     }
   }
 
-  /** The window lost focus (blur, or the page hidden): stop the idle timers. */
-  pause(): void {
-    if (this.paused) return;
-    this.paused = true;
+  /** Pause the game: the window lost focus (blur, or the page hidden), or the Pause menu opened. */
+  pause(reason: PauseReason = 'focus'): void {
+    if (this.holds.has(reason)) return;
+    const first = !this.paused;
+    this.holds.add(reason);
+    if (!first) return;
     this.pausedAt = this.now();
     const t = this.timed;
     if (t && t.timer !== null) {
@@ -64,13 +77,12 @@ export class Keyboard {
       t.timer = null;
       t.remaining -= this.now() - t.started;
     }
-    this.onPause?.();
+    this.onPause?.(reason);
   }
 
-  /** The window has focus again: the idle timers go on with the time they had left. */
-  resume(): void {
-    if (!this.paused) return;
-    this.paused = false;
+  /** Let go of one hold: the game runs again once nothing holds it, with the idle timers' remaining time. */
+  resume(reason: PauseReason = 'focus'): void {
+    if (!this.holds.delete(reason) || this.paused) return;
     const t = this.timed;
     if (t && t.timer === null) {
       t.started = this.now();

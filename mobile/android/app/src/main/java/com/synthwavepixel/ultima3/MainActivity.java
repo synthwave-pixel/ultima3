@@ -10,7 +10,7 @@ import com.getcapacitor.BridgeActivity;
 
 /**
  * The game's activity: the web view fills the screen with the system bars hidden (a swipe from an edge shows them
- * for a moment), and the Back button opens the game's Settings menu as Escape does on a keyboard. Everything else
+ * for a moment), and the Back button opens the game's Pause menu as Escape does on a keyboard. Everything else
  * is Capacitor's BridgeActivity.
  */
 public class MainActivity extends BridgeActivity {

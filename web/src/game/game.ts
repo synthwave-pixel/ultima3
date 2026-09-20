@@ -19,7 +19,7 @@ import * as act from './actions.ts';
 import * as interact from './interact.ts';
 import { attackMonster, showBall } from './combat.ts';
 import { cast, quickHeal, quickSafeChest, quickLight } from './spells.ts';
-import { QUICK_CAST_KEY, SAFE_CHEST_KEY, LIGHT_KEY, VIEW_MAP_KEY } from './context.ts';
+import { AUTO_COMBAT_KEY, QUICK_CAST_KEY, SAFE_CHEST_KEY, LIGHT_KEY, VIEW_MAP_KEY } from './context.ts';
 import { journalCheck } from './journal.ts';
 import { runDungeon } from './dungeon.ts';
 import { checkAllDead } from './death.ts';
@@ -108,8 +108,12 @@ export class Game {
 
       const key = await this.waitForCommand();
       if (world.done) return;
-      if (key === Key.Escape) {
-        await io.showSettings(); // no turn passes
+      if (key === Key.Escape || key === Key.Pause) {
+        await io.showPause(); // the game stops where it stands; no turn passes
+        continue;
+      }
+      if (key.toUpperCase() === AUTO_COMBAT_KEY) {
+        cmd.toggleAutoCombat(world, io); // no turn passes
         continue;
       }
       if (key === 'J' || key === 'j') {

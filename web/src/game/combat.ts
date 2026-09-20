@@ -17,10 +17,10 @@ import { World, type CombatState, type Combatant } from './world.ts';
 import { Location } from './party.ts';
 import { MapValue, Shape, classTile } from './tiles.ts';
 import { type GameIO, Key, Sound, Music, deathSound } from './io.ts';
-import { getDirection, moveForKey, moveDelta, what2, cancelled, DIAGONAL_KEYS, Msg as CmdMsg } from './commands.ts';
+import { getDirection, moveForKey, moveDelta, what2, cancelled, toggleAutoCombat, DIAGONAL_KEYS, Msg as CmdMsg } from './commands.ts';
 import { ageChars } from './turn.ts';
 import { cast, quickCast } from './spells.ts';
-import { QUICK_CAST_KEY } from './context.ts';
+import { AUTO_COMBAT_KEY, QUICK_CAST_KEY } from './context.ts';
 import { negateTime, readyWeapon, stats, volume, addExperience } from './actions.ts';
 import { BASERES } from '../data/resources.ts';
 import { checkAllDead } from './death.ts';
@@ -457,6 +457,8 @@ async function waitForCombatKey(world: World, io: GameIO, member: number): Promi
  */
 async function scriptTurn(world: World, io: GameIO, member: number): Promise<void> {
   const pressed = await io.waitKeyOrTimeout(AUTO_PAUSE_MS);
+  // The system buttons pause instead of interrupting; the fight goes on scripted when the player resumes.
+  if (pressed === Key.Pause) await io.showPause();
   if (pressed === Key.Escape || pressed === Key.B) {
     world.autoCombat = false;
     world.onAutoCombatChange?.();
@@ -477,8 +479,12 @@ async function memberTurn(world: World, io: GameIO, member: number): Promise<voi
 
     if (world.autoCombat) await scriptTurn(world, io, member);
     const key = await waitForCombatKey(world, io, member);
-    if (key === Key.Escape) {
-      await io.showSettings(); // the member's turn is not spent
+    if (key === Key.Escape || key === Key.Pause) {
+      await io.showPause(); // the member's turn is not spent, and its timer stops with the game
+      continue;
+    }
+    if (key.toUpperCase() === AUTO_COMBAT_KEY) {
+      toggleAutoCombat(world, io); // the member's turn is not spent
       continue;
     }
     if (!world.diagonalMoves && DIAGONAL_KEYS.includes(key)) return; // refused, and the turn is spent

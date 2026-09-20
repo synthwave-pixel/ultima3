@@ -5,8 +5,8 @@
  * lower left, A and B at the lower right in the Xbox arrangement (A low,
  * B up and to its right) with Y above B (Y opens the cheats from the help
  * pages, and is Look, Attack or Ignite in play), a close button at the
- * upper left and, at the upper right, a full-screen button where the
- * browser allows it. Everything is drawn as one-pixel lines at
+ * upper left, a pause button at the top centre, and at the upper right a
+ * full-screen button where the browser allows it. Everything is drawn as one-pixel lines at
  * three-quarter white, each with a one-pixel rim of half black on either
  * side so it reads over any ground, and nothing inside, so the game shows
  * through. Sizes are in millimetres, which CSS scales by the device's
@@ -67,6 +67,7 @@ export class TouchPad {
     const gap = Math.SQRT2 * (BUTTON_MM + 1) - BUTTON_MM;
     this.root.appendChild(this.button('Y', Key.Y, `right:${MARGIN_MM}mm;bottom:${(MARGIN_MM + 2 * BUTTON_MM + 1 + gap).toFixed(1)}mm`));
     this.root.appendChild(this.closeButton());
+    this.root.appendChild(this.pauseButton());
     if (document.fullscreenEnabled) {
       this.fullscreenButton = this.fullscreenToggle();
       this.root.appendChild(this.fullscreenButton);
@@ -264,6 +265,22 @@ export class TouchPad {
       e.stopPropagation();
       this.show(false);
     });
+    return svg;
+  }
+
+  /**
+   * Top centre: two bars in a circle, the Pause menu. It stands in for a
+   * controller's View and Menu buttons, which a touch screen has not, and
+   * sits away from the thumbs so a fight does not stop by accident.
+   */
+  private pauseButton(): SVGSVGElement {
+    const svg = this.svg(SMALL_MM, `left:50%;top:${MARGIN_MM}mm`);
+    svg.style.transform = 'translateX(-50%)';
+    const r = SMALL_MM / 2;
+    const circle = this.shape(svg, 'circle', { cx: `${r}`, cy: `${r}`, r: `${r - 0.5}` });
+    const bars = this.shape(svg, 'path', { d: `M${r - 1.5} ${r - 2} V${r + 2} M${r + 1.5} ${r - 2} V${r + 2}` });
+    bars.style.pointerEvents = 'none';
+    this.pressable(circle, Key.Pause, false);
     return svg;
   }
 

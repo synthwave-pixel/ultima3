@@ -11,11 +11,15 @@
  */
 
 import { Key, Sound, type CommandScope, type MenuOption } from '../game/io.ts';
-import { VIEW_MAP_KEY } from '../game/context.ts';
+import { AUTO_COMBAT_KEY, VIEW_MAP_KEY } from '../game/context.ts';
 import { GraphicsSet } from './graphics.ts';
 import { Keyboard } from './input.ts';
 
-/** How keyboard keys stand in for the controller when in controller mode. */
+/**
+ * How keyboard keys stand in for the controller when in controller mode.
+ * Escape is not among them: it pauses, as the pad's system buttons do, and
+ * a menu takes it as backing out anyway.
+ */
 export function controllerKeyFor(key: string): string {
   switch (key) {
     case 'w':
@@ -34,7 +38,6 @@ export function controllerKeyFor(key: string): string {
     case 'z':
     case 'Z':
       return Key.A;
-    case Key.Escape:
     case 'x':
     case 'X':
     case 'b':
@@ -78,6 +81,7 @@ export const COMMAND_MENUS: Record<CommandScope, MenuOption[]> = {
     { key: 'O', label: 'Other command' },
     { key: 'Q', label: 'Quit and save' },
     { key: ' ', label: 'Pass' },
+    { key: AUTO_COMBAT_KEY, label: 'Auto combat' },
     { key: 'J', label: 'Journal' },
     { key: VIEW_MAP_KEY, label: 'View map' },
   ],
@@ -87,6 +91,7 @@ export const COMMAND_MENUS: Record<CommandScope, MenuOption[]> = {
     { key: 'N', label: 'Negate time' },
     { key: 'R', label: 'Ready weapon' },
     { key: 'Z', label: 'Ztats' },
+    { key: AUTO_COMBAT_KEY, label: 'Auto combat' },
     { key: ' ', label: 'Pass' },
   ],
   dungeon: [
@@ -103,6 +108,7 @@ export const COMMAND_MENUS: Record<CommandScope, MenuOption[]> = {
     { key: 'M', label: 'Modify order' },
     { key: 'N', label: 'Negate time' },
     { key: 'O', label: 'Other command' },
+    { key: AUTO_COMBAT_KEY, label: 'Auto combat' },
     { key: ' ', label: 'Pass' },
     { key: 'J', label: 'Journal' },
   ],
@@ -322,7 +328,8 @@ export function applyMenuKey(menu: MenuWindow, options: MenuOption[], visible: M
     if (!at) return { kind: 'back' };
     return at.disabled ? { kind: 'refused' } : { kind: 'choose', index: options.indexOf(at) };
   }
-  if (key === Key.B || key === Key.Escape) return { kind: 'back' };
+  // Pause backs out too: pressed on the Pause menu itself that resumes, and a menu is never left open behind it.
+  if (key === Key.B || key === Key.Escape || key === Key.Pause) return { kind: 'back' };
   const byKey = options.findIndex((o) => o.key === key.toUpperCase());
   if (byKey < 0) return { kind: 'none' };
   return options[byKey].disabled ? { kind: 'refused' } : { kind: 'choose', index: byKey };
@@ -361,6 +368,9 @@ export class GamepadReader {
         [Key.B, pad.buttons[1]?.pressed ?? false],
         [Key.X, pad.buttons[2]?.pressed ?? false],
         [Key.Y, pad.buttons[3]?.pressed ?? false],
+        // The two system buttons either side of the maker's logo (View and Menu on an Xbox pad, Select and Start
+        // elsewhere): both pause, as a console's do.
+        [Key.Pause, (pad.buttons[8]?.pressed ?? false) || (pad.buttons[9]?.pressed ?? false)],
         [Key.Up, (pad.buttons[12]?.pressed ?? false) || (pad.axes[1] ?? 0) < -0.5],
         [Key.Down, (pad.buttons[13]?.pressed ?? false) || (pad.axes[1] ?? 0) > 0.5],
         [Key.Left, (pad.buttons[14]?.pressed ?? false) || (pad.axes[0] ?? 0) < -0.5],

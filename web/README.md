@@ -253,7 +253,7 @@ src/ui/     browser only
   graphics.ts     tile sheet, mask, font and UI sheet; tile animation
   screen.ts       Canvas renderer and the GameIO implementation
   dungeonView.ts  the first-person dungeon renderer
-  input.ts        keyboard as an awaitable queue
+  input.ts        keyboard as an awaitable queue, and what pauses it
   menus.ts        menu windows (keys, feedback sounds), controller command lists, gamepad reader
   touch.ts        the virtual controller on touch screens
   dungeonArt.ts   dungeon sheets painted per tile set
@@ -288,6 +288,24 @@ as the original, which keeps the port easy to compare against the C. Keys
 pressed while the game is busy queue up, as the Mac's events did, but a
 queued press older than 300 ms is dropped when the game next asks, so
 presses made during a combat start or an animation do not play out later.
+
+### Pausing
+
+`Keyboard` holds a set of reasons it is paused (`input.ts`): `'focus'` for a
+window that is not focused and `'menu'` while the Pause menu is open. It
+pauses on the first and runs again only when the set empties, so focus
+coming back does not restart a game the menu still holds. A pause stops the
+idle timers, and `activeTime()` (the clock a timed wait is measured on)
+stands still with them, so a combat turn gets the whole pause back.
+
+The Pause menu is a normal menu: nothing shows it by itself. Losing focus
+pauses and pushes `Key.Pause`, which whatever is waiting for a key reads,
+and the field, dungeon and combat loops open the menu on it as they do on
+Escape. Where the key is swallowed (inside another menu) the screen falls
+back to the old PAUSED box and focus alone starts the game again. The
+gamepad reader maps buttons 8 and 9, the system buttons either side of the
+logo, to `Key.Pause`, the virtual pad has a button for it, and
+`applyMenuKey` treats it as backing out.
 
 ### Data formats
 

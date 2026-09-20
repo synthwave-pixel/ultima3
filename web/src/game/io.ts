@@ -25,6 +25,8 @@ export const Key = {
   B: '\x02',
   X: '\x03',
   Y: '\x04',
+  /** The controller's system buttons (View and Menu), the touch pad's pause button, and a window that loses focus. */
+  Pause: '\x05',
 } as const;
 
 /** One choice in a menu or a letter prompt. */
@@ -127,8 +129,13 @@ export interface GameIO {
    * or the key and a newline ('line'), matching what the original printed.
    */
   chooseOption(options: MenuOption[], echo: 'none' | 'key' | 'line', place?: MenuPlacement): Promise<string>;
-  /** The Settings menu (input mode, tiles, diagonal moves, auto combat, sound, music, help). Returns when closed. */
+  /** The Settings menu (input mode, tiles, scanlines, difficulty, sound, music, help). Returns when closed. */
   showSettings(): Promise<void>;
+  /**
+   * The Pause menu: the game stops (idle timers, combat turn timers and the
+   * music with it) and the settings are shown, until Resume. No turn passes.
+   */
+  showPause(): Promise<void>;
   /** The quest journal (J): a page over the map. No turn passes. */
   showJournal(): Promise<void>;
   /** The cloth map of Sosaria over the whole screen, until a key. No turn passes. */

@@ -112,6 +112,11 @@ export class FakeIO implements GameIO {
     }
   }
   async showSettings(): Promise<void> {}
+  /** Counts how often the game paused, since a fake has nothing to stop. */
+  paused = 0;
+  async showPause(): Promise<void> {
+    this.paused++;
+  }
   async showJournal(): Promise<void> {}
   async showMap(): Promise<void> {}
   /** Answered from the key queue like chooseOption. */

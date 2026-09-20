@@ -30,7 +30,7 @@ import { MusicPlayer } from './music.ts';
 import { DungeonRenderer } from './dungeonView.ts';
 import { markerColour } from './display.ts';
 import { ScanlineOverlay } from './scanlines.ts';
-import { World, STARVATION_MODES, TIMER_MODES } from '../game/world.ts';
+import { World, holdCombatMark, STARVATION_MODES, TIMER_MODES } from '../game/world.ts';
 import { PlayerRecord, levelUpDue } from '../game/player.ts';
 import { commandMenu, hasMagic } from '../game/context.ts';
 import { memberShape } from '../game/combat.ts';
@@ -214,6 +214,8 @@ export class Screen implements GameIO {
   tileSetName = 'Standard';
   /** CRT lines laid over the whole game when the Scanlines setting is on (scanlines.ts). */
   private readonly crt: ScanlineOverlay;
+  /** True while the Pause menu is up: it holds the game paused, and says so itself, so no PAUSED box. */
+  private pauseShown = false;
   /**
    * How the party on foot is drawn here: 'grid' is the 2x2 of members (Standard,
    * overworld), 'line' the leader with the others following in a line (Standard
@@ -249,8 +251,14 @@ export class Screen implements GameIO {
     for (let r = 0; r < TEXT_BOTTOM - TEXT_TOP; r++) this.textRows.push(Array<string>(TEXT_RIGHT - TEXT_LEFT).fill(' '));
     this.dungeonRenderer = DungeonRenderer.forSet(gfx);
     this.crt = new ScanlineOverlay(canvas);
-    // A pause (window not focused) holds the music and should not eat into a combat turn's timer.
-    keyboard.onPause = () => this.musicPlayer.pause();
+    // A pause holds the music and should not eat into a combat turn's timer. A window that loses focus pauses at
+    // once and asks for the Pause menu as well: whatever is waiting for a key reads it and opens the menu, which
+    // then holds the game until the player resumes. Where the key is swallowed (inside another menu) the PAUSED
+    // box stands in, as before, and focus alone starts the game again.
+    keyboard.onPause = (reason) => {
+      this.musicPlayer.pause();
+      if (reason === 'focus' && !this.pauseShown) keyboard.push(Key.Pause);
+    };
     keyboard.onResume = (pausedMs) => {
       this.musicPlayer.resume();
       // A frozen outline (a menu open) gets the whole time back when the menu closes.
@@ -259,8 +267,8 @@ export class Screen implements GameIO {
     };
     // The buttons never repeat on a gamepad or the touch screen, so their keys do not either: B held past a closing
     // menu would otherwise pass turn after turn. Held directions still repeat, for walking.
-    const buttons: string[] = [Key.A, Key.B, Key.X, Key.Y];
-    keyboard.dropRepeat = (key) => this.inputMode === 'controller' && buttons.includes(controllerKeyFor(key));
+    const buttons: string[] = [Key.A, Key.B, Key.X, Key.Y, Key.Pause, Key.Escape];
+    keyboard.dropRepeat = (key) => buttons.includes(this.inputMode === 'controller' ? controllerKeyFor(key) : key);
     this.gamepads = new GamepadReader(keyboard, () => {
       this.useController();
       this.onGamepadPress?.();
@@ -679,21 +687,53 @@ export class Screen implements GameIO {
   }
 
   /**
-   * The Settings menu, on the title screen or over the map. Each toggle
-   * shows its state and flips in place; Tiles opens the list of sets; Help
-   * shows the pages for the current input mode.
+   * The Pause menu: the game stops where it stands and the settings are
+   * shown, until Resume (or B, Escape, or the button that opened it). The
+   * hold on the keyboard stops the idle timers, the combat turn timer and
+   * the music, and outlives a window that regains focus, so a menu opened
+   * by a blur stays up until the player closes it.
    */
+  async showPause(): Promise<void> {
+    if (this.pauseShown) return;
+    this.pauseShown = true;
+    // A combat turn's outline stops fading where it is, as under the command menu, and the turn cannot expire.
+    const release = holdCombatMark(this.world.combat);
+    this.keyboard.pause('menu');
+    this.hidePaused(); // the PAUSED box a blur put up: the menu says it now
+    try {
+      await this.settingsMenu('Paused');
+    } finally {
+      this.pauseShown = false;
+      // While the fade is frozen the keyboard's own resume leaves the mark alone, so the turn gets its time back once.
+      this.keyboard.resume('menu');
+      release();
+    }
+  }
+
+  /** The Settings menu, on the title screen's main menu. In game the same list is under Pause. */
   async showSettings(): Promise<void> {
+    await this.settingsMenu('Settings');
+  }
+
+  /**
+   * The settings, as the title screen's Settings menu or the in-game Pause
+   * menu (which leads with Resume). Each toggle shows its state and flips in
+   * place; Tiles opens the list of sets; Help shows the pages for the
+   * current input mode. Auto combat is not here: it is a command in game
+   * (see AUTO_COMBAT_KEY), where a fight is what it is for.
+   */
+  private async settingsMenu(title: 'Settings' | 'Paused'): Promise<void> {
     const w = this.world;
     const onOff = (b: boolean) => (b ? 'On' : 'Off');
-    const place: MenuPlacement | undefined = this.frameShown ? undefined : { row: 13, title: 'Settings' };
+    const place: MenuPlacement | undefined = this.frameShown ? undefined : { row: 13, title };
+    const resume: MenuOption[] = title === 'Paused' ? [{ key: 'E', label: 'Resume' }] : [];
     let cursor = 0;
     for (;;) {
       const options: MenuOption[] = [
+        ...resume,
         { key: 'I', label: `Input: ${this.inputMode === 'controller' ? 'Controller' : 'Keyboard'}` },
         { key: 'T', label: `Tiles: ${this.tileSetName}` },
         { key: 'L', label: `Scanlines: ${onOff(this.scanlines)}` },
-        { key: 'A', label: `Auto combat: ${onOff(w.autoCombat)}` },
         { key: 'P', label: `Poison kills: ${onOff(w.poisonKills)}` },
         { key: 'V', label: `Starving: ${w.starvation[0].toUpperCase()}${w.starvation.slice(1)}` },
         { key: 'X', label: `Balanced XP: ${onOff(w.balancedXp)}` },
@@ -703,10 +743,12 @@ export class Screen implements GameIO {
         { key: 'H', label: 'Help' },
         { key: 'B', label: 'Back' },
       ];
-      const picked = await this.runMenu('Settings', options, 1, place && { ...place, cursor }, cursor);
+      const picked = await this.runMenu(title, options, 1, place && { ...place, cursor }, cursor);
       if (picked < 0) return;
       cursor = picked;
       switch (options[picked].key) {
+        case 'E':
+          return; // Resume
         case 'I':
           this.inputMode = this.inputMode === 'controller' ? 'keyboard' : 'controller';
           this.onModeChange?.();
@@ -716,10 +758,6 @@ export class Screen implements GameIO {
           break;
         case 'L':
           this.scanlines = !this.scanlines;
-          break;
-        case 'A':
-          w.autoCombat = !w.autoCombat;
-          w.onAutoCombatChange?.();
           break;
         case 'P':
           w.poisonKills = !w.poisonKills;
@@ -1121,7 +1159,7 @@ export class Screen implements GameIO {
       const fading = c && c.markedFor > 0 && !c.markedFrozenAt ? c : null;
       if (fading) fading.markedFrozenAt = performance.now();
       // The commands the surroundings call for come first.
-      const options = [...commandMenu(this.world, scope, COMMAND_MENUS[scope]), { key: Key.Escape, label: 'Settings' }];
+      const options = [...commandMenu(this.world, scope, COMMAND_MENUS[scope]), { key: Key.Escape, label: 'Pause' }];
       const picked = await this.runMenu('Command', options);
       if (picked >= 0) return options[picked].key;
       // Closed: the turn's time and the outline's fade go on from where they stopped.
@@ -1650,9 +1688,11 @@ export class Screen implements GameIO {
 
   private frame(time: number): void {
     this.gamepads.poll();
-    // Unfocused: the keyboard stops its timers; the screen shows PAUSED and stops animating.
-    if (this.keyboard.paused !== (this.underPaused !== null)) {
-      if (this.keyboard.paused) this.showPaused();
+    // Paused with no menu to say so (a key press could not reach the game): the screen shows PAUSED and stops
+    // animating. Under the Pause menu the frame loop runs on, so the menu draws and answers the cursor.
+    const boxed = this.keyboard.paused && !this.pauseShown;
+    if (boxed !== (this.underPaused !== null)) {
+      if (boxed) this.showPaused();
       else this.hidePaused();
     }
     if (this.underPaused) {

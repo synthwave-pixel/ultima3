@@ -51,7 +51,7 @@ to finish the game without an external guide. There are options that ease
 the difficulty a little. The party shares one inventory for unequipped
 gear. And many, many other subtle improvements.
 
-All of it is configurable in the game's Settings. If you want the original
+All of it is configurable in the game's Pause menu. If you want the original
 gameplay, it is all still there: classic difficulty, keyboard commands,
 the original skins. Not a single data file from the original LairWare
 build has been touched.
@@ -164,8 +164,8 @@ updated from the releases: tap the badge on the device, or add
 
 <a href="https://apps.obtainium.imranr.dev/redirect?r=obtainium://app/%7B%22id%22%3A%22com.synthwavepixel.ultima3%22%2C%22url%22%3A%22https%3A%2F%2Fgithub.com%2Fsynthwave-pixel%2Fultima3%22%2C%22author%22%3A%22synthwave-pixel%22%2C%22name%22%3A%22Ultima%20III%22%7D"><img src="mobile/badge_obtainium.png" alt="Get it on Obtainium" width="161"></a>
 
-The app runs full screen in landscape, the Back button opens Settings as
-Escape does, and built-in controls that Android reports as a gamepad
+The app runs full screen in landscape, the Back button opens the Pause
+menu as Escape does, and built-in controls that Android reports as a gamepad
 switch the game to controller mode on the first press. The APK is signed
 with a key kept in the repository, so a new build installs over the old
 one and keeps the saved game. iOS has no such build on purpose: install
@@ -183,18 +183,21 @@ keeps walking as a held key does.
     B       cancel, or pass a turn
     X       ztats
     Y       look; attack in combat; ignite a torch in dungeons
+    View    open the Pause menu, which stops the game
+    Menu    the same; either system button pauses
 
 On a keyboard the stand-ins are WASD or the arrows for the d-pad, Enter or
-Z for A, Escape, X or B for B, C for X, V or Y for Y.
+Z for A, X or B for B, C for X, V or Y for Y, and Escape pauses. On a
+touch screen the pause button is at the top of the virtual pad.
 
 ### Keyboard mode
 
-For the original feel, chosen in Settings (the last entry of the command
-menu). The Apple II commands, one letter each:
+For the original feel, chosen in the Pause menu (the last entry of the
+command menu). The Apple II commands, one letter each:
 
     Arrows       walk; move in combat      Space   pass a turn
-    Escape       settings                  J       journal
-    #            view the cloth map
+    Escape       pause menu                J       journal
+    H            auto combat on/off        #       view the cloth map
 
     A attack     B board      C cast      E enter     F fire
     G get chest  I ignite     L look      M modify    N negate
@@ -203,19 +206,29 @@ menu). The Apple II commands, one letter each:
     Y yell       Z ztats
 
     Combat:   arrows move (into a monster attacks), A attack in a
-              direction, C N R Z, Escape turns auto combat off
+              direction, C N R Z, H auto combat on or off (while it
+              plays, B or Escape takes the fight back)
     Dungeons: up/down advance or retreat, left/right turn, I K D
               ignite, klimb, descend, L cycle the auto-map
     Shortcuts: ! cast the heal the party needs, @ safe chest, $ light
 
 A "whom" prompt takes a member number, or Up and Down through the stats
-boxes and Enter. The same controls are in the game under Settings > Help.
+boxes and Enter. The same controls are in the game under Pause > Help.
 
-### Settings
+### The Pause menu
 
-Input mode, tile set, scanlines, auto combat, poison kills, starvation,
-balanced XP, the turn timer, Sound FX (Standard, Lairware or Off), music
-and Help.
+A controller's system buttons (View and Menu, either side of the maker's
+logo), Escape, or the pause button on the virtual pad stop the game where
+it stands: the idle timer, a combat turn's timer and the music all hold
+until Resume. A window that loses focus pauses itself and opens the same
+menu, which stays up until you close it, so nothing runs on while you are
+away.
+
+The menu holds the settings: input mode, tile set, scanlines, poison
+kills, starvation, balanced XP, the turn timer, Sound FX (Standard,
+Lairware or Off), music and Help. The title screen shows the same list
+under Settings. Auto combat is not there: it is a command in play, H on a
+keyboard and an entry in the command menu, where the fight it is for is.
 Every setting is remembered by the browser. A new game asks "Choose Thine
 Adventure!": Modern (recommended), Classic (hardcore, the Apple II's
 rules) or Story (relaxed), each a preset of the difficulty settings that

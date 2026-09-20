@@ -120,6 +120,23 @@ export interface CombatState {
   markedFrozenAt: number;
 }
 
+/**
+ * Stop a combat turn's outline where it is while something holds the game
+ * up (the Pause menu), so the turn cannot expire behind it. The returned
+ * function starts the fade again from where it stopped, giving the member
+ * back the whole hold. A turn with no countdown, or one already frozen by
+ * the command menu, is left alone and the release does nothing.
+ */
+export function holdCombatMark(c: CombatState | null | undefined, now: () => number = () => performance.now()): () => void {
+  const fading = c && c.markedFor > 0 && !c.markedFrozenAt ? c : null;
+  if (fading) fading.markedFrozenAt = now();
+  return () => {
+    if (!fading || !fading.markedFrozenAt) return;
+    fading.markedAt += now() - fading.markedFrozenAt;
+    fading.markedFrozenAt = 0;
+  };
+}
+
 /** State while inside a dungeon. */
 export interface DungeonState {
   /** 8 levels x 16 x 16 cells. */
