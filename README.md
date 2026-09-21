@@ -507,6 +507,25 @@ Every release, with the desktop and Android downloads, is on the
 [releases page](https://github.com/synthwave-pixel/ultima3/releases). The
 web version always runs the newest.
 
+### v1.0.33, September 21, 2026
+
+- The command menu carries commands only. Pass, Pause, Quit and save and
+  Auto combat have left it: B passes, the system buttons (or Escape) open
+  the Pause menu, and the last two live in that menu, where Quit and save
+  appears when the game allows it, on the surface and out of a fight.
+- The help pages are written a line at a time, "key: what it does", in
+  place of columns that never lined up. The keyboard has five pages, the
+  controller two.
+- The last help page now says what the tile set in use says: Standard's
+  name colours, or the letter after the name that every other set draws.
+- Those sets print an L where Lord British owes a member a level, beside
+  the Apple II's G, P, D and A. Standard says the same in blue.
+- Fixed: a help page longer than the box was cut without a word, which had
+  swallowed the controller page's keyboard stand-ins and the build number
+  at the end of the last page.
+- Fixed: quitting from the Pause menu could leave a PAUSED box drawn over
+  the title screen.
+
 ### v1.0.31, September 20, 2026
 
 - A Pause menu stops the game where it stands: the idle timer, a combat
