@@ -100,7 +100,10 @@ contains except the pooled gold, food and gear.
   behind `World.setDiagonalMoves` but are not offered in Settings.
 - **The controller command menu** is built by `context.ts`: availability
   per scope (hidden, greyed, shown), the surroundings' suggestions first,
-  then the shortcut entries. `healPlan`, `safeChestCaster` and `lightPlan`
+  then the shortcut entries. It carries no command a button already does
+  (B passes) and none the Pause menu holds (the settings, auto combat, and
+  Quit and save, which `showPause` hands back to the field loop to carry
+  out). `healPlan`, `safeChestCaster` and `lightPlan`
   in `spells.ts` choose the caster and spell; their keys are `!`, `@` and
   `$`, dispatched in `game.ts`, `dungeon.ts` and `combat.ts`.
 - **The journal** (`journal.ts`) reads "done" from the party where it can

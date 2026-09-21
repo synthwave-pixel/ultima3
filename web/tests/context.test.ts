@@ -109,7 +109,9 @@ describe('command menu availability', () => {
     const key = (k: string) => field.find((o) => o.key === k);
     // Plain grass, nothing around, nobody carries gems or powders.
     for (const k of ['A', 'T', 'E', 'B', 'X', 'F', 'G', 'U', 'S']) expect(key(k)).toBeUndefined();
-    expect(key('Q')).toBeDefined();
+    // Pass, Quit and save, Pause and Auto combat are not commands here: B passes, the system buttons pause, and
+    // the other two are in the Pause menu.
+    for (const k of [' ', 'Q']) expect(key(k)).toBeUndefined();
     expect(key('P')?.disabled).toBe(true);
     expect(key('N')?.disabled).toBe(true);
     expect(key('C')?.disabled).toBe(false); // Norric is a cleric; Pontori costs nothing

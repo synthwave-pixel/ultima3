@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { Key, Sound, type MenuOption } from '../src/game/io.ts';
 import {
   applyMenuKey,
+  COMMAND_MENUS,
   controllerKeyFor,
   GamepadReader,
   GAMEPAD_REPEAT_FIRST_MS,
@@ -25,6 +26,18 @@ describe('controller stand-ins on the keyboard', () => {
     expect(controllerKeyFor(Key.Up)).toBe(Key.Up);
     expect(controllerKeyFor('q')).toBe('q');
     expect(controllerKeyFor(' ')).toBe(' ');
+  });
+});
+
+describe('the command menus', () => {
+  it('leave out what a button or the Pause menu does', () => {
+    for (const scope of ['field', 'combat', 'dungeon'] as const) {
+      const keys = COMMAND_MENUS[scope].map((o) => o.key);
+      expect(keys).not.toContain(' '); // B passes
+      expect(keys).not.toContain(Key.Escape); // the system buttons, and Escape, pause
+      expect(keys).not.toContain('Q'); // Quit and save is in the Pause menu
+      expect(keys).not.toContain('H'); // and so is auto combat
+    }
   });
 });
 

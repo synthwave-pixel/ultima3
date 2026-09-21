@@ -11,7 +11,7 @@
  */
 
 import { Key, Sound, type CommandScope, type MenuOption } from '../game/io.ts';
-import { AUTO_COMBAT_KEY, VIEW_MAP_KEY } from '../game/context.ts';
+import { VIEW_MAP_KEY } from '../game/context.ts';
 import { GraphicsSet } from './graphics.ts';
 import { Keyboard } from './input.ts';
 
@@ -58,7 +58,12 @@ export function controllerKeyFor(key: string): string {
 
 export const DIRECTION_KEYS: string[] = [Key.Up, Key.Down, Key.Left, Key.Right];
 
-/** The command menus for each scope: menu label and the letter the game understands. */
+/**
+ * The command menus for each scope: menu label and the letter the game
+ * understands. Pass is not among them (B passes), nor Pause (the system
+ * buttons, and Escape, open it), nor the settings it holds: Quit and save
+ * and Auto combat are in the Pause menu.
+ */
 export const COMMAND_MENUS: Record<CommandScope, MenuOption[]> = {
   field: [
     { key: 'A', label: 'Attack' },
@@ -79,9 +84,6 @@ export const COMMAND_MENUS: Record<CommandScope, MenuOption[]> = {
     { key: 'N', label: 'Negate time' },
     { key: 'P', label: 'Peer at gem' },
     { key: 'O', label: 'Other command' },
-    { key: 'Q', label: 'Quit and save' },
-    { key: ' ', label: 'Pass' },
-    { key: AUTO_COMBAT_KEY, label: 'Auto combat' },
     { key: 'J', label: 'Journal' },
     { key: VIEW_MAP_KEY, label: 'View map' },
   ],
@@ -91,8 +93,6 @@ export const COMMAND_MENUS: Record<CommandScope, MenuOption[]> = {
     { key: 'N', label: 'Negate time' },
     { key: 'R', label: 'Ready weapon' },
     { key: 'Z', label: 'Ztats' },
-    { key: AUTO_COMBAT_KEY, label: 'Auto combat' },
-    { key: ' ', label: 'Pass' },
   ],
   dungeon: [
     { key: 'I', label: 'Ignite torch' },
@@ -108,8 +108,6 @@ export const COMMAND_MENUS: Record<CommandScope, MenuOption[]> = {
     { key: 'M', label: 'Modify order' },
     { key: 'N', label: 'Negate time' },
     { key: 'O', label: 'Other command' },
-    { key: AUTO_COMBAT_KEY, label: 'Auto combat' },
-    { key: ' ', label: 'Pass' },
     { key: 'J', label: 'Journal' },
   ],
 };

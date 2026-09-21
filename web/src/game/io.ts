@@ -134,8 +134,10 @@ export interface GameIO {
   /**
    * The Pause menu: the game stops (idle timers, combat turn timers and the
    * music with it) and the settings are shown, until Resume. No turn passes.
+   * Resolves with a command key the player chose there to run now ('Q',
+   * quit and save), or null.
    */
-  showPause(): Promise<void>;
+  showPause(): Promise<string | null>;
   /** The quest journal (J): a page over the map. No turn passes. */
   showJournal(): Promise<void>;
   /** The cloth map of Sosaria over the whole screen, until a key. No turn passes. */

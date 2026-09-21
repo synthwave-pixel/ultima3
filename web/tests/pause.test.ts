@@ -2,11 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { Key } from '../src/game/io.ts';
 import { Keyboard, type PauseReason } from '../src/ui/input.ts';
 import { applyMenuKey, layoutMenu, GamepadReader } from '../src/ui/menus.ts';
-import { COMMAND_MENUS } from '../src/ui/menus.ts';
-import { AUTO_COMBAT_KEY, commandMenu } from '../src/game/context.ts';
 import { newWorld, FakeIO } from './helpers.ts';
 import { holdCombatMark, type CombatState } from '../src/game/world.ts';
-import { toggleAutoCombat } from '../src/game/commands.ts';
 import { Game } from '../src/game/game.ts';
 
 describe('what holds the game paused', () => {
@@ -148,37 +145,12 @@ describe('pausing from the field', () => {
     expect(await play([Key.Pause]).then((r) => [r.paused, r.moves])).toEqual([1, 0]);
   });
 
-  it('flips auto combat on the key without spending a turn', async () => {
-    const { world, moves, io } = await play([AUTO_COMBAT_KEY]);
-    expect(world.autoCombat).toBe(true);
-    expect(io.output).toContain('Auto combat');
-    expect(moves).toBe(0);
-  });
-});
-
-describe('auto combat as a command', () => {
-  it('is in the command menus, showing where it stands', () => {
-    const world = newWorld(7);
-    const label = (scope: 'field' | 'combat') =>
-      commandMenu(world, scope, COMMAND_MENUS[scope]).find((o) => o.key === AUTO_COMBAT_KEY)?.label;
-    world.autoCombat = false;
-    expect(label('field')).toBe('Auto combat: Off');
-    world.autoCombat = true;
-    expect(label('field')).toBe('Auto combat: On');
-    expect(label('combat')).toBe('Auto combat: On');
-  });
-
-  it('flips with the key, and says so', () => {
-    const world = newWorld(7);
+  it('carries out Quit and save when the menu asks for it', async () => {
+    const world = newWorld();
     const io = new FakeIO(world.resources);
-    let told = 0;
-    world.onAutoCombatChange = () => told++;
-    toggleAutoCombat(world, io);
-    expect(world.autoCombat).toBe(true);
-    expect(io.output).toContain('Auto combat');
-    toggleAutoCombat(world, io);
-    expect(world.autoCombat).toBe(false);
-    expect(io.output).toContain('Manual combat');
-    expect(told).toBe(2);
+    io.pauseAnswer = 'Q'; // the player chose Quit and save in the Pause menu
+    io.keys.push(Key.Pause);
+    await new Game(world, io).run();
+    expect(io.output).toContain('Quit'); // the game saved and ended without another key
   });
 });

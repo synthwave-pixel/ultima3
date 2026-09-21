@@ -693,15 +693,15 @@ export class Screen implements GameIO {
    * the music, and outlives a window that regains focus, so a menu opened
    * by a blur stays up until the player closes it.
    */
-  async showPause(): Promise<void> {
-    if (this.pauseShown) return;
+  async showPause(): Promise<string | null> {
+    if (this.pauseShown) return null;
     this.pauseShown = true;
     // A combat turn's outline stops fading where it is, as under the command menu, and the turn cannot expire.
     const release = holdCombatMark(this.world.combat);
     this.keyboard.pause('menu');
     this.hidePaused(); // the PAUSED box a blur put up: the menu says it now
     try {
-      await this.settingsMenu('Paused');
+      return await this.settingsMenu('Paused');
     } finally {
       // The hold goes first: between letting go of it and clearing the flag there would be a frame where the game
       // counts as paused with no menu to say so, and the PAUSED box would be painted over a screen on its way out.
@@ -719,21 +719,26 @@ export class Screen implements GameIO {
 
   /**
    * The settings, as the title screen's Settings menu or the in-game Pause
-   * menu (which leads with Resume). Each toggle shows its state and flips in
-   * place; Tiles opens the list of sets; Help shows the pages for the
-   * current input mode. Auto combat is not here: it is a command in game
-   * (see AUTO_COMBAT_KEY), where a fight is what it is for.
+   * menu (which leads with Resume and can end the game). Each toggle shows
+   * its state and flips in place; Tiles opens the list of sets; Help shows
+   * the pages for the current input mode.
    *
    * Input is offered only to a player pressing real keys (`lastSource`).
    * Keyboard mode wants a keyboard: chosen from a gamepad or the on-screen
    * pad it left the player with buttons the letter commands ignore, and
    * choosing it again only switched the mode back for the press itself.
+   *
+   * Returns a command for the game to run now: 'Q' when Quit and save was
+   * chosen, which the field loop carries out once the menu is gone.
    */
-  private async settingsMenu(title: 'Settings' | 'Paused'): Promise<void> {
+  private async settingsMenu(title: 'Settings' | 'Paused'): Promise<string | null> {
     const w = this.world;
     const onOff = (b: boolean) => (b ? 'On' : 'Off');
     const place: MenuPlacement | undefined = this.frameShown ? undefined : { row: 13, title };
     const resume: MenuOption[] = title === 'Paused' ? [{ key: 'E', label: 'Resume' }] : [];
+    // Quit and save, where the game allows it: on the surface, out of a fight. The field loop carries it out.
+    const canQuit = title === 'Paused' && w.onSurface && !w.combat;
+    const quit: MenuOption[] = canQuit ? [{ key: 'Q', label: 'Quit and save' }] : [];
     let cursor = 0;
     for (;;) {
       const input: MenuOption[] =
@@ -745,6 +750,7 @@ export class Screen implements GameIO {
         ...input,
         { key: 'T', label: `Tiles: ${this.tileSetName}` },
         { key: 'L', label: `Scanlines: ${onOff(this.scanlines)}` },
+        { key: 'A', label: `Auto combat: ${onOff(w.autoCombat)}` },
         { key: 'P', label: `Poison kills: ${onOff(w.poisonKills)}` },
         { key: 'V', label: `Starving: ${w.starvation[0].toUpperCase()}${w.starvation.slice(1)}` },
         { key: 'X', label: `Balanced XP: ${onOff(w.balancedXp)}` },
@@ -752,14 +758,21 @@ export class Screen implements GameIO {
         { key: 'S', label: `Sound FX: ${w.soundEnabled ? this.sounds.set : 'Off'}` },
         { key: 'M', label: `Music: ${onOff(this.musicPlayer.enabled)}` },
         { key: 'H', label: 'Help' },
+        ...quit,
         { key: 'B', label: 'Back' },
       ];
       const picked = await this.runMenu(title, options, 1, place && { ...place, cursor }, cursor);
-      if (picked < 0) return;
+      if (picked < 0) return null;
       cursor = picked;
       switch (options[picked].key) {
         case 'E':
-          return; // Resume
+          return null; // Resume
+        case 'Q':
+          return 'Q'; // the game saves and ends once this menu is gone
+        case 'A':
+          w.autoCombat = !w.autoCombat;
+          w.onAutoCombatChange?.();
+          break;
         case 'I':
           this.inputMode = this.inputMode === 'controller' ? 'keyboard' : 'controller';
           this.onModeChange?.();
@@ -800,7 +813,7 @@ export class Screen implements GameIO {
           await this.showHelp();
           break;
         default:
-          return;
+          return null;
       }
       this.onSettingsChange?.();
     }
@@ -1170,7 +1183,7 @@ export class Screen implements GameIO {
       const fading = c && c.markedFor > 0 && !c.markedFrozenAt ? c : null;
       if (fading) fading.markedFrozenAt = performance.now();
       // The commands the surroundings call for come first.
-      const options = [...commandMenu(this.world, scope, COMMAND_MENUS[scope]), { key: Key.Escape, label: 'Pause' }];
+      const options = commandMenu(this.world, scope, COMMAND_MENUS[scope]);
       const picked = await this.runMenu('Command', options);
       if (picked >= 0) return options[picked].key;
       // Closed: the turn's time and the outline's fade go on from where they stopped.

@@ -16,10 +16,10 @@
 import { World, DungeonCell } from './world.ts';
 import { nextMapMode } from './automap.ts';
 import { type GameIO, Key, Sound, Music, deathSound } from './io.ts';
-import { what2, noGo, toggleAutoCombat } from './commands.ts';
+import { what2, noGo } from './commands.ts';
 import { combat } from './combat.ts';
 import { cast, quickHeal, quickSafeChest, quickLight } from './spells.ts';
-import { AUTO_COMBAT_KEY, QUICK_CAST_KEY, SAFE_CHEST_KEY, LIGHT_KEY } from './context.ts';
+import { QUICK_CAST_KEY, SAFE_CHEST_KEY, LIGHT_KEY } from './context.ts';
 import { ageChars } from './turn.ts';
 import { checkAllDead } from './death.ts';
 import { speech, otherCommand, yell } from './interact.ts';
@@ -198,11 +198,7 @@ export async function runDungeon(world: World, io: GameIO): Promise<void> {
     const key = (await io.waitCommand('dungeon', world.timeLimit(IDLE_PASS_MS))) ?? Key.Space;
     if (world.done) return;
     if (key === Key.Escape || key === Key.Pause) {
-      await io.showPause(); // the game stops where it stands; no turn passes
-      continue;
-    }
-    if (key.toUpperCase() === AUTO_COMBAT_KEY) {
-      toggleAutoCombat(world, io); // no turn passes
+      await io.showPause(); // the game stops where it stands; no turn passes (Quit and save is offered on the surface)
       continue;
     }
     if (key === 'J' || key === 'j') {

@@ -127,7 +127,6 @@ export function commandAvailability(world: World, scope: CommandScope): Map<stri
   set('U', door);
   if (door) set('U', world.party.keys > 0, true);
   set('S', counter);
-  set('Q', loc === Location.Sosaria);
   set(VIEW_MAP_KEY, loc !== Location.Ambrosia); // the map is of Sosaria
   set('M', world.party.size > 1);
   set('C', canCast(world), true);
@@ -145,9 +144,7 @@ export function commandMenu(world: World, scope: CommandScope, template: MenuOpt
   const availability = commandAvailability(world, scope);
   const shown = template
     .filter((o) => availability.get(o.key) !== 'hidden')
-    .map((o) => ({ ...o, disabled: availability.get(o.key) === 'disabled' }))
-    // Auto combat is a toggle: the menu shows where it stands.
-    .map((o) => (o.key === AUTO_COMBAT_KEY ? { ...o, label: `Auto combat: ${world.autoCombat ? 'On' : 'Off'}` } : o));
+    .map((o) => ({ ...o, disabled: availability.get(o.key) === 'disabled' }));
   if (scope === 'combat' && world.combat) return combatMenu(world, shown);
   // Outside combat, a wounded member a caster can help puts "Cast (Heal)" first (see healPlan).
   const plan = healPlan(world);
@@ -171,13 +168,6 @@ export const LIGHT_KEY = '$';
 
 /** Key of "View map" in the field menu (this port): the cloth map of Sosaria over the whole screen. No turn passes. */
 export const VIEW_MAP_KEY = '#';
-
-/**
- * Key of "Auto combat" in the command menus (this port): hands the fights
- * to the planner, and takes them back. It is a command, not a setting, so
- * it is at hand in the fight it is meant for. No turn passes.
- */
-export const AUTO_COMBAT_KEY = 'H';
 
 /** Key of the "Cast (Safe chest)" shortcut in the field and dungeon menus (this port); casts it on the chest underfoot at once. */
 export const SAFE_CHEST_KEY = '@';

@@ -112,10 +112,12 @@ export class FakeIO implements GameIO {
     }
   }
   async showSettings(): Promise<void> {}
-  /** Counts how often the game paused, since a fake has nothing to stop. */
+  /** Counts how often the game paused, since a fake has nothing to stop; `pauseAnswer` is what the menu chose there. */
   paused = 0;
-  async showPause(): Promise<void> {
+  pauseAnswer: string | null = null;
+  async showPause(): Promise<string | null> {
     this.paused++;
+    return this.pauseAnswer;
   }
   async showJournal(): Promise<void> {}
   async showMap(): Promise<void> {}

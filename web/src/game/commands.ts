@@ -78,17 +78,6 @@ export function cancelled(world: World, io: GameIO): void {
   world.commandCancelled = true;
 }
 
-/**
- * Auto combat on or off (AUTO_COMBAT_KEY in context.ts, this port): the
- * planner takes the fights, or hands them back. No turn passes, and the
- * line is the one an interrupted auto-combat already printed.
- */
-export function toggleAutoCombat(world: World, io: GameIO): void {
-  world.autoCombat = !world.autoCombat;
-  world.onAutoCombatChange?.();
-  io.print(world.autoCombat ? 'Auto combat\n' : 'Manual combat\n');
-}
-
 /** "Not here!" (`NotHere`) */
 export function notHere(io: GameIO): void {
   io.printMessage(Msg.NotHere);

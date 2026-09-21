@@ -180,7 +180,7 @@ keeps walking as a held key does.
 
     D-pad   move, or move the cursor in a menu
     A       open the command menu; choose
-    B       cancel, or pass a turn
+    B       cancel, or pass a turn (so the menu has no Pass)
     X       ztats
     Y       look; attack in combat; ignite a torch in dungeons
     View    open the Pause menu, which stops the game
@@ -197,7 +197,7 @@ key press. The Apple II commands, one letter each:
 
     Arrows       walk; move in combat      Space   pass a turn
     Escape       pause menu                J       journal
-    H            auto combat on/off        #       view the cloth map
+    #            view the cloth map
 
     A attack     B board      C cast      E enter     F fire
     G get chest  I ignite     L look      M modify    N negate
@@ -206,8 +206,8 @@ key press. The Apple II commands, one letter each:
     Y yell       Z ztats
 
     Combat:   arrows move (into a monster attacks), A attack in a
-              direction, C N R Z, H auto combat on or off (while it
-              plays, B or Escape takes the fight back)
+              direction, C N R Z (auto combat is in the Pause menu;
+              while it plays, B or Escape takes the fight back)
     Dungeons: up/down advance or retreat, left/right turn, I K D
               ignite, klimb, descend, L cycle the auto-map
     Shortcuts: ! cast the heal the party needs, @ safe chest, $ light
@@ -224,15 +224,15 @@ until Resume. A window that loses focus pauses itself and opens the same
 menu, which stays up until you close it, so nothing runs on while you are
 away.
 
-The menu holds the settings: tile set, scanlines, poison kills,
-starvation, balanced XP, the turn timer, Sound FX (Standard, Lairware or
-Off), music and Help. The title screen shows the same list under Settings.
-The input mode is there too, but only when the menu was opened with a key
-press: keyboard mode wants a keyboard, and choosing it with a thumb or a
-gamepad used to leave a player pressing buttons the letter commands ignore.
-Auto combat is not there either: it is a command in play, H on a keyboard
-and an entry in the command menu, where the fight it is for is. Every
-setting is remembered by the browser. A new game asks "Choose Thine
+The menu holds the settings: tile set, scanlines, auto combat, poison
+kills, starvation, balanced XP, the turn timer, Sound FX (Standard,
+Lairware or Off), music and Help, and Quit and save where the game allows
+it, on the surface and out of a fight. The title screen shows the same
+settings under Settings. The input mode is there too, but only when the
+menu was opened with a key press: keyboard mode wants a keyboard, and
+choosing it with a thumb or a gamepad used to leave a player pressing
+buttons the letter commands ignore. Every setting is remembered by the
+browser. A new game asks "Choose Thine
 Adventure!": Modern (recommended), Classic (hardcore, the Apple II's
 rules) or Story (relaxed), each a preset of the difficulty settings that
 can be changed afterwards.
@@ -248,7 +248,9 @@ These apply whatever tile set and sound set are chosen.
 - The command menu lists what the surroundings call for first: Enter on a
   town, Board on a horse, Get on a chest, Attack beside a monster. Commands
   that make no sense where you stand are left out, and ones with nothing
-  on hand (no gem, no torch, no caster alive) are grayed.
+  on hand (no gem, no torch, no caster alive) are grayed. What a button
+  does is not in it: B passes, and the system buttons open the Pause menu,
+  which holds the settings, auto combat, and Quit and save.
 - In combat, a ranged weapon in hand puts "Attack (Bow)" first and a
   caster gets "Cast (spell)" with their last spell ready. Walking into a
   foe attacks it.
