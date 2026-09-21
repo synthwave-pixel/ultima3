@@ -703,9 +703,11 @@ export class Screen implements GameIO {
     try {
       await this.settingsMenu('Paused');
     } finally {
-      this.pauseShown = false;
+      // The hold goes first: between letting go of it and clearing the flag there would be a frame where the game
+      // counts as paused with no menu to say so, and the PAUSED box would be painted over a screen on its way out.
       // While the fade is frozen the keyboard's own resume leaves the mark alone, so the turn gets its time back once.
       this.keyboard.resume('menu');
+      this.pauseShown = false;
       release();
     }
   }
