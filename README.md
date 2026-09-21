@@ -460,7 +460,8 @@ those builds and a modern developer sensibility.
   dark gray ashes, blue when Lord British would raise the member), the
   whole box taking that gray for the dead, and hit points go yellow under
   a quarter and red under a tenth. The color stands in for the status
-  letter the other sets print after the name.
+  letter the other sets print after the name; those sets print an L there
+  where the king owes a level, beside the Apple II's own G, P, D and A.
 - Casting a spell gives one white pulse at half strength instead of the
   original's two full inversions of the view: over the caster's square
   for a bolt or a self-directed spell, over the recipient's for a heal,

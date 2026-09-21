@@ -33,137 +33,140 @@ export interface HelpPage {
   lines: string[];
 }
 
+/** The page box over the map: how many lines fit, and how wide each is. Longer pages are cut, so they are split. */
+export const PAGE_ROWS = 19;
+export const PAGE_WIDTH = 20;
+
 /** The build this page came from: the commit's short hash, set by the build (VITE_BUILD), or "dev". */
 export const BUILD: string = (import.meta.env.VITE_BUILD as string | undefined) || 'dev';
 
-/** How the game works, common to both input modes; the last line differs. */
-const HOW_IT_WORKS = [
-  'Walk into a person',
-  'to talk, a counter',
-  'to shop, a locked',
-  'door to unlock, a',
-  'monster to attack.',
-  '',
-  'Gold and food are',
-  "the party's (top).",
-  'Standard: name green',
-  'poisoned, grey dead,',
-  'dark grey ashes,',
-  'blue when the king',
-  'will raise them; HP',
-  'yellow under 1/4,',
-  'red under 1/10.',
-  'Others: G P D A code',
-  '',
-];
+/**
+ * How a member's state is shown, which is what the tile set decides: the
+ * Standard set colours the name, and every other set draws the Apple II's
+ * status letter after it instead (`classic` in screen.ts). The help says
+ * whichever the player is looking at.
+ */
+function partyStatus(tileSet: string): string[] {
+  return tileSet === 'Standard'
+    ? ["The name's colour:", 'Green: poisoned', 'Grey: dead', 'Dark grey: ashes', 'Blue: level up from', '  Lord British']
+    : ['A letter by the name', 'G: good', 'L: level up from', '  Lord British', 'P: poisoned', 'D: dead', 'A: ashes'];
+}
 
-export const KEYBOARD_HELP: HelpPage[] = [
+const KEYBOARD_PAGES: HelpPage[] = [
   {
-    title: 'Keys 1/4',
+    title: 'Keys 1/5',
     lines: [
-      'Arrows  walk',
-      'Space   pass',
-      'Escape  pause menu',
-      'J       journal',
+      'Arrows: walk; move',
+      '  in combat',
+      'Space: pass a turn',
+      'Escape: pause menu',
+      'J: journal',
+      '#: view the map',
+      '!: heal the party',
+      '@: safe chest',
+      '$: light the way',
       '',
-      'A attack',
-      'B board horse/ship',
-      'X exit horse/ship',
-      'E enter',
-      'F fire cannons',
-      'L look',
-      'T transact: talk,',
-      '  shop, the king',
-      'U unlock (key)',
-      'S steal',
-      'G get chest',
-      'P peer at gem',
-      'O other: say a word',
-      'Y yell (same as O)',
-    ],
-  },
-  {
-    title: 'Keys 2/4',
-    lines: [
-      'Z ztats',
-      'C cast',
-      'R ready weapon',
-      'W wear armour',
-      'M marching order',
-      'N negate time',
-      'Q quit and save',
-      '  (surface only)',
-      '# view the map',
-      '',
-      'COMBAT',
-      'Arrows  move; into a',
-      '        foe attacks',
-      'A       attack, then',
-      '        a direction',
-      'C N R Z as above',
-      'Escape  pause menu,',
-      '        with auto',
-      '        combat in it',
-    ],
-  },
-  {
-    title: 'Keys 3/4',
-    lines: [
-      'DUNGEONS',
-      'Up/Down  advance,',
-      '         retreat',
-      'Left/Rt  turn',
-      'I ignite torch',
-      'K klimb   D descend',
-      'L map: off, 5x5,',
-      '  whole level',
-      '  (whole: arrows',
-      '  are compass)',
-      '',
-      '"Who?" takes 1-4, or',
+      'A "Who?" prompt',
+      'takes 1-4, or',
       'Up/Down and Enter.',
       'A direction is an',
       'arrow key.',
     ],
   },
   {
-    title: 'How it works 4/4',
-    lines: [...HOW_IT_WORKS, 'Q saves; the game', 'resumes next visit.', '', `Build ${BUILD}`],
-  },
-];
-
-export const CONTROLLER_HELP: HelpPage[] = [
-  {
-    title: 'Controller 1/2',
+    title: 'Keys 2/5',
     lines: [
-      'D-pad  move; menus',
-      'A      command menu,',
-      '       choose',
-      'B      cancel, pass',
-      'X      ztats',
-      'Y      look; attack',
-      '       in combat;',
-      '       ignite in',
-      '       dungeons',
-      '',
-      'View or Menu, the',
-      'system buttons:',
-      '       pause menu',
-      '',
-      'Keyboard stand-ins:',
-      'WASD/arrows = d-pad',
-      'Enter or Z = A',
-      'X or B = B',
-      'C = X  V or Y = Y',
-      'Escape = pause',
-      '',
-      'A gamepad press',
-      'switches to',
-      'controller mode.',
+      'A: attack',
+      'B: board horse/ship',
+      'C: cast a spell',
+      'E: enter a place',
+      'F: fire cannons',
+      'G: get a chest',
+      'I: ignite a torch',
+      'K: klimb a ladder',
+      'L: look',
+      'M: marching order',
+      'N: negate time',
+      'O: other, say a word',
+      'P: peer at a gem',
     ],
   },
   {
-    title: 'How it works 2/2',
-    lines: [...HOW_IT_WORKS, 'Quit (menu) saves;', 'resumes next visit.', '', `Build ${BUILD}`],
+    title: 'Keys 3/5',
+    lines: [
+      'Q: quit and save',
+      '  (surface only)',
+      'R: ready a weapon',
+      'S: steal',
+      'T: transact: talk,',
+      '  shop, the king',
+      'U: unlock a door',
+      'V: volume',
+      'W: wear armour',
+      'X: exit horse/ship',
+      'Y: yell (same as O)',
+      'Z: ztats',
+    ],
+  },
+  {
+    title: 'Keys 4/5',
+    lines: [
+      'COMBAT',
+      'Arrows: move; into',
+      '  a monster attacks',
+      'A: attack, then a',
+      '  direction',
+      'C, N, R, Z: as above',
+      'B or Escape: take',
+      '  the fight back',
+      '  from auto combat',
+      '',
+      'DUNGEONS',
+      'Up/Down: advance,',
+      '  retreat',
+      'Left/Right: turn',
+      'I, K, D: ignite,',
+      '  klimb, descend',
+      'L: map off, 5x5,',
+      '  whole level',
+    ],
   },
 ];
+
+const CONTROLLER_PAGES: HelpPage[] = [
+  {
+    title: 'Controller 1/2',
+    lines: [
+      'D-pad: move, menus',
+      'A: menu, and choose',
+      'B: cancel, or pass',
+      'X: ztats',
+      'Y: look; attack in',
+      '  combat; ignite in',
+      '  dungeons',
+      'View or Menu: pause',
+      '',
+      'Keys for the pad:',
+      'WASD/arrows: d-pad',
+      'Enter or Z: A',
+      'X or B: B',
+      'C: X    V or Y: Y',
+      'Escape: pause',
+      '',
+      'The pause menu holds',
+      'the settings, auto',
+      'combat and quit.',
+    ],
+  },
+];
+
+/**
+ * The help pages for an input mode, with the last one written for the tile
+ * set in use: how it shows a member's state, and how the game is saved.
+ */
+export function helpPages(mode: 'keyboard' | 'controller', tileSet: string): HelpPage[] {
+  const pages = mode === 'controller' ? CONTROLLER_PAGES : KEYBOARD_PAGES;
+  const saving = mode === 'controller' ? ['Quit (Pause) saves;', 'resumes next visit.'] : ['Q saves and resumes', 'next visit.'];
+  const n = pages.length + 1;
+  return [...pages, { title: `Status ${n}/${n}`, lines: [...partyStatus(tileSet), '', ...saving, `Build ${BUILD}`] }];
+}

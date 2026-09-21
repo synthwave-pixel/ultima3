@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { loadTestResources } from './helpers.ts';
-import { Roster, PlayerRecord } from '../src/game/player.ts';
+import { Roster, PlayerRecord, levelUpDue, statusLetter } from '../src/game/player.ts';
 import { Party } from '../src/game/party.ts';
 
 describe('player records', () => {
@@ -38,6 +38,36 @@ describe('player records', () => {
     expect(p.subtractHitPoints(1)).toBe(true);
     expect(p.status).toBe('D');
     expect(p.alive).toBe(false);
+  });
+});
+
+describe('the status letter', () => {
+  const res = loadTestResources();
+  /** Level and max hit points are read from the record's bytes (level is stored as level - 1). */
+  const member = (status: 'G' | 'P' | 'D' | 'A', level: number, maxHp: number) => {
+    const p = new Roster(res.defaultRoster.slice()).get(0);
+    p.status = status;
+    p.bytes[30] = level - 1;
+    p.bytes[28] = Math.floor(maxHp / 256);
+    p.bytes[29] = maxHp % 256;
+    return p;
+  };
+
+  it('is L where Lord British owes a level, which the Standard set says in blue instead', () => {
+    const due = member('G', 3, 100); // the level has caught up with the hit points: the king raises them
+    expect(levelUpDue(due)).toBe(true);
+    expect(statusLetter(due)).toBe('L');
+  });
+
+  it('keeps the Apple II letters, and says nothing of a level over a worse state', () => {
+    const fine = member('G', 1, 200); // hit points ahead of the level: nothing owed
+    expect(levelUpDue(fine)).toBe(false);
+    expect(statusLetter(fine)).toBe('G');
+    const poisonedAndDue = member('P', 3, 100);
+    expect(levelUpDue(poisonedAndDue)).toBe(true);
+    expect(statusLetter(poisonedAndDue)).toBe('P'); // as the name's colour shows poison first
+    expect(statusLetter(member('D', 3, 100))).toBe('D');
+    expect(statusLetter(member('A', 3, 100))).toBe('A');
   });
 });
 

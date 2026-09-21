@@ -247,6 +247,16 @@ export class Roster {
  * hit points / 100, not yet 2500 maximum, and past level 5 only with the
  * Mark of Kings. The character box turns the name blue when this holds.
  */
+/**
+ * The letter drawn after a member's name by the sets that show one: the
+ * Apple II's G, P, D and A, and L where Lord British owes a level, which
+ * the Standard set says by colouring the name blue instead. A member who
+ * is poisoned, dead or ashes shows that first, as the colour does.
+ */
+export function statusLetter(p: PlayerRecord): string {
+  return p.status === 'G' && levelUpDue(p) ? 'L' : p.status;
+}
+
 export function levelUpDue(p: PlayerRecord): boolean {
   const level = p.level - 1;
   let hpmax = p.maxHitPoints;

@@ -31,10 +31,10 @@ import { DungeonRenderer } from './dungeonView.ts';
 import { markerColour } from './display.ts';
 import { ScanlineOverlay } from './scanlines.ts';
 import { World, holdCombatMark, STARVATION_MODES, TIMER_MODES } from '../game/world.ts';
-import { PlayerRecord, levelUpDue } from '../game/player.ts';
+import { PlayerRecord, levelUpDue, statusLetter } from '../game/player.ts';
 import { commandMenu, hasMagic } from '../game/context.ts';
 import { memberShape } from '../game/combat.ts';
-import { TILE_SETS, KEYBOARD_HELP, CONTROLLER_HELP } from './help.ts';
+import { TILE_SETS, helpPages, PAGE_ROWS, PAGE_WIDTH } from './help.ts';
 import { journalLines, journalPage, journalSnapshot } from '../game/journal.ts';
 import { CHEATS } from '../game/cheats.ts';
 import { Location } from '../game/party.ts';
@@ -94,9 +94,7 @@ const MAP_GRID = { image: 704, x: 0, y: 70, sx: 11, sy: 9.9 };
 
 /** Pages over the map (Help, the Journal): text column, width and rows. */
 const PAGE_LEFT = 2;
-const PAGE_WIDTH = 20;
 const PAGE_TOP = 1;
-const PAGE_ROWS = 19;
 const BOX_PITCH = 3;
 const BOX_SEPARATORS = [3, 6, 9, 12];
 const BOXES_BOTTOM = 12;
@@ -895,7 +893,7 @@ export class Screen implements GameIO {
    * in controller mode) opens the cheat menu.
    */
   private async showHelp(): Promise<void> {
-    const pages = this.inputMode === 'controller' ? CONTROLLER_HELP : KEYBOARD_HELP;
+    const pages = helpPages(this.inputMode, this.tileSetName); // the last page speaks of the set in use
     const footer = this.inputMode === 'controller' ? ['A next  B close', 'Y cheats'] : ['Any key next  Esc', 'Y cheats'];
     const wasCovered = this.openPage();
     try {
@@ -1960,12 +1958,12 @@ export class Screen implements GameIO {
         // poisoned, grey dead, dark grey ashes, blue with a level due; dead
         // or ashes, the whole box takes that grey; hit points go yellow under
         // a quarter and red under a tenth. Every other set does as the Apple
-        // II did: the status letter (G, P, D or A) at the end of the name
-        // row, and no colour at all.
+        // II did: the status letter at the end of the name row and no colour
+        // at all, with an L of this port's own where a level is due.
         const classic = this.tileSetName !== 'Standard';
         const nameColour = classic ? undefined : memberColour(p, due);
         this.drawText(p.name, 24, top, nameColour);
-        if (classic) this.drawText(p.status, 38, top);
+        if (classic) this.drawText(statusLetter(p), 38, top);
         const gone = p.status === 'D' || p.status === 'A';
         const hp = p.hitPoints;
         const max = Math.max(1, p.maxHitPoints);
