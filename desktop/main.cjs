@@ -5,7 +5,8 @@
 // screen when asked (--fullscreen) or when Steam launched it (the SteamDeck
 // or SteamOS environment variables, set in Game Mode). Under gamescope,
 // Steam's Game Mode compositor, GPU acceleration and the Chromium sandbox
-// are turned off: see below.
+// are turned off: see below. Only one copy runs; a second launch brings the
+// first window forward.
 const { app, BrowserWindow, protocol, net, shell, session } = require('electron');
 const { join, normalize } = require('node:path');
 const { pathToFileURL } = require('node:url');
@@ -91,7 +92,22 @@ function createWindow() {
   return win;
 }
 
+// One copy at a time. A second launch (Steam starting the shortcut twice, or Play pressed again while the first copy
+// was still coming up) brings the first window forward and quits, instead of opening a second game on the same save,
+// where whichever copy saved last would silently overwrite the other. Under Flatpak the lock works across launches
+// because the wrapper points TMPDIR, where Chromium keeps the lock's socket, at a directory the instances share.
+const primary = app.requestSingleInstanceLock();
+if (!primary) app.quit();
+app.on('second-instance', () => {
+  const win = BrowserWindow.getAllWindows()[0];
+  if (!win) return;
+  if (win.isMinimized()) win.restore();
+  win.show();
+  win.focus();
+});
+
 app.whenReady().then(() => {
+  if (!primary) return; // quitting: see above
   // app://ultima3/<path> -> app/<path>, confined to that folder.
   protocol.handle(SCHEME, (request) => {
     const url = new URL(request.url);

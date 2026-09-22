@@ -34,6 +34,12 @@ it, which `gh run list --workflow desktop.yml` shows. Without a section
 for its version a release still goes out, with a warning and the compare
 link alone.
 
+One copy runs at a time (`app.requestSingleInstanceLock()` in
+`main.cjs`): a second launch brings the first window forward and quits,
+since two copies would share one save. Under Flatpak the lock holds across
+launches because electron-builder's wrapper points `TMPDIR`, where
+Chromium keeps the lock's socket, at a directory the instances share.
+
 Linux gets an AppImage and a Flatpak bundle. The Flatpak is built only
 where `flatpak-builder` and the Freedesktop 25.08 runtime, SDK and
 Electron base app are installed, which the Linux job does (on a Linux
