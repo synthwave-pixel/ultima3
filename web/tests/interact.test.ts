@@ -4,10 +4,10 @@ import { speech, transact, unlock, steal, otherCommand, fire, unlockToward, tran
 import { shop } from '../src/game/shops.ts';
 import { cast } from '../src/game/spells.ts';
 import { getChest, readyWeapon, wearArmour, stats } from '../src/game/actions.ts';
-import { mainMenu, createCharacter, formParty, terminateCharacter } from '../src/game/menu.ts';
+import { mainMenu, createCharacter, formParty, terminateCharacter, TITLE_MENU_LAST_ROW } from '../src/game/menu.ts';
 import { MapValue } from '../src/game/tiles.ts';
 import { Location } from '../src/game/party.ts';
-import { Key } from '../src/game/io.ts';
+import { Key, type MenuOption, type MenuPlacement } from '../src/game/io.ts';
 import { MapId } from '../src/data/resources.ts';
 import { World } from '../src/game/world.ts';
 
@@ -334,8 +334,10 @@ describe('Quit on the title menu', () => {
     const offered = async (quit?: () => void) => {
       const io = new FakeIO(world.resources);
       let listed: string[] = [];
-      io.chooseFromList = async (options) => {
+      io.chooseFromList = async (options: MenuOption[], place?: MenuPlacement) => {
         listed = options.map((o) => o.label);
+        // The window (a border row either side of the entries) ends above the copyright line.
+        expect(place!.row + options.length + 1).toBeLessThanOrEqual(TITLE_MENU_LAST_ROW);
         return listed.includes('Quit') ? 'Q' : 'S';
       };
       io.showSettings = async () => {
