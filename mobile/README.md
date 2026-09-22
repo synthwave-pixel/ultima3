@@ -21,6 +21,16 @@ Add to Home Screen.
   controller mode on the first press; a tap on the screen shows the
   virtual controller instead.
 
+The app stays on Capacitor 7, which targets Android API 35, and the Back
+mapping depends on it. `MainActivity.java` catches `KEYCODE_BACK`, which
+Android stops delivering to apps that target API 36 when they run on
+Android 16: Back would leave the app instead of opening the Pause menu.
+Capacitor 8 targets API 36, so moving to it means moving the mapping too,
+to the App plugin's `backButton` listener or an `OnBackPressedCallback`.
+API 36 also ends the landscape lock on screens 600dp and wider, so tablets
+would turn to portrait. The handhelds this app is for are well served by
+Capacitor 7, so it stays until there is a reason to move.
+
 ## Obtainium
 
 The root README carries a "Get it on Obtainium" badge (`badge_obtainium.png`
