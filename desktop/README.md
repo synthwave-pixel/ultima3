@@ -38,7 +38,9 @@ One copy runs at a time (`app.requestSingleInstanceLock()` in
 `main.cjs`): a second launch brings the first window forward and quits,
 since two copies would share one save. Under Flatpak the lock holds across
 launches because electron-builder's wrapper points `TMPDIR`, where
-Chromium keeps the lock's socket, at a directory the instances share.
+Chromium keeps the lock's socket, at a directory the instances share. The
+game offers Quit on its title menu when it sees the `app:` scheme the
+window loads it from, and quits by closing that window.
 
 Linux gets an AppImage and a Flatpak bundle. The Flatpak is built only
 where `flatpak-builder` and the Freedesktop 25.08 runtime, SDK and

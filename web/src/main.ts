@@ -15,7 +15,7 @@ import { Game } from './game/game.ts';
 import { localSave, exportGame, parseExport, restore } from './game/save.ts';
 import { registerSW } from 'virtual:pwa-register';
 import type { Transfer, Update } from './game/menu.ts';
-import { launchWarning, warningDue } from './ui/platform.ts';
+import { appQuit, launchWarning, warningDue } from './ui/platform.ts';
 
 const WARNED_KEY = 'ultima3.warned';
 /** When the storage warning was last shown, or null. */
@@ -316,7 +316,9 @@ async function start(): Promise<void> {
     clipboard: { write: (text) => navigator.clipboard.writeText(text), read: () => navigator.clipboard.readText() },
     file: { save: saveFile, load: pickFile },
   };
-  await mainMenu(world, screen, () => game.run(), { save: (w) => localSave.write(w), transfer, update });
+  // The desktop app closes its window to quit (its last window closing quits it); a browser tab gets no Quit.
+  const quit = appQuit(location.protocol, () => window.close());
+  await mainMenu(world, screen, () => game.run(), { save: (w) => localSave.write(w), transfer, update, quit });
 }
 
 start().catch((err) => {

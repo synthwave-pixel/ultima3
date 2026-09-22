@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { isIOS, isInstalled, launchWarning, warningDue, WARNING_INTERVAL_MS } from '../src/ui/platform.ts';
+import { appQuit, isIOS, isInstalled, launchWarning, warningDue, WARNING_INTERVAL_MS } from '../src/ui/platform.ts';
 
 const iphone = {
   userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 Version/17.0 Mobile/15E148 Safari/604.1',
@@ -45,5 +45,16 @@ describe('once a day', () => {
     expect(warningDue(now - WARNING_INTERVAL_MS, now)).toBe(true);
     expect(warningDue(now + 60_000, now)).toBe(true);
     expect(warningDue(Number.NaN, now)).toBe(true);
+  });
+});
+
+describe('quitting the app', () => {
+  it('closes the window in the desktop app, served from its app: scheme, and nowhere else', () => {
+    let closed = 0;
+    const close = () => closed++;
+    appQuit('app:', close)?.();
+    expect(closed).toBe(1);
+    expect(appQuit('https:', close)).toBeUndefined(); // the site, and the Android app's https://localhost
+    expect(appQuit('http:', close)).toBeUndefined();
   });
 });

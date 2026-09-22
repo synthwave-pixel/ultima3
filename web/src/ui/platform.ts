@@ -39,6 +39,16 @@ export function launchWarning(nav: NavigatorLike, matchMedia?: (query: string) =
 
 export const WARNING_INTERVAL_MS = 24 * 60 * 60 * 1000;
 
+/**
+ * How the game can quit, where it runs as an app that can: the desktop app
+ * serves it from its own app:// scheme (desktop/main.cjs) and quits when
+ * its window closes. Anywhere else there is none, and the title menu
+ * offers no Quit: a browser closes its own tabs.
+ */
+export function appQuit(protocol: string, closeWindow: () => void): (() => void) | undefined {
+  return protocol === 'app:' ? closeWindow : undefined;
+}
+
 /** Whether the warning is due: never shown, or shown a day or more ago (a clock set back counts as due too). */
 export function warningDue(lastShown: number | null, now: number): boolean {
   return lastShown === null || !Number.isFinite(lastShown) || now - lastShown >= WARNING_INTERVAL_MS || lastShown > now;

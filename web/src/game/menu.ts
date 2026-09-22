@@ -91,6 +91,12 @@ export interface MenuOptions {
   save?: (world: World) => void;
   transfer?: Transfer;
   update?: Update;
+  /**
+   * Leave the game, where it runs as an app that can (the desktop app, where
+   * Steam's Game Mode gives a window no close button). A browser tab has
+   * none: the browser closes tabs.
+   */
+  quit?: () => void;
 }
 
 export async function mainMenu(world: World, io: GameIO, play: () => Promise<void>, options: MenuOptions = {}): Promise<void> {
@@ -111,8 +117,11 @@ export async function mainMenu(world: World, io: GameIO, play: () => Promise<voi
     }
     if (options.update?.ready()) entries.push({ key: 'U', label: 'Update: restart' });
     entries.push({ key: 'S', label: 'Settings' });
+    if (options.quit) entries.push({ key: 'Q', label: 'Quit' });
     const key = await io.chooseFromList(entries, { row: 15, title: mm(world, MM.Options) });
-    if (key === 'S') {
+    if (key === 'Q' && options.quit) {
+      options.quit(); // the app goes; should it not, the menu is still here
+    } else if (key === 'S') {
       await io.showSettings();
     } else if (key === 'E' && options.transfer) {
       await exportGameTo(io, options.transfer);

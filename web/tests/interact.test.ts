@@ -328,6 +328,37 @@ describe('menus', () => {
   });
 });
 
+describe('Quit on the title menu', () => {
+  it('is offered only where the build can quit, and quits', async () => {
+    const world = newWorld();
+    const offered = async (quit?: () => void) => {
+      const io = new FakeIO(world.resources);
+      let listed: string[] = [];
+      io.chooseFromList = async (options) => {
+        listed = options.map((o) => o.label);
+        return listed.includes('Quit') ? 'Q' : 'S';
+      };
+      io.showSettings = async () => {
+        throw new Error('stop'); // the browser build chose Settings: nothing more to see
+      };
+      let calls = 0;
+      await mainMenu(world, io, async () => {}, {
+        quit:
+          quit &&
+          (() => {
+            calls++;
+            throw new Error('stop'); // the app would be gone
+          }),
+      }).catch(() => {});
+      return { listed, calls };
+    };
+    expect((await offered()).listed).not.toContain('Quit');
+    const app = await offered(() => {});
+    expect(app.listed.at(-1)).toBe('Quit');
+    expect(app.calls).toBe(1);
+  });
+});
+
 describe('party screens', () => {
   it('offers a random name and refuses to create without spending all points', async () => {
     const world = new World(newWorld().resources, 3);
