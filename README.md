@@ -510,6 +510,17 @@ Every release, with the desktop and Android downloads, is on the
 [releases page](https://github.com/synthwave-pixel/ultima3/releases). The
 web version always runs the newest.
 
+### v1.0.35, September 22, 2026
+
+- The desktop app runs one copy at a time. Launching it again (Steam
+  starting the shortcut twice, or Play pressed again while it was still
+  coming up) brings the open window forward, instead of starting a second
+  game on the same save that would write over the first.
+- The desktop app's title menu has a Quit, for full screen and Steam's
+  Game Mode, where the window has no close button.
+- The title menu moves up a row when it has six entries, so it no longer
+  covers the copyright line beneath it.
+
 ### v1.0.33, September 21, 2026
 
 - The command menu carries commands only. Pass, Pause, Quit and save and
