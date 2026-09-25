@@ -117,6 +117,25 @@ describe('shops', () => {
     expect(world.member(2).status).toBe('G');
     expect(world.party.gold).toBe(200);
   });
+
+  it('the pub lets the party decline a drink with no amount, and still throws out a cheapskate', async () => {
+    const { world, io } = townWorld();
+    world.party.gold = 100;
+    io.inputs = ['']; // 0, or B or Escape, which enter nothing
+    await shop(world, io, 0, 0);
+    expect(io.output).toContain('come again');
+    expect(io.output).not.toContain('SCUM');
+    expect(io.sounds).not.toContain('Error1');
+    expect(world.party.gold).toBe(100);
+    io.inputs = ['0'];
+    await shop(world, io, 0, 0);
+    expect(io.output).not.toContain('SCUM');
+    io.inputs = ['3'];
+    await shop(world, io, 0, 0);
+    expect(io.output).toContain('LEAVE MY SHOP');
+    expect(io.sounds).toContain('Error1');
+    expect(world.party.gold).toBe(100);
+  });
 });
 
 describe('doors, chests and stealing', () => {

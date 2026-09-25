@@ -111,6 +111,8 @@ async function pub(world: World, io: GameIO): Promise<void> {
     io.printMessage(Msg.HaveADrink);
     const paid = await inputNumber(io);
     io.print('\n\n');
+    // No amount (0, or B or Escape, which enter none) declines the drink without a scene.
+    if (paid === 0) return io.printMessage(Msg.ComeAgain);
     if (paid < 7) {
       io.printMessage(Msg.LeaveMyShop);
       return error(io);
