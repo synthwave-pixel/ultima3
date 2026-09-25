@@ -1709,7 +1709,11 @@ export class Screen implements GameIO {
   }
 
   private frame(time: number): void {
-    this.gamepads.poll();
+    // Read the pads in a task of their own, as the keyboard's events arrive. A press pushed inside this frame would
+    // run the game's turn after the frame's repaint but before the browser paints, so a view the turn blanks (a
+    // dark dungeon clears it every turn) would show black for a frame. Ahead of the early returns, so a pad can
+    // still resume from the PAUSED box and close an overlay.
+    setTimeout(() => this.gamepads.poll(), 0);
     // Paused with no menu to say so (a key press could not reach the game): the screen shows PAUSED and stops
     // animating. Under the Pause menu the frame loop runs on, so the menu draws and answers the cursor.
     const boxed = this.keyboard.paused && !this.pauseShown;
