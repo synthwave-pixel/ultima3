@@ -315,13 +315,15 @@ export class Game {
 
   /**
    * The whirlpool caught the party. On Sosaria it carries them to Ambrosia;
-   * on Ambrosia it brings them home. Mirrors `GoWhirlPool()`.
+   * on Ambrosia it brings them home. Mirrors `GoWhirlPool()` in its classic
+   * appearance: messages 111-113 are laid out for the sixteen-column message
+   * area, where the Mac's others (256-258) are sentences for it to rewrap.
    */
   private async goWhirlpool(): Promise<void> {
     const { world, io } = this;
     world.party.shape = cmd.PartyShape.Whirlpool;
     io.redrawMap();
-    io.printMessage(256);
+    io.printMessage(111);
     this.setMusic(Music.None);
     io.sound(Sound.Sink);
     await io.pause(3000);
@@ -334,14 +336,14 @@ export class Game {
       world.whirlpool.y = 0x3e;
       world.party.shape = cmd.PartyShape.Frigate;
       io.clearTiles();
-      io.printMessage(257);
+      io.printMessage(112);
       world.enterMap(421);
       await io.pause(3000);
       world.party.shape = cmd.PartyShape.OnFoot;
       world.x = 32;
       world.y = 54;
       world.party.location = Location.Ambrosia;
-      io.printMessage(258);
+      io.printMessage(113);
       this.setMusic(Music.Ambrosia);
       world.journal.ambrosia = true;
       journalCheck(world, io);

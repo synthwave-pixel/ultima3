@@ -455,3 +455,16 @@ describe('walking into table entries that are not creatures', () => {
     expect([world.x, world.y]).toEqual([31, 14]);
   });
 });
+
+describe('the whirlpool', () => {
+  it('carries a ship to Ambrosia with the classic messages, every line within the message area', async () => {
+    const world = newWorld();
+    const io = new FakeIO(world.resources);
+    const game = new Game(world, io) as unknown as { goWhirlpool(): Promise<void> };
+    await game.goWhirlpool();
+    expect(world.party.location).toBe(Location.Ambrosia);
+    const messages = world.resources.strings.Messages;
+    for (const n of [111, 112, 113]) expect(io.output).toContain(messages[n - 1]);
+    for (const line of io.output.split('\n')) expect(line.length).toBeLessThanOrEqual(16);
+  });
+});
