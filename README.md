@@ -511,6 +511,11 @@ Every release, with the desktop and Android downloads, is on the
 [releases page](https://github.com/synthwave-pixel/ultima3/releases). The
 web version always runs the newest.
 
+### v1.0.39, September 25, 2026
+
+- The Android app's title menu has a Quit, as the desktop app's does, so
+  a handheld player can close the game with its controls.
+
 ### v1.0.37, September 25, 2026
 
 - The pub takes no amount as "no, thank you". Entering 0, or pressing B
