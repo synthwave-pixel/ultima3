@@ -244,6 +244,21 @@ describe('equipment and stats', () => {
     expect(io.output).toContain(race);
     expect(io.output).toContain('Thief');
   });
+
+  it("lists the party's bag without the bare hands and skin", async () => {
+    const { world, io } = townWorld();
+    world.party.clearGear();
+    world.party.setWeapons(6, 1); // a sword
+    world.party.setArmour(2, 1); // leather armour
+    io.keys = ['1', ...Array<string>(40).fill(Key.Enter)];
+    await stats(world, io);
+    const names = world.resources.strings.WeaponsArmour;
+    const bag = io.output.slice(io.output.indexOf('*PARTY WEAPONS*'));
+    expect(bag).toContain(`01-${names[6]}-(G)`);
+    expect(bag).toContain(`*PARTY ARMOUR*\n01-${names[18]}-(C)`);
+    expect(bag).not.toContain('Hands');
+    expect(bag).not.toContain('Skin');
+  });
 });
 
 describe('spells', () => {

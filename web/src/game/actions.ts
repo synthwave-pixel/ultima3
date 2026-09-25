@@ -479,23 +479,18 @@ export async function stats(world: World, io: GameIO, member?: number): Promise<
   if (await wait()) return;
   io.print(`\nARMOUR:${names[p.bytes[40] + 16]}`);
   if (await wait()) return;
-  // The party's bag (this port pools gear): the same list on every member's page.
+  // The party's bag (this port pools gear): the same list on every member's page. The original's own list ended
+  // with "02-Hands-(A)" and "01-Skin-(A)", the bare hands and skin every character has; in a bag they read as
+  // items the party carries, and the WEAPON and ARMOUR lines above already name them when nothing better is used.
   io.print('\n*PARTY WEAPONS*\n');
-  for (let x = 15; x >= 0; x--) {
-    if (x === 0) {
-      io.print('02-Hands-(A)\n*PARTY ARMOUR*\n');
-      continue;
-    }
+  for (let x = 15; x >= 1; x--) {
     if (!world.party.weapons(x)) continue;
     io.print(`${pad(world.party.weapons(x), 2)}-${names[x]}-(${String.fromCharCode(65 + x)})`);
     if (await wait()) return;
     io.print('\n');
   }
-  for (let x = 7; x >= 0; x--) {
-    if (x === 0) {
-      io.print('01-Skin-(A)\n');
-      continue;
-    }
+  io.print('*PARTY ARMOUR*\n');
+  for (let x = 7; x >= 1; x--) {
     if (!world.party.armour(x)) continue;
     io.print(`${pad(world.party.armour(x), 2)}-${names[x + 16]}-(${String.fromCharCode(65 + x)})`);
     if (await wait()) return;
