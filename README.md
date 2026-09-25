@@ -510,6 +510,18 @@ Every release, with the desktop and Android downloads, is on the
 [releases page](https://github.com/synthwave-pixel/ultima3/releases). The
 web version always runs the newest.
 
+### v1.0.37, September 25, 2026
+
+- The pub takes no amount as "no, thank you". Entering 0, or pressing B
+  or Escape at the price, leaves quietly; only an offer of 1 to 6 gold
+  gets the party thrown out.
+- The whirlpool tells its tale with the classic messages, laid out for
+  the message area, instead of long lines that ran off its edge.
+- With a gamepad, the dungeon's full map no longer flickers black on each
+  step in the dark.
+- Ztats no longer lists the bare Hands and Skin as items in the party's
+  bag.
+
 ### v1.0.35, September 22, 2026
 
 - The desktop app runs one copy at a time. Launching it again (Steam
