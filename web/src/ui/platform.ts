@@ -39,14 +39,22 @@ export function launchWarning(nav: NavigatorLike, matchMedia?: (query: string) =
 
 export const WARNING_INTERVAL_MS = 24 * 60 * 60 * 1000;
 
+/** The Android app's Quit plugin (mobile/android, QuitPlugin.java), as Capacitor's bridge shows it to the page. */
+export interface NativeQuit {
+  quit(): Promise<unknown>;
+}
+
 /**
  * How the game can quit, where it runs as an app that can: the desktop app
  * serves it from its own app:// scheme (desktop/main.cjs) and quits when
- * its window closes. Anywhere else there is none, and the title menu
- * offers no Quit: a browser closes its own tabs.
+ * its window closes, and the Android app has a native plugin for it
+ * (`native`, found on window.Capacitor.Plugins). Anywhere else there is
+ * none, and the title menu offers no Quit: a browser closes its own tabs.
  */
-export function appQuit(protocol: string, closeWindow: () => void): (() => void) | undefined {
-  return protocol === 'app:' ? closeWindow : undefined;
+export function appQuit(protocol: string, closeWindow: () => void, native?: NativeQuit): (() => void) | undefined {
+  if (protocol === 'app:') return closeWindow;
+  if (native) return () => void native.quit();
+  return undefined;
 }
 
 /** Whether the warning is due: never shown, or shown a day or more ago (a clock set back counts as due too). */

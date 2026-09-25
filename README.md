@@ -168,8 +168,9 @@ updated from the releases: tap the badge on the device, or add
 <a href="https://apps.obtainium.imranr.dev/redirect?r=obtainium://app/%7B%22id%22%3A%22com.synthwavepixel.ultima3%22%2C%22url%22%3A%22https%3A%2F%2Fgithub.com%2Fsynthwave-pixel%2Fultima3%22%2C%22author%22%3A%22synthwave-pixel%22%2C%22name%22%3A%22Ultima%20III%22%7D"><img src="mobile/badge_obtainium.png" alt="Get it on Obtainium" width="161"></a>
 
 The app runs full screen in landscape, the Back button opens the Pause
-menu as Escape does, and built-in controls that Android reports as a gamepad
-switch the game to controller mode on the first press. The APK is signed
+menu as Escape does, the title menu ends with Quit to close the app, and
+built-in controls that Android reports as a gamepad switch the game to
+controller mode on the first press. The APK is signed
 with a key kept in the repository, so a new build installs over the old
 one and keeps the saved game. iOS has no such build on purpose: install
 the web version from Safari's Share menu with Add to Home Screen instead.

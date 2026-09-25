@@ -17,6 +17,12 @@ Add to Home Screen.
   an edge shows them for a moment.
 - Maps the system Back button (and a handheld's Back key) to Escape, which
   opens the game's Pause menu.
+- Offers Quit on the game's title menu. A page cannot close the app that
+  holds it, so `QuitPlugin.java`, a Capacitor plugin of the app's own
+  registered in `MainActivity.java`, does it: the game finds it as
+  `window.Capacitor.Plugins.Quit` and offers Quit only then. Quitting ends
+  the activity and takes it out of Recents. No npm plugin is involved, so
+  `cap sync` leaves it alone.
 - Physical controls that Android reports as a gamepad switch the game to
   controller mode on the first press; a tap on the screen shows the
   virtual controller instead.
@@ -84,5 +90,5 @@ release after that means uninstalling first. `package.json` here carries
 no version of its own. The `android/` folder is Capacitor's
 generated project, kept in git as Capacitor intends, with these local
 changes: the version and signing block in `app/build.gradle`,
-`screenOrientation` in the manifest, `MainActivity.java`, the icons, the
-black splash and launcher background.
+`screenOrientation` in the manifest, `MainActivity.java` and
+`QuitPlugin.java`, the icons, the black splash and launcher background.

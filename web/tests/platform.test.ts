@@ -54,7 +54,15 @@ describe('quitting the app', () => {
     const close = () => closed++;
     appQuit('app:', close)?.();
     expect(closed).toBe(1);
-    expect(appQuit('https:', close)).toBeUndefined(); // the site, and the Android app's https://localhost
+    expect(appQuit('https:', close)).toBeUndefined(); // the site, and an Android app without the Quit plugin
     expect(appQuit('http:', close)).toBeUndefined();
+  });
+
+  it("asks the Android app's Quit plugin where Capacitor's bridge has one", () => {
+    let closed = 0;
+    let quits = 0;
+    const plugin = { quit: async () => void quits++ };
+    appQuit('https:', () => closed++, plugin)?.();
+    expect([quits, closed]).toEqual([1, 0]);
   });
 });

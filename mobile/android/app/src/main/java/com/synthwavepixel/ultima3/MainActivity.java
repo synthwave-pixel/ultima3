@@ -10,12 +10,13 @@ import com.getcapacitor.BridgeActivity;
 
 /**
  * The game's activity: the web view fills the screen with the system bars hidden (a swipe from an edge shows them
- * for a moment), and the Back button opens the game's Pause menu as Escape does on a keyboard. Everything else
- * is Capacitor's BridgeActivity.
+ * for a moment), the Back button opens the game's Pause menu as Escape does on a keyboard, and QuitPlugin lets the
+ * title menu's Quit close the app. Everything else is Capacitor's BridgeActivity.
  */
 public class MainActivity extends BridgeActivity {
   @Override
   public void onCreate(Bundle savedInstanceState) {
+    registerPlugin(QuitPlugin.class); // before super.onCreate, which builds the bridge with the plugins it has
     super.onCreate(savedInstanceState);
     hideSystemBars();
   }
