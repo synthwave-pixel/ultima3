@@ -139,6 +139,28 @@ ipcMain.handle('open-release', async () => {
   if (offer) await shell.openExternal(offer.url);
 });
 
+/**
+ * The smoke test's screenshot. The page asks for frames only when it has something to show (screen.ts, wake): on the
+ * title screen none for seconds, and a capture with no frame coming can fail (UnknownVizError, under xvfb's software
+ * compositing). So the page is kept drawing while it is taken - its opacity swung by a thousandth, invisible and apart
+ * from the game - and a capture that fails anyway is tried again.
+ */
+async function smokeCapture(win) {
+  await win.webContents.executeJavaScript(
+    `document.documentElement.animate([{ opacity: 1 }, { opacity: 0.999 }], { duration: 250, direction: 'alternate', iterations: Infinity });
+    new Promise((drawn) => requestAnimationFrame(() => requestAnimationFrame(drawn)))`,
+  );
+  for (let tries = 1; ; tries++) {
+    try {
+      return await win.webContents.capturePage();
+    } catch (e) {
+      if (tries === 5) throw e;
+      console.warn(`smoke: capture failed (${e.message}), trying again`);
+      await new Promise((r) => setTimeout(r, 500));
+    }
+  }
+}
+
 app.whenReady().then(() => {
   if (!primary) return; // quitting: see above
   // app://ultima3/<path> -> app/<path>, confined to that folder.
@@ -174,7 +196,7 @@ app.whenReady().then(() => {
       setTimeout(async () => {
         try {
           const ok = await win.webContents.executeJavaScript('!!(window.u3 && window.u3.world)');
-          const image = await win.webContents.capturePage();
+          const image = await smokeCapture(win);
           writeFileSync(shot, image.toPNG());
           console.log(`smoke: game ${ok ? 'running' : 'NOT running'}, screenshot ${shot}`);
           app.exit(ok ? 0 : 1);
