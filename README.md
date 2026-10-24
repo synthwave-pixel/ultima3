@@ -570,6 +570,14 @@ those builds and a modern developer sensibility.
 - Seams in the scrolling water, lava and moongate tiles and the fringe
   around creatures are repaired in the Standard sheet, and the Ranger has
   a second animation frame, so he no longer stands still.
+- The lettering is Sixtyfour, after the Commodore 64's letters, as in
+  the Ultima V port's Standard look, with a true lowercase where
+  LairWare's font had an i like a semicolon and an n and m like small
+  capitals. Each of its dots is 4 pixels of the game's 32-pixel cell, set
+  2 pixels lower than the face has them, so a line clears the border or
+  the highlight bar above it as the old font did; the diamonds of
+  ****VICTORY!**** stay. PC VGA and PC Ultima V share it; Lairware and
+  Macintosh B&W keep LairWare's font.
 
 #### The sound
 
@@ -970,6 +978,8 @@ the boot screen and the Steam artwork) is made from the 1983 box painting
 by Denis Loubet for Origin Systems (`web/art/box/`), which remains its
 owners'; its years are set in IM FELL
 English by Igino Marini, under the SIL Open Font License (`web/art/fonts/`).
+The Standard lettering is made from Sixtyfour by The Sixtyfour Project
+Authors, also under the SIL Open Font License (`web/art/fonts/`).
 
 ---
 
