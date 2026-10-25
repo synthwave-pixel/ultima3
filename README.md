@@ -616,6 +616,14 @@ Every release, with the desktop and Android downloads, is on the
 web version is updated with each release, so it runs the same game as the
 apps.
 
+### v1.0.67, October 24, 2026
+
+- The Standard look is lettered in Sixtyfour, after the Commodore 64's
+  letters, as the Ultima V port's Standard look is: a true lowercase,
+  where LairWare's font had an i like a semicolon and an n and m like
+  small capitals. PC VGA and PC Ultima V share it; Lairware and Macintosh
+  B&W keep LairWare's font.
+
 ### v1.0.65, October 24, 2026
 
 - The game draws only when something moves or changes, which saves power,
