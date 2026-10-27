@@ -619,6 +619,14 @@ Every release, with the desktop and Android downloads, is on the
 web version is updated with each release, so it runs the same game as the
 apps.
 
+### v1.0.71, October 27, 2026
+
+- The Windows portable `.exe` is portable: it keeps its saves and
+  settings in an `Ultima III Data` folder beside it, so they go wherever
+  it is carried, where before it kept them in `%APPDATA%` as the
+  installed game does. The first time, the saves of an earlier portable
+  run are brought over; `%APPDATA%` is left as it was.
+
 ### v1.0.69, October 27, 2026
 
 - The Standard look is lettered in Sixtyfour, after the Commodore 64's
