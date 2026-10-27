@@ -113,6 +113,13 @@ jobs:
       - if: matrix.target != 'linux'
         run: node smoke-built.cjs
         working-directory: desktop
+      # A failed smoke test keeps what the window showed, to see why.
+      - if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: smoke-${{ matrix.target }}
+          path: desktop/dist/smoke-built.png
+          if-no-files-found: ignore
       - uses: actions/upload-artifact@v7
         with:
           name: ultima3-${{ matrix.target }}
@@ -179,6 +186,7 @@ jobs:
       - uses: actions/download-artifact@v8
         with:
           path: files
+          pattern: ultima3-* # the builds only: not a smoke screenshot from a failed attempt before a re-run
           merge-multiple: true
       - run: ls -la files
       # The notes are the README changelog's section for this version (desktop/release-notes.cjs), above GitHub's

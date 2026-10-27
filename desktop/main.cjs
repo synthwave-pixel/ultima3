@@ -139,6 +139,10 @@ ipcMain.handle('open-release', async () => {
   if (offer) await shell.openExternal(offer.url);
 });
 
+/** How long the smoke test waits for the game to start, and then for it to draw before the screenshot. */
+const SMOKE_START_MS = 30_000;
+const SMOKE_DRAW_MS = 3000;
+
 /**
  * The smoke test's screenshot. The page asks for frames only when it has something to show (screen.ts, wake): on the
  * title screen none for seconds, and a capture with no frame coming can fail (UnknownVizError, under xvfb's software
@@ -189,22 +193,35 @@ app.whenReady().then(() => {
       .then((r) => r.result !== 'not from a shortcut' && console.log('steam artwork:', JSON.stringify(r)))
       .catch(() => {});
   }, 3000);
-  // A smoke test (smoke.cjs): screenshot after the game has drawn, then quit.
+  // A smoke test (smoke.cjs): wait for the game to start, screenshot it once drawn, then quit. The start is waited for
+  // rather than given a fixed time: a slow CI runner took longer than six seconds, and the test failed with nothing
+  // wrong. The page's errors and how long the start took go to the log, so a failure says why.
   const shot = process.env.ULTIMA3_SMOKE;
   if (shot) {
-    win.webContents.on('did-finish-load', () => {
-      setTimeout(async () => {
-        try {
-          const ok = await win.webContents.executeJavaScript('!!(window.u3 && window.u3.world)');
-          const image = await smokeCapture(win);
-          writeFileSync(shot, image.toPNG());
-          console.log(`smoke: game ${ok ? 'running' : 'NOT running'}, screenshot ${shot}`);
-          app.exit(ok ? 0 : 1);
-        } catch (e) {
-          console.error('smoke failed', e);
-          app.exit(1);
+    win.webContents.on('console-message', (e, level, message) => {
+      // Electron passes one event object now, (event, level, message) before.
+      const [lvl, text] = [e.level ?? level, e.message ?? message];
+      if (lvl === 'error' || lvl === 'warning' || lvl === 3 || lvl === 2) console.log(`smoke: page ${lvl}: ${text}`);
+    });
+    win.webContents.on('render-process-gone', (_e, details) => console.log(`smoke: page gone: ${details.reason}`));
+    win.webContents.on('did-finish-load', async () => {
+      const loaded = Date.now();
+      try {
+        let ok = false;
+        while (!ok && Date.now() - loaded < SMOKE_START_MS) {
+          await new Promise((r) => setTimeout(r, 500));
+          ok = await win.webContents.executeJavaScript('!!(window.u3 && window.u3.world)');
         }
-      }, 6000);
+        console.log(`smoke: game ${ok ? 'started' : 'NOT started'} ${((Date.now() - loaded) / 1000).toFixed(1)} s after the page loaded`);
+        if (ok) await new Promise((r) => setTimeout(r, SMOKE_DRAW_MS));
+        const image = await smokeCapture(win);
+        writeFileSync(shot, image.toPNG());
+        console.log(`smoke: game ${ok ? 'running' : 'NOT running'}, screenshot ${shot}`);
+        app.exit(ok ? 0 : 1);
+      } catch (e) {
+        console.error('smoke failed', e);
+        app.exit(1);
+      }
     });
   }
   app.on('activate', () => {
