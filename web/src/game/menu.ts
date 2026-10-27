@@ -19,6 +19,7 @@ import { PlayerRecord, ROSTER_SIZE } from './player.ts';
 import { type GameIO, type MenuOption } from './io.ts';
 import { randomName } from './names.ts';
 import { emptyJournal } from './journal.ts';
+import { statLimit } from './interact.ts';
 
 /** 1-based indices into the MoreMessages table. */
 const MM = {
@@ -327,14 +328,11 @@ async function pickEntry(world: World, io: GameIO, title: string, include: (p: P
 // Create
 // ---------------------------------------------------------------------------
 
-/** Race-dependent caps on each attribute (strength, dexterity, intelligence, wisdom), in race order. */
-const RACE_MAX: Record<string, [number, number, number, number]> = {
-  H: [75, 75, 75, 75],
-  E: [75, 99, 50, 75],
-  D: [99, 75, 75, 50],
-  B: [75, 50, 99, 75],
-  F: [25, 99, 75, 99],
-};
+/** A race's limits on strength, dexterity, intelligence and wisdom, for its line in the Race list: the shrines' own. */
+export function raceHint(race: number): string {
+  const [str, dex, int, wis] = [0, 1, 2, 3].map((stat) => statLimit(race, stat));
+  return `Max STR ${str} DEX ${dex} INT ${int} WIS ${wis}`;
+}
 
 /** A one-line description of what a class can do, from the game's own tables. */
 function classHint(world: World, classIndex: number): string {
@@ -415,10 +413,7 @@ export async function createCharacter(world: World, io: GameIO): Promise<void> {
 
   header();
   const raceKey = await io.chooseFromList(
-    races.map((r) => {
-      const max = RACE_MAX[r[0]] ?? [75, 75, 75, 75];
-      return { key: r[0], label: r, hint: `Max STR ${max[0]} DEX ${max[1]} INT ${max[2]} WIS ${max[3]}` };
-    }),
+    races.map((r, i) => ({ key: r[0], label: r, hint: raceHint(i) })),
     { row: MENU_ROW, title: 'Race' },
   );
   if (!raceKey) return;

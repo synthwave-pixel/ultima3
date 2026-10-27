@@ -4,7 +4,7 @@ import { speech, transact, unlock, steal, otherCommand, fire, unlockToward, tran
 import { shop } from '../src/game/shops.ts';
 import { cast } from '../src/game/spells.ts';
 import { getChest, readyWeapon, wearArmour, stats } from '../src/game/actions.ts';
-import { mainMenu, createCharacter, formParty, terminateCharacter, clearNotes, TITLE_MENU_LAST_ROW } from '../src/game/menu.ts';
+import { mainMenu, createCharacter, formParty, terminateCharacter, clearNotes, raceHint, TITLE_MENU_LAST_ROW } from '../src/game/menu.ts';
 import { MapValue } from '../src/game/tiles.ts';
 import { Location } from '../src/game/party.ts';
 import { Key, type MenuOption, type MenuPlacement } from '../src/game/io.ts';
@@ -26,6 +26,20 @@ function townWorld(): { world: World; io: FakeIO } {
   world.y = 20;
   return { world, io: new FakeIO(world.resources) };
 }
+
+describe('the Race list', () => {
+  it("gives each race's limits as the manual's table and the shrines have them (Lairware/Images/MiscTables.pdf)", () => {
+    const world = newWorld();
+    expect(world.resources.strings.Races).toEqual(['Human', 'Elf', 'Dwarf', 'Bobbit', 'Fuzzy']);
+    expect([0, 1, 2, 3, 4].map(raceHint)).toEqual([
+      'Max STR 75 DEX 75 INT 75 WIS 75',
+      'Max STR 75 DEX 99 INT 75 WIS 50',
+      'Max STR 99 DEX 75 INT 50 WIS 75',
+      'Max STR 75 DEX 50 INT 75 WIS 99',
+      'Max STR 25 DEX 99 INT 99 WIS 75',
+    ]);
+  });
+});
 
 describe('talking', () => {
   it('decodes NPC dialogue from the talk table', () => {
