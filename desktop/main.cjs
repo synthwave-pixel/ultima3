@@ -16,7 +16,13 @@ const { writeFileSync, existsSync } = require('node:fs');
 const { placeOnScreen, readState, startsFullScreen, writeState } = require('./windowState.cjs');
 const updates = require('./updates.cjs');
 const { installSteamArt } = require('./steamArt.cjs');
+const { portableData } = require('./portable.cjs');
 const { homedir } = require('node:os');
+
+// The portable .exe's data beside it (portable.cjs), set before anything (the single-instance lock, the page's
+// storage) uses it.
+const beside = portableData({ env: process.env, old: app.getPath('userData') });
+if (beside) app.setPath('userData', beside);
 
 // Game Mode runs the app under the gamescope compositor, where Chromium's GPU process has hung whole sessions and
 // its seccomp sandbox has killed apps Steam launched. The game is a 2D canvas that needs neither, so under gamescope

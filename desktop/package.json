@@ -36,6 +36,7 @@
       "updates.cjs",
       "steamArt.cjs",
       "windowState.cjs",
+      "portable.cjs",
       "build/steam/*.png",
       "app/**/*"
     ],

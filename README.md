@@ -151,7 +151,10 @@ up to date by Discover or `flatpak update` instead, and nothing is offered
 under Steam's Game Mode, where a browser would open over the game.
 
 - **Windows**: an installer and a portable `.exe`. Both are unsigned, so
-  SmartScreen asks once; choose More info, then Run anyway.
+  SmartScreen asks once; choose More info, then Run anyway. The portable
+  `.exe` keeps its saves and settings in an `Ultima III Data` folder
+  beside it, so they go wherever it is carried; the installed game keeps
+  them in `%APPDATA%\Ultima III`.
 - **macOS**: an Apple Silicon `.dmg`, for macOS 13 (Ventura) or later
   (Intel Macs: use the web version). Signed by no Apple developer, so the
   first launch is refused. Try to open the app once, then open System
