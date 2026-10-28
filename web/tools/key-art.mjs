@@ -17,6 +17,8 @@
 // Besides them:
 //   - promo/logo.png (1280 wide, transparent): the title alone;
 //   - promo/banner.jpg (1840x860): the wide capsule at twice its size, at the top of the READMEs;
+//   - web/public/share.jpg (1200x630): the wide capsule laid out again for a shared link's picture (index.html's
+//     og:image), the scene the whole height on the left, the title and the years to its right;
 //   - web/public/boot.jpg (1600x960, the game's 5:3): the hero's middle, the demon alone, shown while the game loads.
 // The years are U5's dateline (its tools/key-art.mjs) - IM FELL English's figures (art/fonts/), a wave between them -
 // cut into stone: the wing's veined red for the cut's floor, a darker copy of it as the wall in shadow along the top
@@ -337,6 +339,46 @@ try {
   };
   wide(1, steam('wide.png'));
   wide(2, jpeg(88, 'promo', 'banner.jpg'));
+
+  // A shared link's picture: the wide capsule's scene, title and years, at the 1200x630 the sites show (their own crop
+  // of the banner, a wider shape, would cut into the title).
+  {
+    const [width, height] = [1200, 630];
+    const title = titleSvg(540);
+    render(title.svg, 'share-title.png');
+    const k = 540 / 430;
+    const [yearsW, yearsH, between] = [Math.round(330 * k), Math.round(48 * k), Math.round(14 * k)];
+    const titleTop = Math.round((height - title.height - between - yearsH) / 2);
+    carve(yearsW, yearsH, t('years-share.png'));
+    magick(
+      t('scene.png'),
+      '-resize',
+      `x${height}`,
+      '-alpha',
+      'set',
+      '-channel',
+      'A',
+      '-fx',
+      'min(1, (w-1-i)/130)',
+      '+channel',
+      t('share-scene.png'),
+    );
+    magick(
+      ['-size', `${height}x${width}`, 'gradient:#2a0a06-#050101', '-rotate', '270'],
+      [
+        t('share-scene.png'),
+        '-geometry',
+        '+0+0',
+        '-composite',
+        t('share-title.png'),
+        '-geometry',
+        `+${910 - 270}+${titleTop}`,
+        '-composite',
+      ],
+      [t('years-share.png'), '-geometry', `+${910 - yearsW / 2}+${titleTop + title.height + between}`, '-composite'],
+      jpeg(88, 'web', 'public', 'share.jpg'),
+    );
+  }
 
   // The hero: the demon cut out, on his glow.
   const gray = execFileSync('magick', [t('painting.png'), '-colorspace', 'gray', '-depth', '8', 'gray:-'], { maxBuffer: 1 << 24 });

@@ -44,8 +44,9 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,png,gif,jpg,wav,mp3,mov,json,webmanifest}'],
-        // The tile test page is for checking the sets in a browser, not part of the installed game.
-        globIgnores: ['tiles.html', 'assets/tiles-*.js'],
+        // The tile test page is for checking the sets in a browser, not part of the installed game; nor is a shared
+        // link's picture (index.html's og:image), for the sites that show it.
+        globIgnores: ['tiles.html', 'assets/tiles-*.js', 'share.jpg'],
         maximumFileSizeToCacheInBytes: 8 * 1024 * 1024,
         // The Flatpak repository under /flatpak/ is fetched by flatpak and Discover, and a browser that has the
         // worker must get those files too, not be handed the game instead.
