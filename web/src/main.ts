@@ -14,11 +14,13 @@ import { World, STARVATION_MODES, TIMER_MODES, type Starvation, type Timer } fro
 import { Game } from './game/game.ts';
 import { localSave, exportGame, parseExport, restoreExported } from './game/save.ts';
 import { registerSW } from 'virtual:pwa-register';
-import type { Transfer, Update } from './game/menu.ts';
+import type { Transfer, Update, UpdateNews } from './game/menu.ts';
 import { appQuit, launchWarning, warningDue, type NativeQuit } from './ui/platform.ts';
-import { isRelease, newerRelease, within, type NativeUpdates, type ReleaseOffer } from './ui/updates.ts';
+import { isNewer, isRelease, newerRelease, within, type NativeUpdates, type ReleaseOffer } from './ui/updates.ts';
 
 const WARNED_KEY = 'ultima3.warned';
+/** The newest release the player has been told of (menu.ts updateBox), so each is told of once. */
+const UPDATE_TOLD_KEY = 'ultima3.updateTold';
 /** When the storage warning was last shown, or null. */
 function readWarnedAt(): number | null {
   try {
@@ -375,6 +377,7 @@ async function start(): Promise<void> {
     ready: () => true,
     label: () => `Update (${offer.version})`,
     apply: () => (native ? void native.openRelease() : location.assign(offer.url)),
+    news: releaseNews(offer.version),
   };
   // The title (or the game) comes next: the boot screen, kept up while the release was waited for (a black canvas
   // otherwise, for as long as GitHub takes to answer the apps) and then held until it has been up 3 seconds or a
@@ -393,6 +396,28 @@ async function start(): Promise<void> {
     }
   }
   await mainMenu(world, screen, () => game.run(), { save: (w) => localSave.write(w), transfer, update: appUpdate ?? update, quit });
+}
+
+/** A newer release's news, told of once (menu.ts updateBox): due until this version, or a later one, has been told of. */
+function releaseNews(version: string): UpdateNews {
+  let told: string | null = null;
+  try {
+    told = localStorage.getItem(UPDATE_TOLD_KEY);
+  } catch {
+    /* storage unavailable: told of each time the app starts */
+  }
+  return {
+    version,
+    due: () => told === null || isNewer(version, told),
+    told: () => {
+      told = version;
+      try {
+        localStorage.setItem(UPDATE_TOLD_KEY, version);
+      } catch {
+        /* as above */
+      }
+    },
+  };
 }
 
 start().catch((err) => {

@@ -88,6 +88,15 @@ export interface Update {
   apply(): void;
   /** The title menu's line for it: "Update: restart" unless said otherwise (an app's "Update (1.0.45)"). */
   label?(): string;
+  /** An app's newer release, said once a version in a box of its own before the title's menu (updateBox). */
+  news?: UpdateNews;
+}
+
+/** A newer release to be told of once: its version, whether it is still to be told of, and that it now has been. */
+export interface UpdateNews {
+  version: string;
+  due(): boolean;
+  told(): void;
 }
 
 export interface MenuOptions {
@@ -108,6 +117,11 @@ export const TITLE_MENU_LAST_ROW = 21;
 
 export async function mainMenu(world: World, io: GameIO, play: () => Promise<void>, options: MenuOptions = {}): Promise<void> {
   for (;;) {
+    const news = options.update?.news;
+    if (options.update && news?.due()) {
+      await updateBox(world, io, options.update, news);
+      continue;
+    }
     io.showTitle();
     io.clearBottom();
     io.centreText(11, mm(world, MM.FromTheDepths));
@@ -151,6 +165,29 @@ export async function mainMenu(world: World, io: GameIO, play: () => Promise<voi
       options.save?.(world);
     }
   }
+}
+
+/**
+ * An app's newer release, told of once a version before the title's menu (as the Ultima V port does): what it is, and
+ * its page, to read what changed and download it there, or Later, which leaves it on the menu's Update line.
+ */
+async function updateBox(world: World, io: GameIO, update: Update, news: UpdateNews): Promise<void> {
+  news.told();
+  // A key pressed before the box came (the boot screen skipped with it) is let go: none may answer it unseen.
+  io.flushKeys();
+  io.showTitle();
+  io.clearBottom();
+  io.centreText(11, `Ultima III ${news.version} is out`);
+  io.centreText(12, 'Your saved game carries over');
+  io.centreText(22, mm(world, MM.Copyright));
+  const key = await io.chooseFromList(
+    [
+      { key: 'O', label: 'Open release page', hint: 'What is new, and the download' },
+      { key: 'L', label: 'Later', hint: 'Update stays in the title menu' },
+    ],
+    { row: 15, title: 'Update available' },
+  );
+  if (key === 'O') update.apply();
 }
 
 /** Export: the game as text, to the clipboard or a file. */

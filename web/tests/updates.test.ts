@@ -89,4 +89,42 @@ describe('release updates', () => {
     expect(listed).toContain('Update (1.0.45)');
     expect(opened).toBe(1);
   });
+
+  it('are told of once a version, in a box of their own before the title menu', async () => {
+    const world = newWorld();
+    const io = new FakeIO(world.resources);
+    const menus: string[][] = [];
+    const answers = ['L', 'U'];
+    io.chooseFromList = async (options: MenuOption[]) => {
+      menus.push(options.map((o) => o.label));
+      return answers.shift() ?? 'U';
+    };
+    let told = 0;
+    let due = true;
+    let opened = 0;
+    await mainMenu(world, io, async () => {}, {
+      update: {
+        ready: () => true,
+        label: () => 'Update (1.0.45)',
+        apply: () => {
+          opened++;
+          throw new Error('stop');
+        },
+        news: {
+          version: '1.0.45',
+          due: () => due,
+          told: () => {
+            told++;
+            due = false;
+          },
+        },
+      },
+    }).catch(() => {});
+    // Later in the box: the title menu next, its Update line still there; the box is not shown again.
+    expect(menus[0]).toEqual(['Open release page', 'Later']);
+    expect(menus.slice(1).every((m) => !m.includes('Later') && m.includes('Update (1.0.45)'))).toBe(true);
+    expect(io.output).toContain('Ultima III 1.0.45 is out');
+    expect(told).toBe(1);
+    expect(opened).toBe(1);
+  });
 });

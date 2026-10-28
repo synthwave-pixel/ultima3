@@ -60,8 +60,9 @@ window loads it from, and quits by closing that window.
 As it starts, the app asks GitHub for the newest release (`updates.cjs`);
 where that is newer than its own version, the page learns of it through
 `preload.cjs` (the one thing the page may ask of the app, with opening the
-release's page) and the title menu offers "Update (x.y.z)", which opens the
-page in the system browser. Nothing is downloaded or installed. It does not
+release's page) and the title says so, once a version in a box of its own
+and in its menu's "Update (x.y.z)" line, either opening the page in the
+system browser. Nothing is downloaded or installed. It does not
 ask in the Flatpak (flatpak updates it from the site's repository), under
 gamescope (Steam's Game Mode, where a browser would cover the game), in a
 copy run unpackaged or built locally, or with `--no-update-check`.

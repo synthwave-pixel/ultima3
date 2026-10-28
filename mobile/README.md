@@ -19,7 +19,8 @@ Add to Home Screen.
   an edge shows them for a moment.
 - Maps the system Back button (and a handheld's Back key) to Escape, which
   opens the game's Pause menu.
-- Offers a newer release on the title menu, "Update (x.y.z)": the game
+- Offers a newer release at the title, once in a box of its own and on its
+  menu's "Update (x.y.z)" line: the game
   asks GitHub for the newest release and compares it with the APK's
   version, which `bundle.cjs` builds into the page (`VITE_APP_VERSION`).
   Choosing it goes to the release's page, which Capacitor opens in the
