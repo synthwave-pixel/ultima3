@@ -108,6 +108,9 @@
         }
       }
     },
+    "appImage": {
+      "artifactName": "Ultima-III-${version}-${arch}.${ext}"
+    },
     "flatpak": {
       "files": [
         [
