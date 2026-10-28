@@ -3,8 +3,11 @@
 // electron-builder's CLI runs under this node directly: on Windows `npx` is a .cmd shim that spawnSync cannot run.
 const { execFileSync } = require("node:child_process");
 const { buildVersion } = require("./version.cjs");
+const { writeMetainfo } = require("./metainfo.cjs");
 const version = buildVersion();
 console.log(`building version ${version}`);
+// The Flatpak's AppStream metainfo at this version (metainfo.cjs), for flatpak.files to put in.
+writeMetainfo(version);
 execFileSync(
   process.execPath,
   [

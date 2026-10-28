@@ -109,6 +109,12 @@
       }
     },
     "flatpak": {
+      "files": [
+        [
+          "build-meta/com.synthwavepixel.ultima3.metainfo.xml",
+          "/share/metainfo/com.synthwavepixel.ultima3.metainfo.xml"
+        ]
+      ],
       "runtimeVersion": "25.08",
       "baseVersion": "25.08",
       "finishArgs": [
