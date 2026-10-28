@@ -620,6 +620,23 @@ Every release, with the desktop and Android downloads, is on the
 web version is updated with each release, so it runs the same game as the
 apps.
 
+### v1.0.73, October 28, 2026
+
+- When the desktop or Android app finds a newer release, the title says
+  so once, in a box of its own, with the release's page a press away. The
+  menu's "Update (x.y.z)" line stays as before.
+- The Flatpak shows its version in Discover and GNOME Software, with a
+  description and a screenshot, where it showed "master".
+- If the game's page crashes, the desktop app loads it again, back to the
+  title and the last save, instead of leaving a black window that full
+  screen under Steam's Game Mode had no way out of.
+- The Windows portable `.exe` no longer leaves an empty `Ultima III`
+  folder in `%APPDATA%`.
+- The AppImage is named without "linux":
+  `Ultima-III-<version>-x86_64.AppImage`.
+- A link to the game shows the box's demon and the title, with a line
+  about the game.
+
 ### v1.0.71, October 27, 2026
 
 - The Windows portable `.exe` is portable: it keeps its saves and
