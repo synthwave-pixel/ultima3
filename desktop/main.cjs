@@ -100,6 +100,23 @@ function createWindow() {
     if (/^https?:/.test(url)) void shell.openExternal(url);
     return { action: 'deny' };
   });
+  // A page whose renderer died (a crash, the GPU driver, the system out of memory) leaves a black window that answers
+  // nothing, which full screen under Game Mode has no way out of: load it again, back to the title and the last save.
+  // A renderer that dies again straight away would reload forever, so after three reloads in a minute the window is
+  // left as it is. A clean exit is the window closing, not a crash. (As the Ultima V port does.)
+  const reloads = [];
+  win.webContents.on('render-process-gone', (_event, details) => {
+    console.error(`renderer gone: ${details.reason} (exit code ${details.exitCode})`);
+    if (details.reason === 'clean-exit' || win.isDestroyed()) return;
+    const now = Date.now();
+    while (reloads.length && now - reloads[0] > 60_000) reloads.shift();
+    if (reloads.length >= 3) return;
+    reloads.push(now);
+    win.webContents.reload();
+  });
+  // A page busy for a while (a long load, a stall) comes back on its own more often than not; it is only noted.
+  win.on('unresponsive', () => console.warn('window unresponsive'));
+  win.on('responsive', () => console.warn('window responsive again'));
   // Query flags the game understands (?new, ?controller) pass through from the command line.
   const flags = process.argv.filter((a) => /^--(new|controller)$/.test(a)).map((a) => a.slice(2));
   void win.loadURL(`${SCHEME}://${HOST}/index.html${flags.length ? '?' + flags.join('&') : ''}`);
