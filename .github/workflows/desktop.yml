@@ -71,6 +71,8 @@ jobs:
             target: mac
             args: --mac
     runs-on: ${{ matrix.os }}
+    # A build takes under ten minutes; anything near this is a runner stuck, better failed than left waiting.
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -91,10 +93,18 @@ jobs:
         with:
           path: ~/.local/share/flatpak
           key: flatpak-runtimes-25.08-${{ runner.os }}
+      # flatpak-builder and what it builds with (its recommended tools named, the runner's own as it happens), and the
+      # helpers flatpak runs as it installs: from the cache kept per runner image, else the mirror with retries
+      # (.github/actions/apt-install), the step itself limited.
+      - if: matrix.target == 'linux'
+        timeout-minutes: 20
+        uses: ./.github/actions/apt-install
+        with:
+          packages: >-
+            flatpak flatpak-builder elfutils binutils git patch unzip xz-utils zstd
+            desktop-file-utils gtk-update-icon-cache hicolor-icon-theme shared-mime-info
       - if: matrix.target == 'linux'
         run: |
-          sudo apt-get update
-          sudo apt-get install -y flatpak flatpak-builder elfutils
           flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
           flatpak install --user -y --noninteractive flathub org.freedesktop.Platform//25.08 org.freedesktop.Sdk//25.08 org.electronjs.Electron2.BaseApp//25.08
       - run: npm run bundle

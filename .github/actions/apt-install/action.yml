@@ -1,0 +1,51 @@
+# Ubuntu packages installed without waiting on the mirror where it can be helped (desktop.yml's Flatpak build,
+# pages.yml's Flatpak repository). Only what is asked for and what it needs (no recommended packages: those brought a
+# desktop's portals, drivers and a speech model, 60-odd packages, for three tools). The packages fetched are cached,
+# one cache to a runner image (ImageOS and ImageVersion), so a later run on the same image installs them from the cache
+# and never touches the mirror, and none is ever installed over the newer one a newer image carries. Without the cache,
+# or if installing from it fails, they are fetched as before: each fetch dropped after 30 seconds and tried again, a
+# whole attempt that fails tried twice more (a stalled Azure mirror once held a release for most of an hour).
+name: apt install, cached
+description: Install Ubuntu packages, without recommends, from a cache kept per runner image when it has them.
+inputs:
+  packages:
+    description: The packages, separated by spaces.
+    required: true
+runs:
+  using: composite
+  steps:
+    - id: key
+      shell: bash
+      env:
+        PACKAGES: ${{ inputs.packages }}
+      run: |
+        echo "image=${ImageOS:-unknown}-${ImageVersion:-unknown}" >> "$GITHUB_OUTPUT"
+        echo "packages=$(echo "$PACKAGES" | tr ' ' '\n' | sort | tr '\n' ' ' | sha256sum | cut -c1-12)" >> "$GITHUB_OUTPUT"
+    - uses: actions/cache@v6
+      with:
+        path: ~/apt-debs
+        key: apt-${{ steps.key.outputs.image }}-${{ steps.key.outputs.packages }}
+    - shell: bash
+      env:
+        PACKAGES: ${{ inputs.packages }}
+      run: |
+        export debs="$HOME/apt-debs"
+        if compgen -G "$debs/*.deb" > /dev/null && sudo dpkg -i "$debs"/*.deb > /dev/null; then
+          echo "apt: $(ls "$debs"/*.deb | wc -l) packages installed from the cache"
+          exit 0
+        fi
+        mkdir -p "$debs/partial"
+        apt_get() {
+          sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 \
+            -o Dir::Cache::Archives="$debs" -o APT::Keep-Downloaded-Packages=true "$@"
+        }
+        export -f apt_get
+        for attempt in 1 2 3; do
+          if timeout 300 bash -c 'apt_get update && apt_get install -y --no-install-recommends $PACKAGES'; then break; fi
+          [ "$attempt" = 3 ] && exit 1
+          echo "apt attempt $attempt failed; trying again"; sleep 15
+        done
+        # Kept for the cache: the packages fetched, readable by the cache's own step.
+        sudo rm -rf "$debs/partial" "$debs/lock"
+        sudo chown -R "$(id -u):$(id -g)" "$debs"
+        echo "apt: $(ls "$debs"/*.deb 2> /dev/null | wc -l) packages fetched and kept"
