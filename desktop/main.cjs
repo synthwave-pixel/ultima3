@@ -20,8 +20,8 @@ const { portableData } = require('./portable.cjs');
 const { homedir } = require('node:os');
 
 // The portable .exe's data beside it (portable.cjs), set before anything (the single-instance lock, the page's
-// storage) uses it.
-const beside = portableData({ env: process.env, old: app.getPath('userData') });
+// storage) uses it - and before anything asks for the data folder, which Electron makes as it is asked.
+const beside = portableData({ env: process.env, appData: app.getPath('appData'), name: app.getName() });
 if (beside) app.setPath('userData', beside);
 
 // Game Mode runs the app under the gamescope compositor, where Chromium's GPU process has hung whole sessions and

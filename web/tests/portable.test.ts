@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { createRequire } from 'node:module';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { basename, dirname, join } from 'node:path';
 
 const { portableData, DATA } = createRequire(import.meta.url)(
   '../../desktop/portable.cjs',
@@ -27,15 +27,15 @@ describe("the Windows portable .exe's data (desktop/portable.cjs)", () => {
   };
 
   it('is only for the portable .exe: the installed copy, macOS and Linux keep the usual place', () => {
-    expect(portableData({ env: {}, old })).toBeNull();
-    expect(portableData({ env: { PORTABLE_EXECUTABLE_DIR: '' }, old })).toBeNull();
+    expect(portableData({ env: {}, appData: dirname(old), name: basename(old) })).toBeNull();
+    expect(portableData({ env: { PORTABLE_EXECUTABLE_DIR: '' }, appData: dirname(old), name: basename(old) })).toBeNull();
   });
 
   it('is "Ultima III Data" beside the .exe, filled once from an earlier run, less the caches', () => {
     earlierRun();
     const usb = join(root, 'USB');
     mkdirSync(usb);
-    const data = portableData({ env: { PORTABLE_EXECUTABLE_DIR: usb }, old });
+    const data = portableData({ env: { PORTABLE_EXECUTABLE_DIR: usb }, appData: dirname(old), name: basename(old) });
     expect(DATA).toBe('Ultima III Data');
     expect(data).toBe(join(usb, DATA));
     expect(readFileSync(join(data!, 'Local Storage', 'leveldb', '000003.log'), 'utf8')).toBe('the save');
@@ -46,7 +46,7 @@ describe("the Windows portable .exe's data (desktop/portable.cjs)", () => {
 
     // Later runs leave the folder alone: its own saves are never overwritten.
     writeFileSync(join(data!, 'window.json'), '{"fullScreen":true}');
-    expect(portableData({ env: { PORTABLE_EXECUTABLE_DIR: usb }, old })).toBe(data);
+    expect(portableData({ env: { PORTABLE_EXECUTABLE_DIR: usb }, appData: dirname(old), name: basename(old) })).toBe(data);
     expect(readFileSync(join(data!, 'window.json'), 'utf8')).toBe('{"fullScreen":true}');
   });
 
@@ -54,14 +54,24 @@ describe("the Windows portable .exe's data (desktop/portable.cjs)", () => {
     const usb = join(root, 'USB');
     mkdirSync(join(usb, `${DATA}.part`), { recursive: true });
     writeFileSync(join(usb, `${DATA}.part`, 'half.log'), 'half');
-    const data = portableData({ env: { PORTABLE_EXECUTABLE_DIR: usb }, old });
+    const data = portableData({ env: { PORTABLE_EXECUTABLE_DIR: usb }, appData: dirname(old), name: basename(old) });
     expect(data).toBe(join(usb, DATA));
     expect(existsSync(join(data!, 'half.log'))).toBe(false);
+  });
+
+  it("finds an earlier copy's data in AppData by the app's name, without asking Electron for it", () => {
+    // Asking Electron for its default data folder (app.getPath('userData')) makes it, empty, though the portable .exe
+    // keeps its data elsewhere: the folder is named from AppData and the app's name instead (main.cjs).
+    earlierRun();
+    const usb = join(root, 'USB');
+    mkdirSync(usb);
+    const data = portableData({ env: { PORTABLE_EXECUTABLE_DIR: usb }, appData: join(root, 'AppData'), name: 'Ultima III' })!;
+    expect(readFileSync(join(data, 'window.json'), 'utf8')).toBe('{"fullScreen":false}');
   });
 
   it('falls back to the usual place where the folder beside the .exe cannot be made', () => {
     const notADir = join(root, 'a file');
     writeFileSync(notADir, '');
-    expect(portableData({ env: { PORTABLE_EXECUTABLE_DIR: notADir }, old })).toBeNull();
+    expect(portableData({ env: { PORTABLE_EXECUTABLE_DIR: notADir }, appData: dirname(old), name: basename(old) })).toBeNull();
   });
 });
