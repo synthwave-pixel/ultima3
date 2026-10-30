@@ -174,6 +174,9 @@ export class MusicPlayer {
   /** Heard though the game is paused: the Music level's dial is turning (Screen), so the player hears each step. */
   private hearing = false;
   private levelValue = LEVELS;
+  /** Tracks played in turn, each once through, over and over (`playList`), and which is next; null: the one track loops. */
+  private list: number[] | null = null;
+  private listNext = 0;
 
   constructor(private readonly baseUrl = 'music/') {}
 
@@ -288,7 +291,22 @@ export class MusicPlayer {
 
   /** Switch to a track (0 = silence). Safe to call before audio is unlocked or while music is off: the track is remembered. */
   play(track: number): void {
+    this.list = null;
     this.current = track;
+    this.sync();
+  }
+
+  /** Play these tracks in turn, each once through, over and over (the attract demo), until the next `play`. */
+  playList(tracks: number[]): void {
+    this.list = tracks;
+    this.listNext = 0;
+    this.nextOnList();
+  }
+
+  private nextOnList(): void {
+    if (!this.list?.length) return;
+    this.current = this.list[this.listNext];
+    this.listNext = (this.listNext + 1) % this.list.length;
     this.sync();
   }
 
@@ -328,6 +346,11 @@ export class MusicPlayer {
     const horizon = ctx.currentTime + LOOKAHEAD_S;
     while (true) {
       if (this.nextNote >= tune.notes.length) {
+        if (this.list && this.list.length > 1) {
+          // On a list: the next track once this one's last notes have sounded.
+          if (ctx.currentTime >= this.loopStart + tune.length) this.nextOnList();
+          return;
+        }
         // Loop.
         this.loopStart += Math.max(tune.length, 0.5);
         this.nextNote = 0;

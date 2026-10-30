@@ -144,6 +144,7 @@ function main(): void {
     party: 'PRTY', // default party record
     roster: 'ROST', // default roster of 20 characters
     demo: 'DEMO', // attract-mode script
+    signature: 'SGNT', // Lord British's signature, as pen strokes
   };
 
   const bundle: Record<string, unknown> = {};
@@ -190,7 +191,7 @@ function main(): void {
   // renders (fountain, rod, shrine, Time Lord) go to the Lairware tile set
   // as its own scene pictures; the other sets have theirs drawn for them
   // (see docs/scene-images.md).
-  const images = ['DungeonShapes.jpg', 'DungeonMasks.png', 'Exodus.png'];
+  const images = ['DungeonShapes.jpg', 'DungeonMasks.png', 'Exodus.png', 'Stalagtites.png'];
   mkdirSync(join(OUT, 'images'), { recursive: true });
   for (const file of images) copyFileSync(join(LAIRWARE, 'Images', file), join(OUT, 'images', file));
   for (const scene of ['Fountain', 'Rod', 'Shrine', 'TimeLord']) {

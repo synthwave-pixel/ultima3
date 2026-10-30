@@ -151,4 +151,27 @@ describe('the music player', () => {
     m.play(0);
     expect(m.active).toBe(0);
   });
+
+  it('plays a list in turn, each track once through, until the next play', async () => {
+    const m = await player();
+    m.unlock();
+    m.playList([2, 3]);
+    expect(m.active).toBe(2);
+    // The first track's notes all sounded: the next one, and round to the first after the last.
+    const inside = m as unknown as { schedule(): void; tune: unknown; loopStart: number; nextNote: number };
+    const finish = () => {
+      inside.tune = { notes: [], length: 0 };
+      inside.loopStart = -1;
+      inside.nextNote = 0;
+      inside.schedule();
+    };
+    finish();
+    expect(m.active).toBe(3);
+    finish();
+    expect(m.active).toBe(2);
+    m.play(5);
+    expect(m.active).toBe(5);
+    finish();
+    expect(m.active).toBe(5); // a single track loops
+  });
 });

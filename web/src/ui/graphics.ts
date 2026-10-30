@@ -87,9 +87,9 @@ export const SCENE_NAMES = ['Fountain', 'Rod', 'Shrine', 'TimeLord', 'Exodus'];
 /** The pictures in public/images, by file name without extension. */
 export type ImageMap = Map<string, HTMLImageElement>;
 
-/** Load the pictures shared by every tile set: the title logo. */
+/** Load the pictures shared by every tile set: the title logo, and the cave roof over the attract's fight. */
 export async function loadImages(baseUrl = 'images/'): Promise<ImageMap> {
-  const files = ['Exodus.png'];
+  const files = ['Exodus.png', 'Stalagtites.png'];
   const images: ImageMap = new Map();
   await Promise.all(
     files.map(async (file) => {

@@ -16,6 +16,8 @@
  *   MISC 400-405   lookup tables (see MiscTables below)
  *   PRTY 500       the default (empty) party record
  *   ROST 500       the default roster of 20 characters
+ *   DEMO 400       the attract demo's script (ui/attract.ts)
+ *   SGNT 400       Lord British's signature, as pen strokes (ui/attract.ts)
  */
 
 export const BASERES = 400;
@@ -60,6 +62,8 @@ export interface GameResources {
   misc: MiscTables;
   defaultParty: Uint8Array;
   defaultRoster: Uint8Array;
+  demo: Uint8Array;
+  signature: Uint8Array;
   strings: Record<string, string[]>;
 }
 
@@ -113,6 +117,8 @@ export function resourcesFromBundle(bundle: Bundle): GameResources {
     },
     defaultParty: toByteMap(bundle.party as Record<string, { name: string; data: string }>).get(500)!,
     defaultRoster: toByteMap(bundle.roster as Record<string, { name: string; data: string }>).get(500)!,
+    demo: toByteMap(bundle.demo as Record<string, { name: string; data: string }>).get(BASERES)!,
+    signature: toByteMap(bundle.signature as Record<string, { name: string; data: string }>).get(BASERES)!,
     strings: bundle.strings as Record<string, string[]>,
   };
 }

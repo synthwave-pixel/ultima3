@@ -32,6 +32,7 @@ function readWarnedAt(): number | null {
 }
 import { AutoMap, MAP_MODES, type MapMode } from './game/automap.ts';
 import { chooseRules, mainMenu } from './game/menu.ts';
+import { Attract } from './ui/attract.ts';
 import { GraphicsSet, loadImages } from './ui/graphics.ts';
 import { Keyboard } from './ui/input.ts';
 import { LEVELS, SoundPlayer, SOUND_SETS, validLevel, type SoundSet } from './ui/sound.ts';
@@ -384,6 +385,13 @@ async function start(): Promise<void> {
   // press skips it, gives way to it. A development start goes straight on.
   await holdBootScreen(keyboard, !(dev && (params.has('play') || params.has('at'))));
   bootDone();
+  // The attract sequence before the title, and the demo from its menu. A development start, or ?noattract, skips it.
+  const sequence = new Attract(screen.attractStage(), resources.demo, resources.signature, [
+    resources.strings.MoreMessages[25].replace(/©/g, '(C)'),
+    'Macintosh version by Leon McNeill',
+  ]);
+  const skipAttract = dev !== null && (params.has('play') || params.has('at') || params.has('noattract'));
+  const attract = { run: () => (skipAttract ? Promise.resolve() : sequence.run()), demo: () => sequence.demo() };
   // ?play and ?at= (development): straight into the game, placed where asked, the start's first key played.
   if (dev && (params.has('play') || params.has('at'))) {
     const at = dev.parseAt(params.get('at'));
@@ -395,7 +403,13 @@ async function start(): Promise<void> {
       await game.run();
     }
   }
-  await mainMenu(world, screen, () => game.run(), { save: (w) => localSave.write(w), transfer, update: appUpdate ?? update, quit });
+  await mainMenu(world, screen, () => game.run(), {
+    save: (w) => localSave.write(w),
+    transfer,
+    update: appUpdate ?? update,
+    quit,
+    attract,
+  });
 }
 
 /** A newer release's news, told of once (menu.ts updateBox): due until this version, or a later one, has been told of. */

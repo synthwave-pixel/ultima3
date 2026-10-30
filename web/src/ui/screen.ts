@@ -27,6 +27,7 @@ import { GraphicsSet, type ImageMap } from './graphics.ts';
 import { Keyboard } from './input.ts';
 import { LEVELS, levelLabel, SoundPlayer } from './sound.ts';
 import { MusicPlayer } from './music.ts';
+import { canvasStage, type AttractStage } from './attract.ts';
 import { DungeonRenderer } from './dungeonView.ts';
 import { markerColour } from './display.ts';
 import { ScanlineOverlay } from './scanlines.ts';
@@ -49,6 +50,7 @@ import { drawChart, drawPlaceSign } from './chart.ts';
 import { MapId } from '../data/resources.ts';
 import {
   Key,
+  Music,
   Sound,
   CARD_ROWS,
   CARD_WIDTH,
@@ -117,6 +119,8 @@ const TEXT_TOP = 13;
 const TEXT_BOTTOM = 24; // exclusive
 
 const ANIMATION_INTERVAL_MS = 1000 / 12;
+/** How long after the press that ends the attract sequence its echoes are let go (`Screen.attractStage`). */
+const ATTRACT_SETTLE_MS = 60;
 /** How long after the last press Battery saver lets the map rest (`Screen.batterySaver`). */
 export const BATTERY_SAVER_REST_MS = 60_000;
 
@@ -454,8 +458,8 @@ export class Screen implements GameIO {
     this.viewDirty = true;
   }
 
-  /** The plain border with the Exodus picture. (`DrawFrame(3)`, `DrawExodusPict`) */
-  showTitle(): void {
+  /** The plain border and nothing in it, with the rule across row 10 if `divided`. (`DrawFrame(3)`, `DrawFrame(2)`) */
+  private showBorder(divided = false): void {
     this.viewCovered = true;
     this.frameShown = false;
     this.titleText = [];
@@ -473,11 +477,51 @@ export class Screen implements GameIO {
     this.piece(Piece.TopRight, 39, 0);
     this.piece(Piece.BottomLeft, 0, 23);
     this.piece(Piece.BottomRight, 39, 23);
+    if (divided) {
+      for (let x = 1; x < 39; x++) this.piece(Piece.Horizontal, x, 10);
+      this.piece(Piece.LeftTee, 0, 10);
+      this.piece(Piece.RightTee, 39, 10);
+    }
+  }
+
+  /** The plain border with the Exodus picture. (`DrawFrame(3)`, `DrawExodusPict`) */
+  showTitle(): void {
+    this.showBorder();
     const exodus = this.gfx.scenes.get('Exodus') ?? this.images.get('Exodus'); // the tile set's own logo; setGraphics() redraws it
     if (exodus) {
       const c = this.cell;
       this.ctx.drawImage(exodus, 5.25 * c, 1.25 * c, 29.5 * c, 8.375 * c);
     }
+  }
+
+  /** What the attract sequence draws and waits with (attract.ts). */
+  attractStage(): AttractStage {
+    const onTap = () => this.keyboard.push(' ');
+    return canvasStage({
+      ctx: this.ctx,
+      cell: this.cell,
+      gfx: () => this.gfx,
+      setName: () => this.tileSetName,
+      images: this.images,
+      columns: COLUMNS,
+      border: (divided) => this.showBorder(divided),
+      piece: (which, x, y) => this.piece(which === 'left' ? Piece.CapLeft : Piece.CapRight, x, y),
+      drawText: (text, x, y) => this.drawText(text, x, y),
+      wait: (ms) => this.pressWithin(ms),
+      sound: (name) => this.sounds.play(name),
+      blip: (frequency) => this.sounds.blip(frequency),
+      songs: (tracks) => (tracks ? this.musicPlayer.playList(tracks) : this.musicPlayer.play(Music.None)),
+      rest: () => this.resting(performance.now()),
+      listen: (on) => {
+        if (on) window.addEventListener('pointerdown', onTap, true);
+        else window.removeEventListener('pointerdown', onTap, true);
+      },
+      // A tap on the touch pad presses its button as well: both are gone before the title reads a key.
+      settle: async () => {
+        await new Promise((resolve) => setTimeout(resolve, ATTRACT_SETTLE_MS));
+        this.flushKeys();
+      },
+    });
   }
 
   clearBottom(): void {
@@ -787,6 +831,15 @@ export class Screen implements GameIO {
 
   waitKeyOrTimeout(ms: number): Promise<string | null> {
     return this.readKey(ms);
+  }
+
+  /** Whether a press comes within `ms` - not the Pause a window losing focus sends, which the wait then goes on past. */
+  private async pressWithin(ms: number): Promise<boolean> {
+    for (;;) {
+      const key = await this.readKey(ms);
+      if (key === null) return false;
+      if (!(key === Key.Pause && this.readFocusPause)) return true;
+    }
   }
 
   flushKeys(): void {

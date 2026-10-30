@@ -480,13 +480,25 @@ These apply whatever tile set and sound set are chosen.
 
 #### Left out on purpose
 
-LairWare's Mac additions that were not part of the game: the animated
-intro and attract mode, auto-heal, the LairWare stats dialog, the Diorama
-map and random map generator, text-to-speech, mouse control and the Mac
-dialogs. The Apple II text flow is used instead. Diagonal movement for the
+LairWare's Mac additions that were not part of the game: auto-heal, the
+LairWare stats dialog, the Diorama map and random map generator,
+text-to-speech, mouse control and the Mac dialogs. The Apple II text flow
+is used instead. Diagonal movement for the
 party, which the Mac allowed, is off: as on the Apple II, monsters may
 move diagonally and the party may not. LairWare had some other updates
 for things like portraits that are not included.
+
+#### The opening and the demo
+
+The game starts as LairWare's did, in whichever tile set is chosen: the
+Exodus logo dissolves in, Lord British signs it, the party fights a dragon
+under a cave's roof and burns, and the map of Sosaria plays itself to each
+song in turn. Any key, button, click or tap goes to the title, whose
+Return to the view plays the demo again. With Battery saver on, the demo
+runs a minute from the last press and then gives way to the title.
+LairWare's large "Ultima III" picture under the logo is left out, and its
+fight, five pictures in one look, is drawn from each tile set's own party,
+dragon, fire and lava.
 
 ### Changes to the historic modes
 

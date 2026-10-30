@@ -99,11 +99,18 @@ export interface UpdateNews {
   told(): void;
 }
 
+/** The attract sequence (ui/attract.ts): the opening and demo before the title, and the demo again from its menu. */
+export interface Attract {
+  run(): Promise<void>;
+  demo(): Promise<void>;
+}
+
 export interface MenuOptions {
   /** Called after the roster or party changes in the Organize menu, so it can be saved. */
   save?: (world: World) => void;
   transfer?: Transfer;
   update?: Update;
+  attract?: Attract;
   /**
    * Leave the game, where it runs as an app that can (the desktop app, where
    * Steam's Game Mode gives a window no close button). A browser tab has
@@ -114,8 +121,11 @@ export interface MenuOptions {
 
 /** The last row the title menu's window may use: the copyright is on the row below. */
 export const TITLE_MENU_LAST_ROW = 21;
+/** The first row the title menu's window may use: the tagline is on the two above. */
+export const TITLE_MENU_FIRST_ROW = 13;
 
 export async function mainMenu(world: World, io: GameIO, play: () => Promise<void>, options: MenuOptions = {}): Promise<void> {
+  await options.attract?.run();
   for (;;) {
     const news = options.update?.news;
     if (options.update && news?.due()) {
@@ -126,7 +136,6 @@ export async function mainMenu(world: World, io: GameIO, play: () => Promise<voi
     io.clearBottom();
     io.centreText(11, mm(world, MM.FromTheDepths));
     io.centreText(12, mm(world, MM.HeComes));
-    io.centreText(22, mm(world, MM.Copyright));
 
     const entries = [
       { key: 'J', label: mm(world, MM.JourneyOnwardOption) },
@@ -137,11 +146,14 @@ export async function mainMenu(world: World, io: GameIO, play: () => Promise<voi
       entries.push({ key: 'I', label: 'Import game' });
     }
     if (options.update?.ready()) entries.push({ key: 'U', label: options.update.label?.() ?? 'Update: restart' });
+    if (options.attract) entries.push({ key: 'R', label: 'Return to the view' });
     entries.push({ key: 'S', label: 'Settings' });
     if (options.quit) entries.push({ key: 'Q', label: 'Quit' });
     // The window starts on row 15, or higher for a longer list (Quit in the app, an update waiting), so that its
-    // bottom border stays above the copyright on row 22. The rows under the tagline are free to take.
-    const row = Math.min(15, TITLE_MENU_LAST_ROW - entries.length - 1);
+    // bottom border stays above the copyright on row 22. The rows under the tagline are free to take. The longest list,
+    // eight lines (the app with an update waiting), has no room for both: the window takes the copyright's row.
+    const row = Math.max(TITLE_MENU_FIRST_ROW, Math.min(15, TITLE_MENU_LAST_ROW - entries.length - 1));
+    if (row + entries.length + 1 <= TITLE_MENU_LAST_ROW) io.centreText(22, mm(world, MM.Copyright));
     const key = await io.chooseFromList(entries, { row, title: mm(world, MM.Options) });
     if (key === 'Q' && options.quit) {
       options.quit(); // the app goes; should it not, the menu is still here
@@ -153,6 +165,8 @@ export async function mainMenu(world: World, io: GameIO, play: () => Promise<voi
       await importGameFrom(io, options.transfer);
     } else if (key === 'U') {
       options.update?.apply();
+    } else if (key === 'R') {
+      await options.attract?.demo();
     } else if (key === 'J') {
       if (!world.party.formed) {
         await notice(io, mm(world, MM.NotFormed));

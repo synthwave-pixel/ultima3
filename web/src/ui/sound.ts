@@ -159,6 +159,23 @@ export class SoundPlayer {
     return p;
   }
 
+  /** A short tone at `frequency` Hz, at the FX level: the attract's logo as it comes up (attract.ts). */
+  blip(frequency: number, seconds = 0.03): void {
+    if (!this.enabled || !this.context || this.level <= 0) return;
+    const ctx = this.context;
+    const osc = ctx.createOscillator();
+    osc.type = 'triangle';
+    osc.frequency.value = frequency;
+    const gain = ctx.createGain();
+    const peak = 0.08 * levelGain(this.level);
+    gain.gain.setValueAtTime(peak, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(peak / 20, ctx.currentTime + seconds);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + seconds);
+  }
+
   /** Play a named effect from the current set. Missing files fail silently. */
   play(name: string): void {
     if (!this.enabled || !this.context || this.level <= 0) return;
