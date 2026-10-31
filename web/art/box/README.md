@@ -17,4 +17,5 @@ Where the title stands alone (the logo, the wide capsule, the banner) it is not 
 scan's but drawn afresh after it, by `tools/title-art.mjs`.
 
 The painting remains its owners'; it is altered only by that cover, the
-crops and the hero's cut (the demon and his wings cut from the cavern).
+crops, the hero's cut (the demon and his wings cut from the cavern) and, on the
+hero alone, the sliver of the title's underside painted out along its top edge.

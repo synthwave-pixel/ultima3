@@ -11,7 +11,8 @@
 //     finger bones with them, sharp-edged, on a glow of his own reds and yellows that dies to black at the edges; his
 //     eyes and his glowing hands inside Steam's safe zone, the middle 860x380 (x 1490-2350, y 430-810) sure to stay in
 //     view as the window is resized, his wings running off the top and bottom edges; nothing in the top-right corner
-//     the Steam Deck's status bar covers;
+//     the Steam Deck's status bar covers; the sliver of the title's underside along its top, between the wings, painted
+//     out with the dark below it;
 //   - logo.png: blank. Steam lays the logo over the hero, and with none it writes the game's name there instead; the
 //     hero is shown bare, with no words.
 // Besides them:
@@ -120,6 +121,8 @@ const GLINTS_RIGHT = [
 // Where the painting shows on the hero: its row 302 at the top edge, 2.37 times its size (the eyes, row 486, at 436;
 // the glowing hands, row 614, at 739), its middle (column 341) on the hero's.
 const HERO = { top: 302, scale: 2.37, middle: 341, eyes: 486, hands: 614 };
+/** What of the hero's top edge is painted out: between the wings, in the painting's pixels, `height` of the hero's down. */
+const HERO_PATCH = { left: 259, right: 416, height: 14 };
 
 /** `pts` ([y, x] by y) read at row `y`, in a straight line between them. */
 function along(pts, y) {
@@ -389,6 +392,14 @@ try {
   const cut = heroCut(gray, 669, pt, Math.ceil(bottom) + 4);
   const [w, h] = [Math.round(669 * s), Math.round(972 * s)];
   magick(t('painting.png'), '-filter', 'Lanczos', '-resize', `${w}x${h}!`, '-unsharp', '0x1+0.5+0', t('hero-painting.png'));
+  // The title's underside shows along the hero's top edge between the wings: the dark just under it, mirrored, over it.
+  const [patchX, patchY] = [Math.round(HERO_PATCH.left * s), Math.round(HERO.top * s)];
+  const [patchW, patchH] = [Math.round((HERO_PATCH.right - HERO_PATCH.left) * s), HERO_PATCH.height];
+  magick(
+    t('hero-painting.png'),
+    ['(', '+clone', '-crop', `${patchW}x${patchH}+${patchX}+${patchY + patchH}`, '+repage', '-flip', ')'],
+    ['-geometry', `+${patchX}+${patchY}`, '-composite', t('hero-painting.png')],
+  );
   // The glow: as U5's hero is lit (a broad light behind the picture, dying away to its edges), in the demon's colours.
   const [cx, cy, rx, ry] = [1920, 760, 1700, 1100];
   const stops = [
