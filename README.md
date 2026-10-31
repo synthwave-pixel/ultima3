@@ -492,13 +492,16 @@ for things like portraits that are not included.
 
 The game starts as LairWare's did, in whichever tile set is chosen: the
 Exodus logo dissolves in, Lord British signs it, the party fights a dragon
-under a cave's roof and burns, and the map of Sosaria plays itself to each
-song in turn. Any key, button, click or tap goes to the title, whose
-Return to the view plays the demo again. With Battery saver on, the demo
-runs a minute from the last press and then gives way to the title.
+under a cave's roof and burns, and the map of Sosaria plays itself, all to
+the combat music. Any key, button, click or tap goes to the title, which
+fades into the exploration music, and whose Return to the view plays the
+demo again, fading back. In a browser tab the music starts with the first
+press. With Battery saver on, the demo runs a minute from the last press
+and then gives way to the title.
 LairWare's large "Ultima III" picture under the logo is left out, and its
 fight, five pictures in one look, is drawn from each tile set's own party,
-dragon, fire and lava.
+dragon, fire and lava. Standard's party meets PC Ultima V's dragon and
+fire there, under a slate roof in its own grain.
 
 ### Changes to the historic modes
 
@@ -631,6 +634,23 @@ Every release, with the desktop and Android downloads, is on the
 [releases page](https://github.com/synthwave-pixel/ultima3/releases). The
 web version is updated with each release, so it runs the same game as the
 apps.
+
+### v1.0.75, October 30, 2026
+
+- The game opens as LairWare's did, in whichever tile set is chosen: the
+  Exodus logo dissolves in, Lord British signs it, the party fights a
+  dragon under a cave's roof, and the map of Sosaria plays itself. Any
+  key, button, click or tap goes to the title, whose new Return to the
+  view plays the demo again.
+- Music plays there and in the title's menus: the combat music over the
+  opening and demo, fading into the exploration music at the title and
+  back. The Music setting and level apply. In a browser tab it starts
+  with the first press; the apps start it themselves.
+- Standard's moongate is PC Ultima V's blue doorway, with a line of light
+  rising through it and a faint haze, where it was a dark ring that rolled
+  through its square.
+- The demon on the loading screen and in Steam's library no longer has a
+  sliver of the box's title along the top.
 
 ### v1.0.73, October 28, 2026
 
