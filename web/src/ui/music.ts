@@ -142,6 +142,8 @@ const LOOKAHEAD_S = 1.5;
 const SCHEDULER_MS = 250;
 /** The music's gain at the full Music level, as it played before the setting. */
 const FULL_VOLUME = 0.35;
+/** How long one track takes to fade into another (`fadeTo`), seconds. */
+const FADE_SECONDS = 1.5;
 
 /**
  * Plays tunes on a simple polyphonic synthesizer: one triangle oscillator
@@ -174,9 +176,8 @@ export class MusicPlayer {
   /** Heard though the game is paused: the Music level's dial is turning (Screen), so the player hears each step. */
   private hearing = false;
   private levelValue = LEVELS;
-  /** Tracks played in turn, each once through, over and over (`playList`), and which is next; null: the one track loops. */
-  private list: number[] | null = null;
-  private listNext = 0;
+  /** The fade under way (`fadeTo`), until the wanted track takes over. */
+  private fading: ReturnType<typeof setTimeout> | null = null;
 
   constructor(private readonly baseUrl = 'music/') {}
 
@@ -291,23 +292,49 @@ export class MusicPlayer {
 
   /** Switch to a track (0 = silence). Safe to call before audio is unlocked or while music is off: the track is remembered. */
   play(track: number): void {
-    this.list = null;
+    this.endFade();
     this.current = track;
     this.sync();
   }
 
-  /** Play these tracks in turn, each once through, over and over (the attract demo), until the next `play`. */
-  playList(tracks: number[]): void {
-    this.list = tracks;
-    this.listNext = 0;
-    this.nextOnList();
+  /**
+   * Fade what is playing out over `seconds` and bring `track` in: the title's music and the attract's take over from
+   * each other so. Nothing playing (music off, audio not yet unlocked), it is only remembered, as `play` does.
+   */
+  fadeTo(track: number, seconds = FADE_SECONDS): void {
+    if (track === this.current) return;
+    if (!this.master || !this.context || !this.activeTrack) {
+      this.play(track);
+      return;
+    }
+    this.endFade();
+    this.current = track;
+    const g = this.master.gain;
+    const now = this.context.currentTime;
+    g.cancelScheduledValues(now);
+    g.setValueAtTime(g.value, now);
+    g.linearRampToValueAtTime(0, now + seconds);
+    this.fading = setTimeout(() => {
+      this.fading = null;
+      this.stopScheduling();
+      this.sync();
+      if (!this.master || !this.context) return;
+      const when = this.context.currentTime;
+      this.master.gain.cancelScheduledValues(when);
+      this.master.gain.setValueAtTime(0, when);
+      this.master.gain.linearRampToValueAtTime(this.volume, when + seconds / 2);
+    }, seconds * 1000);
   }
 
-  private nextOnList(): void {
-    if (!this.list?.length) return;
-    this.current = this.list[this.listNext];
-    this.listNext = (this.listNext + 1) % this.list.length;
-    this.sync();
+  /** A fade under way stopped short, the music back at its level. */
+  private endFade(): void {
+    if (!this.fading) return;
+    clearTimeout(this.fading);
+    this.fading = null;
+    if (this.master && this.context) {
+      this.master.gain.cancelScheduledValues(this.context.currentTime);
+      this.master.gain.value = this.volume;
+    }
   }
 
   private start(track: number): void {
@@ -346,11 +373,6 @@ export class MusicPlayer {
     const horizon = ctx.currentTime + LOOKAHEAD_S;
     while (true) {
       if (this.nextNote >= tune.notes.length) {
-        if (this.list && this.list.length > 1) {
-          // On a list: the next track once this one's last notes have sounded.
-          if (ctx.currentTime >= this.loopStart + tune.length) this.nextOnList();
-          return;
-        }
         // Loop.
         this.loopStart += Math.max(tune.length, 0.5);
         this.nextNote = 0;

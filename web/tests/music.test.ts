@@ -69,7 +69,7 @@ describe('the music player', () => {
       FakeContext.last = this;
     }
     createGain() {
-      return { gain: { value: 0, cancelScheduledValues() {} }, connect() {} };
+      return { gain: { value: 0, cancelScheduledValues() {}, setValueAtTime() {}, linearRampToValueAtTime() {} }, connect() {} };
     }
     resume() {
       this.state = 'running';
@@ -152,26 +152,26 @@ describe('the music player', () => {
     expect(m.active).toBe(0);
   });
 
-  it('plays a list in turn, each track once through, until the next play', async () => {
+  it('fades from one track into another, at once with nothing playing, and a play cuts a fade short', async () => {
     const m = await player();
+    const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
     m.unlock();
-    m.playList([2, 3]);
-    expect(m.active).toBe(2);
-    // The first track's notes all sounded: the next one, and round to the first after the last.
-    const inside = m as unknown as { schedule(): void; tune: unknown; loopStart: number; nextNote: number };
-    const finish = () => {
-      inside.tune = { notes: [], length: 0 };
-      inside.loopStart = -1;
-      inside.nextNote = 0;
-      inside.schedule();
-    };
-    finish();
+    m.fadeTo(3);
     expect(m.active).toBe(3);
-    finish();
-    expect(m.active).toBe(2);
-    m.play(5);
+    m.fadeTo(5, 0.01);
+    expect(m.active).toBe(3); // still sounding as it fades
+    await wait(40);
     expect(m.active).toBe(5);
-    finish();
-    expect(m.active).toBe(5); // a single track loops
+    m.fadeTo(1, 0.01);
+    m.play(7);
+    expect(m.active).toBe(7);
+    await wait(40);
+    expect(m.active).toBe(7);
+    // Music off: the track is remembered, for when it comes on.
+    m.enabled = false;
+    m.fadeTo(2);
+    expect(m.active).toBe(0);
+    m.enabled = true;
+    expect(m.active).toBe(2);
   });
 });

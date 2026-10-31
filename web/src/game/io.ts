@@ -190,6 +190,8 @@ export interface GameIO {
   sound(name: string): void;
   /** Select the background music track (`gSongNext`). Music is optional; may be a no-op. */
   music(track: number): void;
+  /** The same, fading from what is playing into it. */
+  fadeMusic(track: number): void;
 
   /** Redraw the map viewport around the party (or the combat arena, or the dungeon). (`DrawMap`) */
   redrawMap(): void;

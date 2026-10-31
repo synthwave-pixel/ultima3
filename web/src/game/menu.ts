@@ -16,7 +16,7 @@
 import { World } from './world.ts';
 import { Location } from './party.ts';
 import { PlayerRecord, ROSTER_SIZE } from './player.ts';
-import { type GameIO, type MenuOption } from './io.ts';
+import { Music, type GameIO, type MenuOption } from './io.ts';
 import { randomName } from './names.ts';
 import { emptyJournal } from './journal.ts';
 import { statLimit } from './interact.ts';
@@ -127,6 +127,7 @@ export const TITLE_MENU_FIRST_ROW = 13;
 export async function mainMenu(world: World, io: GameIO, play: () => Promise<void>, options: MenuOptions = {}): Promise<void> {
   await options.attract?.run();
   for (;;) {
+    io.fadeMusic(Music.Sosaria); // the title's, whatever it comes back from: the demo, or the game
     const news = options.update?.news;
     if (options.update && news?.due()) {
       await updateBox(world, io, options.update, news);

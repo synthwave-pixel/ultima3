@@ -3,10 +3,21 @@ import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { resourcesFromBundle, type Bundle } from '../src/data/resources.ts';
-import { Attract, DemoPlayer, DEMO_SONGS, demoShape, fightSteps, signatureStrokes, type AttractStage } from '../src/ui/attract.ts';
+import {
+  Attract,
+  DemoPlayer,
+  demoShape,
+  fightSteps,
+  roofPixels,
+  ROOF_AIR,
+  ROOF_ICE,
+  ROOF_RIM,
+  signatureStrokes,
+  type AttractStage,
+} from '../src/ui/attract.ts';
 import { mainMenu, TITLE_MENU_FIRST_ROW } from '../src/game/menu.ts';
 import { FakeIO, newWorld } from './helpers.ts';
-import type { MenuOption, MenuPlacement } from '../src/game/io.ts';
+import { Music, type MenuOption, type MenuPlacement } from '../src/game/io.ts';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const { demo, signature } = resourcesFromBundle(
@@ -33,11 +44,14 @@ function fakeStage(pressAt = Infinity): AttractStage & { log: string[]; waits: n
     wait: async () => (++stage.waits >= pressAt ? true : false),
     sound: (name: string) => log.push(`sound ${name}`),
     blip: () => {},
-    songs: (tracks: number[] | null) => log.push(tracks ? `songs ${tracks.length}` : 'songs off'),
+    music: (track: number) => log.push(`music ${track}`),
     rest: () => false,
     listen: (on: boolean) => log.push(`listen ${on}`),
     settle: async () => {
       log.push('settle');
+    },
+    prepare: async () => {
+      log.push('prepare');
     },
   };
   return stage;
@@ -76,15 +90,13 @@ describe('the attract demo', () => {
     expect(demoShape(0x16)).toBe(0x16);
   });
 
-  it('plays every song, in the original order, and stops them when a press ends it', async () => {
-    expect(DEMO_SONGS).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 10, 11]);
+  it('plays to the combat music, and lets a press go when one ends it', async () => {
     const stage = fakeStage(5);
     await new Attract(stage, demo, signature, ['credit']).demo();
-    expect(stage.log[0]).toBe('listen true');
+    expect(stage.log.slice(0, 3)).toEqual(['prepare', `music ${Music.Combat}`, 'listen true']);
     expect(stage.log).toContain('border divided');
     expect(stage.log).toContain('caption ULTIMA III');
-    expect(stage.log).toContain('songs 10');
-    expect(stage.log.slice(-3)).toEqual(['songs off', 'listen false', 'settle']);
+    expect(stage.log.slice(-2)).toEqual(['listen false', 'settle']);
   });
 
   it("lets Battery saver's rest end it", async () => {
@@ -127,6 +139,17 @@ describe('the signature', () => {
   });
 });
 
+describe("the cave's roof", () => {
+  it('is solid down to its lowest ice, with a rim one pixel wide along the edge that hangs', () => {
+    // Three columns, four rows: a speck in the middle column's way, and depths of 1, 3 and 2.
+    const X = true;
+    const _ = false;
+    const ice = [X, _, X, _, _, X, _, X, _, _, _, _];
+    const [I, R, A] = [ROOF_ICE, ROOF_RIM, ROOF_AIR];
+    expect([...roofPixels(ice, 3, 4)]).toEqual([R, I, I, A, R, R, A, R, A, A, A, A]);
+  });
+});
+
 describe('the fight', () => {
   it('goes up to the dragon and back, up and back, and up to where it breathes', () => {
     const steps = fightSteps();
@@ -136,6 +159,33 @@ describe('the fight', () => {
     expect(steps[25].offset).toBe(25);
     expect(steps.at(-1)!.offset).toBe(10);
     expect(new Set(steps.map((s) => s.frame))).toEqual(new Set([1, 2, 3]));
+  });
+});
+
+describe("the dragon's breath", () => {
+  it('is worked up clear of its square, behind it, and flies from the gap to the party', async () => {
+    const stage = fakeStage();
+    stage.rest = () => stage.log.includes('map');
+    const frames: { index: number; x: number; size: number }[][] = [[]];
+    stage.clearFight = () => frames.push([]);
+    stage.tile = (index, _alt, x, _y, size = 2) => frames.at(-1)!.push({ index, x, size });
+    await new Attract(stage, demo, signature, []).run();
+    const [DRAGON, FIRE] = [29, 61];
+    let worked = 0;
+    let flown = 0;
+    for (const frame of frames) {
+      const dragon = frame.findIndex((t) => t.index === DRAGON);
+      if (dragon < 0) continue;
+      for (const [at, tile] of frame.entries()) {
+        if (tile.index !== FIRE) continue;
+        expect(tile.x + tile.size).toBeLessThanOrEqual(frame[dragon].x);
+        if (at < dragon) worked++;
+        else flown++;
+        if (tile.size === 2) expect(at).toBeGreaterThan(dragon); // over the party, after it is drawn
+      }
+    }
+    expect(worked).toBeGreaterThan(0);
+    expect(flown).toBe(3);
   });
 });
 
@@ -166,12 +216,27 @@ describe('the opening', () => {
       await new Attract(stage, demo, signature, []).run();
       expect(stage.log).not.toContain('border divided');
       expect(stage.log).not.toContain('map');
-      expect(stage.log.slice(-3)).toEqual(['songs off', 'listen false', 'settle']);
+      expect(stage.log.slice(-2)).toEqual(['listen false', 'settle']);
+      expect(stage.log).toContain(`music ${Music.Combat}`);
     }
   });
 });
 
 describe('the title menu', () => {
+  it('fades to the exploration music after the sequence, and after the demo and the game', async () => {
+    const world = newWorld();
+    const io = new FakeIO(world.resources);
+    const heard: number[] = [];
+    io.fadeMusic = (track: number) => void heard.push(track);
+    let menus = 0;
+    io.chooseFromList = async () => {
+      if (++menus === 1) return 'R';
+      throw new Error('stop');
+    };
+    await mainMenu(world, io, async () => {}, { attract: { run: async () => {}, demo: async () => {} } }).catch(() => {});
+    expect(heard).toEqual([Music.Sosaria, Music.Sosaria]);
+  });
+
   it('runs the sequence once, first, and offers the demo again, which plays it alone', async () => {
     const world = newWorld();
     const io = new FakeIO(world.resources);

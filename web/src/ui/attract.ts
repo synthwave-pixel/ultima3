@@ -3,14 +3,15 @@
  *
  * The attract sequence before the title, after `MainLoop()`'s `Intro()` and `Demo()`, in the tile set in use: the set's
  * Exodus logo dissolving in (`FadeOnExodusUltima`), by Lord British's signature, written as it was (`WriteLordBritish`),
- * the party's fight with a dragon under a cave's roof (`FightScene`), then the map of Sosaria playing itself to each
- * song in turn (`DemoUpdate`). A press at any point goes to the title; the title's Return to the view plays the demo
- * again.
+ * the party's fight with a dragon under a cave's roof (`FightScene`), then the map of Sosaria playing itself
+ * (`DemoUpdate`), all to the combat music, where LairWare's demo played each song in turn and its opening none. A press
+ * at any point goes to the title, whose music takes over; the title's Return to the view plays the demo again.
  *
  * Two things differ from LairWare's. Its large "Ultima III" picture under the logo is left out, the signature rising
  * into the room. And its fight was five pictures of one look; here it is the set's own party, dragon, fire and lava,
  * so it matches whichever set is chosen, and its roof is LairWare's, redrawn in the set's resolution and an icy colour
- * of its machine's. The credits are the set's lettering, too.
+ * of its machine's. The credits are the set's lettering, too. Standard's flat figures stand beside PC Ultima V's dragon
+ * and fire (BORROWED_ART), its own being in other styles, under a roof of the slate its figures are shaded in.
  *
  * Attract holds what happens and when, against the small `AttractStage`; `canvasStage` paints it.
  */
@@ -18,7 +19,7 @@
 import { Shape } from '../game/tiles.ts';
 import { Music } from '../game/io.ts';
 import { displayOf, type DisplayStyle } from './display.ts';
-import type { GraphicsSet, ImageMap } from './graphics.ts';
+import { fileStem, loadImage, TILE_COLUMNS, TILE_ROWS, type GraphicsSet, type ImageMap } from './graphics.ts';
 
 /** A tick of the Mac's clock, ms: the original's waits are counted in them. */
 const TICK_MS = 1000 / 60;
@@ -33,29 +34,18 @@ const AFTER_FIGHT_MS = 120 * TICK_MS;
 /** A frame of the demo: each step of its script is four, and the original's pace was the machine's. */
 const DEMO_FRAME_MS = 66;
 
-/** The songs the demo plays in turn (`songnum`). */
-export const DEMO_SONGS = [
-  Music.Sosaria,
-  Music.Town,
-  Music.Castle,
-  Music.Dungeon,
-  Music.Combat,
-  Music.Shop,
-  Music.ExodusCastle,
-  Music.LordBritish,
-  Music.Shrine,
-  Music.Ambrosia,
-];
-
 /** The fight's figures, by tile index: LairWare's order of cleric, wizard, fighter, thief, then its dragon and fire. */
 const PARTY_TILES = [65, 66, 64, 67];
 const DRAGON_TILE = 29;
 const FIREBALL_TILE = 61;
+const LAVA_TILE = 33;
 /** The fight's row, and where its strip stands at offset 0, in cells: the party, a square's gap, the dragon, centred. */
 const FIGHT_ROW = 21;
 const FIGHT_LEFT = 14;
-const FIGHT_GAP_AT = 8;
 const DRAGON_AT = 10;
+/** The flame the dragon works up, a cell across, clear of its square; and its breath's squares, gap first, to the thief. */
+const BREATH_AT = DRAGON_AT - 1.25;
+const BREATH_FLIES = [DRAGON_AT - 2, DRAGON_AT - 3, DRAGON_AT - 4];
 /** Pixels of the original's offsets to a cell: its 640 x 384 screen. */
 const PX_PER_CELL = 16;
 
@@ -96,14 +86,16 @@ export interface AttractStage {
   wait(ms: number): Promise<boolean>;
   sound(name: string): void;
   blip(frequency: number): void;
-  /** Play the songs in turn, or nothing. */
-  songs(tracks: number[] | null): void;
+  /** Fade into this music, if music is on. */
+  music(track: number): void;
   /** Battery saver: whether a minute has gone with no press, so nothing should go on moving. */
   rest(): boolean;
   /** Clicks and taps count as presses while this is on. */
   listen(on: boolean): void;
   /** Let go of whatever else the press that ended this brought. */
   settle(): Promise<void>;
+  /** Have ready what the sequence draws with, before it starts. */
+  prepare(): Promise<void>;
 }
 
 /** The demo's map: 19 tiles across, 6 down. */
@@ -239,11 +231,12 @@ export class Attract {
   }
 
   private async playing(play: () => Promise<void>): Promise<void> {
+    await this.stage.prepare();
+    this.stage.music(Music.Combat);
     this.stage.listen(true);
     try {
       await play();
     } finally {
-      this.stage.songs(null);
       this.stage.listen(false);
       await this.stage.settle();
     }
@@ -287,7 +280,7 @@ export class Attract {
     // The dragon's breath crosses the gap, and the party burns: the original's `Immolate`, at its offset 4.
     const last = fightSteps().at(-1)!;
     const left = FIGHT_LEFT + last.offset / PX_PER_CELL;
-    for (const x of [DRAGON_AT - 1, DRAGON_AT - 2, DRAGON_AT - 3]) {
+    for (const x of BREATH_FLIES) {
       this.drawFight(last);
       s.tile(FIREBALL_TILE, false, left + x, FIGHT_ROW);
       if (await s.wait(FIGHT_FRAME_MS)) return true;
@@ -309,8 +302,8 @@ export class Attract {
     const left = FIGHT_LEFT + offset / PX_PER_CELL;
     s.clearFight();
     PARTY_TILES.forEach((tile, i) => s.tile(tile, (frame + i) % 2 === 0, left + i * 2, FIGHT_ROW));
+    if (frame === 1) s.tile(FIREBALL_TILE, false, left + BREATH_AT, FIGHT_ROW + 0.5, 1);
     s.tile(DRAGON_TILE, frame === 3, left + DRAGON_AT, FIGHT_ROW);
-    if (frame === 1) s.tile(FIREBALL_TILE, false, left + FIGHT_GAP_AT + 1, FIGHT_ROW + 0.5, 1);
   }
 
   /** The demo (`Demo`), until a press; Battery saver lets it run a minute from the last press. */
@@ -320,7 +313,6 @@ export class Attract {
     s.logo(1);
     s.caption(DEMO_CAPTION, 10);
     s.caption(PRESS_TEXT, 23);
-    s.songs(DEMO_SONGS);
     const player = new DemoPlayer(this.script);
     for (;;) {
       const frames = player.step() * 4;
@@ -335,6 +327,7 @@ export class Attract {
 
 /** How each set draws the cave's roof, where the picture would not fit it: its ice's colour on its machine. */
 const ROOF_COLOURS: Record<string, string> = {
+  Standard: '#657287',
   'Apple II Color': '#14cffd',
   'Commodore 64': '#7abfc7',
   'Macintosh B&W': '#ffffff',
@@ -346,7 +339,18 @@ const ROOF_COLOURS: Record<string, string> = {
   'PC VGA': '#55ddff',
 };
 /** The sets that show LairWare's roof as it was painted. */
-const PAINTED_ROOF = new Set(['Lairware', 'Standard']);
+const PAINTED_ROOF = new Set(['Lairware']);
+/** The sets that show another's dragon and fire in the fight, by the set they come from. */
+const BORROWED_ART: Record<string, string> = { Standard: 'PC Ultima V' };
+/** The tiles it lends: its sheet alone is loaded, not the set. */
+const BORROWED_TILES = new Set([DRAGON_TILE, FIREBALL_TILE]);
+/**
+ * A roof's finish, for a set that has one: its pixels a cell, where the set's tiles would give it too fine a grain for
+ * its figures (Standard's are drawn on sixteen to the tile, whatever the sheet's size), and its lower edge's colour.
+ */
+const ROOF_FINISH: Record<string, { pixelsPerCell: number; rim: string }> = {
+  Standard: { pixelsPerCell: 8, rim: '#8c98ab' },
+};
 /** How bright a pixel of the picture must be to be ice. */
 const ROOF_THRESHOLD = 40;
 
@@ -356,6 +360,9 @@ const LOGO_HEIGHT = 134;
 const LOGO_AT = { x: 5.25, y: 1.25, w: 29.5, h: 8.375 };
 /** The pieces the dissolve shows or hides at random, pixels across. */
 const FADE_CHUNK = 2;
+/** The roof's size, in cells. */
+const ROOF_COLUMNS = 38;
+const ROOF_ROWS = 2;
 
 /** What `canvasStage` needs of the screen, apart from the pictures it paints with. */
 export interface CanvasStageHost {
@@ -364,6 +371,7 @@ export interface CanvasStageHost {
   gfx: () => GraphicsSet;
   setName: () => string;
   images: ImageMap;
+  graphicsUrl: string;
   border: (divided: boolean) => void;
   piece: (which: 'left' | 'right', x: number, y: number) => void;
   drawText: (text: string, x: number, y: number) => void;
@@ -371,30 +379,72 @@ export interface CanvasStageHost {
   wait: (ms: number) => Promise<boolean>;
   sound: (name: string) => void;
   blip: (frequency: number) => void;
-  songs: (tracks: number[] | null) => void;
+  music: (track: number) => void;
   rest: () => boolean;
   listen: (on: boolean) => void;
   settle: () => Promise<void>;
 }
 
-/** The roof for a set: a picture at the set's own resolution, in its colour, on nothing. */
-function paintRoof(picture: HTMLImageElement, gfx: GraphicsSet, colour: string): HTMLCanvasElement {
-  const [cellPixels, columns, rows] = [gfx.tileSize / 2, 38, 2];
+/** A pixel of a roof: nothing, ice, or the ice along its lower edge. */
+export const ROOF_AIR = 0;
+export const ROOF_ICE = 1;
+export const ROOF_RIM = 2;
+
+/**
+ * A roof's pixels from where the picture has ice, `width` x `height`: each column solid from the top down to its lowest
+ * ice, so no specks or holes, and a line one pixel wide along the edge that hangs: ice with air beneath or beside it.
+ */
+export function roofPixels(ice: boolean[], width: number, height: number): Uint8Array {
+  const depth = Array.from({ length: width }, (_, x) => {
+    for (let y = height - 1; y >= 0; y--) if (ice[y * width + x]) return y + 1;
+    return 0;
+  });
+  const pixels = new Uint8Array(width * height);
+  for (let x = 0; x < width; x++) {
+    for (let y = 0; y < depth[x]; y++) {
+      const open = y + 1 >= depth[x] || (x > 0 && y >= depth[x - 1]) || (x < width - 1 && y >= depth[x + 1]);
+      pixels[y * width + x] = open ? ROOF_RIM : ROOF_ICE;
+    }
+  }
+  return pixels;
+}
+
+/** A sheet with no alpha of its own, its black let go: a figure's square hides nothing of what stands behind it. */
+function clearBlack(sheet: HTMLImageElement): HTMLCanvasElement {
   const canvas = document.createElement('canvas');
-  canvas.width = Math.round(columns * cellPixels);
-  canvas.height = Math.round(rows * cellPixels);
+  canvas.width = sheet.width;
+  canvas.height = sheet.height;
+  const ctx = canvas.getContext('2d', { willReadFrequently: true })!;
+  ctx.drawImage(sheet, 0, 0);
+  const image = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const d = image.data;
+  for (let i = 0; i < d.length; i += 4) if (d[i] === 0 && d[i + 1] === 0 && d[i + 2] === 0) d[i + 3] = 0;
+  ctx.putImageData(image, 0, 0);
+  return canvas;
+}
+
+/** The roof for a set: a picture at the set's own resolution, in its colour, on nothing. */
+function paintRoof(picture: HTMLImageElement, pixelsPerCell: number, colour: string, rim = colour): HTMLCanvasElement {
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.round(ROOF_COLUMNS * pixelsPerCell);
+  canvas.height = Math.round(ROOF_ROWS * pixelsPerCell);
   const ctx = canvas.getContext('2d', { willReadFrequently: true })!;
   ctx.drawImage(picture, 0, 0, canvas.width, canvas.height);
   const image = ctx.getImageData(0, 0, canvas.width, canvas.height);
-  const [r, g, b] = [1, 3, 5].map((i) => parseInt(colour.slice(i, i + 2), 16));
   const d = image.data;
-  for (let i = 0; i < d.length; i += 4) {
-    const ice = Math.max(d[i], d[i + 1], d[i + 2]) >= ROOF_THRESHOLD;
-    d[i] = r;
-    d[i + 1] = g;
-    d[i + 2] = b;
-    d[i + 3] = ice ? 255 : 0;
-  }
+  const ice = Array.from(
+    { length: canvas.width * canvas.height },
+    (_, i) => Math.max(d[i * 4], d[i * 4 + 1], d[i * 4 + 2]) >= ROOF_THRESHOLD,
+  );
+  const pixels = roofPixels(ice, canvas.width, canvas.height);
+  const [plain, edge] = [colour, rim].map((c) => [1, 3, 5].map((i) => parseInt(c.slice(i, i + 2), 16)));
+  pixels.forEach((pixel, i) => {
+    const rgb = pixel === ROOF_RIM ? edge : plain;
+    d[i * 4] = rgb[0];
+    d[i * 4 + 1] = rgb[1];
+    d[i * 4 + 2] = rgb[2];
+    d[i * 4 + 3] = pixel === ROOF_AIR ? 0 : 255;
+  });
   ctx.putImageData(image, 0, 0);
   return canvas;
 }
@@ -412,6 +462,10 @@ export function canvasStage(h: CanvasStageHost): AttractStage {
   const display = (): DisplayStyle => displayOf(h.setName());
   const ink = () => display().phosphor ?? '#fff';
   const ground = () => (display().lightGround ? '#fff' : '#000');
+  /** The sheets lent for the fight, by the set they come from, and how far the lent lava has scrolled. */
+  const lent = new Map<string, HTMLCanvasElement>();
+  const lentSheet = (): HTMLCanvasElement | undefined => lent.get(BORROWED_ART[h.setName()]);
+  let lentScroll = 0;
 
   const drawLogo = (reveal: number): void => {
     const image = logoImage();
@@ -454,7 +508,15 @@ export function canvasStage(h: CanvasStageHost): AttractStage {
       const picture = h.images.get('Stalagtites');
       if (!picture) return;
       const name = h.setName();
-      const source = PAINTED_ROOF.has(name) ? picture : paintRoof(picture, h.gfx(), display().phosphor ?? ROOF_COLOURS[name] ?? '#fff');
+      const finish = ROOF_FINISH[name];
+      const source = PAINTED_ROOF.has(name)
+        ? picture
+        : paintRoof(
+            picture,
+            finish?.pixelsPerCell ?? h.gfx().tileSize / 2,
+            display().phosphor ?? ROOF_COLOURS[name] ?? '#fff',
+            finish?.rim,
+          );
       ctx.drawImage(source, cell, 19 * cell, 38 * cell, 2 * cell);
     },
     dot: (x, y) => {
@@ -478,11 +540,33 @@ export function canvasStage(h: CanvasStageHost): AttractStage {
       ctx.fillRect(cell, FIGHT_ROW * cell, 38 * cell, 2 * cell);
     },
     tile: (index, altFrame, x, y, size = 2) => {
+      const [dx, dy, to] = [Math.round(x * cell), Math.round(y * cell), size * cell];
+      const from = BORROWED_TILES.has(index) ? lentSheet() : undefined;
+      if (from) {
+        const s = from.width / TILE_COLUMNS;
+        const [sx, sy] = [(Math.floor(index / TILE_ROWS) * 2 + (altFrame ? 1 : 0)) * s, (index % TILE_ROWS) * s];
+        ctx.drawImage(from, sx, sy, s, s, dx, dy, to, to);
+        return;
+      }
       const gfx = h.gfx();
       const r = gfx.tileRect(index, altFrame);
-      ctx.drawImage(gfx.maskedTiles, r.x, r.y, r.w, r.h, Math.round(x * cell), Math.round(y * cell), size * cell, size * cell);
+      ctx.drawImage(gfx.maskedTiles, r.x, r.y, r.w, r.h, dx, dy, to, to);
     },
-    lava: (x, y) => h.gfx().drawShape(ctx, Shape.Lava, Math.round(x * cell), Math.round(y * cell), 2 * cell),
+    lava: (x, y) => {
+      const [dx, dy, to] = [Math.round(x * cell), Math.round(y * cell), 2 * cell];
+      const from = lentSheet();
+      if (!from) {
+        h.gfx().drawShape(ctx, Shape.Lava, dx, dy, to);
+        return;
+      }
+      // Scrolling as GraphicsSet.drawShape does: the tile's lower part at the top, and the rest under it.
+      const s = from.width / TILE_COLUMNS;
+      const [sx, sy] = [Math.floor(LAVA_TILE / TILE_ROWS) * 2 * s, (LAVA_TILE % TILE_ROWS) * s];
+      const off = lentScroll % s;
+      const top = (s - off) * (to / s);
+      ctx.drawImage(from, sx, sy + off, s, s - off, dx, dy, to, top);
+      if (off > 0) ctx.drawImage(from, sx, sy, s, off, dx, dy + top, to, to - top);
+    },
     map: (tiles, background) => {
       const gfx = h.gfx();
       const size = 2 * cell;
@@ -497,13 +581,24 @@ export function canvasStage(h: CanvasStageHost): AttractStage {
         }
       }
     },
-    animate: () => h.gfx().tick(),
+    animate: () => {
+      h.gfx().tick();
+      lentScroll += 1;
+    },
     wait: h.wait,
     sound: h.sound,
     blip: h.blip,
-    songs: h.songs,
+    music: h.music,
     rest: h.rest,
     listen: h.listen,
     settle: h.settle,
+    prepare: async () => {
+      const name = BORROWED_ART[h.setName()];
+      if (!name || lent.has(name)) return;
+      // Without it (the file not there, offline with the page half stored) the set's own are drawn.
+      await loadImage(`${h.graphicsUrl}${encodeURIComponent(`${fileStem(name)}-Tiles.png`)}`)
+        .then((sheet) => lent.set(name, clearBlack(sheet)))
+        .catch(() => undefined);
+    },
   };
 }

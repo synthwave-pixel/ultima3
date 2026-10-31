@@ -155,6 +155,9 @@ export class FakeIO implements GameIO {
   music(track: number): void {
     this.musicTrack = track;
   }
+  fadeMusic(track: number): void {
+    this.musicTrack = track;
+  }
   redrawMap(): void {
     this.redraws++;
   }

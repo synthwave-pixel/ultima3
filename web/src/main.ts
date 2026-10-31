@@ -266,6 +266,8 @@ async function start(): Promise<void> {
   };
   keyboard.onInput = unlockAudio;
   window.addEventListener('pointerdown', unlockAudio);
+  // The apps may start it with no press: the attract sequence has its music from its first moment. A browser tab waits.
+  if (location.protocol === 'app:' || plugins?.Quit) unlockAudio();
 
   const screen = new Screen(canvas, gfx, images, keyboard, sounds, music, world);
   // ?controller starts in controller mode whatever was remembered (a Steam shortcut, a kiosk).

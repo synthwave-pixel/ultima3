@@ -50,7 +50,6 @@ import { drawChart, drawPlaceSign } from './chart.ts';
 import { MapId } from '../data/resources.ts';
 import {
   Key,
-  Music,
   Sound,
   CARD_ROWS,
   CARD_WIDTH,
@@ -503,6 +502,7 @@ export class Screen implements GameIO {
       gfx: () => this.gfx,
       setName: () => this.tileSetName,
       images: this.images,
+      graphicsUrl: 'graphics/',
       columns: COLUMNS,
       border: (divided) => this.showBorder(divided),
       piece: (which, x, y) => this.piece(which === 'left' ? Piece.CapLeft : Piece.CapRight, x, y),
@@ -510,7 +510,7 @@ export class Screen implements GameIO {
       wait: (ms) => this.pressWithin(ms),
       sound: (name) => this.sounds.play(name),
       blip: (frequency) => this.sounds.blip(frequency),
-      songs: (tracks) => (tracks ? this.musicPlayer.playList(tracks) : this.musicPlayer.play(Music.None)),
+      music: (track) => this.fadeMusic(track),
       rest: () => this.resting(performance.now()),
       listen: (on) => {
         if (on) window.addEventListener('pointerdown', onTap, true);
@@ -2102,6 +2102,10 @@ export class Screen implements GameIO {
 
   music(track: number): void {
     this.musicPlayer.play(track);
+  }
+
+  fadeMusic(track: number): void {
+    this.musicPlayer.fadeTo(track);
   }
 
   pause(ms: number): Promise<void> {
