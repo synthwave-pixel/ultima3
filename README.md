@@ -258,9 +258,9 @@ until Resume. A window that loses focus pauses itself and opens the same
 menu, which stays up until you close it, so nothing runs on while you are
 away.
 
-The menu holds the settings: auto combat, Visuals (the tile set and
-scanlines), Gameplay (the input mode, poison kills, starvation, balanced
-XP, the turn timer and Battery saver), Audio (Sound FX, Standard,
+The menu holds the settings: auto combat, Visuals (the tile set,
+scanlines and Smooth motion), Gameplay (the input mode, poison kills,
+starvation, balanced XP, the turn timer, Max input and Battery saver), Audio (Sound FX, Standard,
 Lairware or Off, and the FX level, music and the Music level), Tips (how
 the game works, for a new player, without the quest's answers), Help,
 Cheats, and Quit and save where the game allows it, on the surface and
@@ -406,6 +406,14 @@ These apply whatever tile set and sound set are chosen.
   any tile set, one line for each of the Apple II's 192 screen lines.
   They are drawn in the screen's own pixels, so they stay even at any
   window size.
+- Smooth motion, on by default: the map, the party, the monsters and the
+  fighters glide from square to square instead of jumping, on the surface,
+  in towns and castles, in combat and on the dungeon's Top down map. The
+  first-person view steps as it always did.
+- Max input: how fast a held direction (or any held key) repeats, V slow,
+  Slow, Medium (the default) or Fast, the same on a keyboard, a gamepad
+  and the touch pad. A fight starting, a town or dungeon entered or left,
+  or a moongate stops a held direction until it is pressed again.
 - Auto combat, LairWare's addition, kept, with a smarter planner: members
   path round comrades and walls to the nearest square they can strike
   from.
@@ -634,6 +642,20 @@ Every release, with the desktop and Android downloads, is on the
 [releases page](https://github.com/synthwave-pixel/ultima3/releases). The
 web version is updated with each release, so it runs the same game as the
 apps.
+
+### v1.0.77, November 3, 2026
+
+- Smooth motion, a new Visuals setting, on by default: the map scrolls
+  under the party and everything that walks glides from square to square,
+  on the surface, in towns and castles, in combat and on the dungeon's Top
+  down map.
+- Max input, a new Gameplay setting: a held direction walks at one pace,
+  V slow, Slow, Medium or Fast, whether it is held on a keyboard, a
+  gamepad or the touch pad. Medium is a step about every 150 ms; before,
+  a keyboard walked as fast as the computer repeated keys.
+- A direction held when a fight starts no longer walks a member on into
+  it: a new scene (a fight, a town or dungeon, a moongate) stops held keys
+  until they are let go, and drops the presses waiting.
 
 ### v1.0.75, October 30, 2026
 
