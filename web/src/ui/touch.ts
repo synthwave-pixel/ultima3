@@ -30,9 +30,6 @@ const DPAD_MM = 42;
 const BUTTON_MM = 14;
 const SMALL_MM = 10;
 const MARGIN_MM = 8;
-/** Holding a d-pad direction repeats it, as a held key does. */
-const REPEAT_FIRST_MS = 250;
-const REPEAT_MS = 120;
 
 const STROKE = 'rgba(255,255,255,0.75)';
 const RIM = 'rgba(0,0,0,0.5)';
@@ -53,7 +50,6 @@ export interface TouchPadOptions {
 
 export class TouchPad {
   private readonly root: HTMLDivElement;
-  private repeat: ReturnType<typeof setTimeout> | null = null;
   private _shown = false;
 
   constructor(private readonly options: TouchPadOptions) {
@@ -156,12 +152,8 @@ export class TouchPad {
       el.setAttribute('stroke', '#fff');
       el.setAttribute('stroke-width', `${2 * PX}`);
       this.press(key);
-      if (repeats) {
-        this.release();
-        this.repeat = setTimeout(() => {
-          this.repeat = setInterval(() => this.press(key), REPEAT_MS);
-        }, REPEAT_FIRST_MS);
-      }
+      // Holding a d-pad direction repeats it, as a held key does (input.ts: at the Max input pace, while the game waits).
+      if (repeats) this.options.keyboard.hold('touch', key, 'touch');
     };
     const up = () => {
       el.setAttribute('stroke', STROKE);
@@ -180,11 +172,7 @@ export class TouchPad {
   }
 
   private release(): void {
-    if (this.repeat !== null) {
-      clearTimeout(this.repeat);
-      clearInterval(this.repeat);
-      this.repeat = null;
-    }
+    this.options.keyboard.letGo('touch');
   }
 
   /** The d-pad: a cross outline, its four arms the buttons, with a small circle in each. */

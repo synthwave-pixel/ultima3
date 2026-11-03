@@ -65,6 +65,27 @@ describe('viewport', () => {
     const cell = view.cells[5 * VIEW_SIZE + 7];
     expect(cell.base).toBe(Shape.Brush);
     expect(cell.overlay).toBe(MapValue.Orc >> 1);
+    expect(cell.mover).toBe('m3'); // its table slot, for Smooth motion to follow it by
+    expect(view.cells[centre].mover).toBeUndefined(); // the party is followed by the view itself
+  });
+
+  it('a square wider, for Smooth motion, shows the same within the 11x11', () => {
+    const world = newWorld();
+    for (const [x, y] of [
+      [world.x, world.y],
+      [0, 0],
+      [20, 41],
+      [63, 10],
+    ]) {
+      world.x = x;
+      world.y = y;
+      const view = buildViewport(world);
+      const wide = buildViewport(world, x, y, VIEW_CENTRE + 1);
+      expect(wide.size).toBe(VIEW_SIZE + 2);
+      expect([wide.originX, wide.originY]).toEqual([view.originX - 1, view.originY - 1]);
+      const inner = wide.cells.filter((_, i) => i % 13 >= 1 && i % 13 <= 11 && i >= 13 && i < 13 * 12);
+      expect(inner).toEqual(view.cells);
+    }
   });
 
   it('puts water under a sea creature value that has no table entry', () => {

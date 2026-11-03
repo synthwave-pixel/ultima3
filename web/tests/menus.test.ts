@@ -5,8 +5,6 @@ import {
   COMMAND_MENUS,
   controllerKeyFor,
   GamepadReader,
-  GAMEPAD_REPEAT_FIRST_MS,
-  GAMEPAD_REPEAT_MS,
   drawMenu,
   layoutMenu,
   MENU_SOUNDS,
@@ -17,7 +15,10 @@ import {
   OSK_KEYS,
   layoutKeyboard,
 } from '../src/ui/menus.ts';
-import type { InputSource } from '../src/ui/input.ts';
+import { HOLD_FIRST_MS, INPUT_PACES, type InputSource } from '../src/ui/input.ts';
+
+const GAMEPAD_REPEAT_FIRST_MS = HOLD_FIRST_MS;
+const GAMEPAD_REPEAT_MS = INPUT_PACES.medium;
 import { FONT_GLYPHS, type GraphicsSet } from '../src/ui/graphics.ts';
 
 describe('controller stand-ins on the keyboard', () => {
@@ -63,6 +64,8 @@ describe('gamepad reader', () => {
         pushed.push(k);
       },
       waiting: true,
+      pace: INPUT_PACES.medium as number,
+      holdBreaks: 0,
     };
     const reader = new GamepadReader(
       keyboard,
@@ -110,6 +113,40 @@ describe('gamepad reader', () => {
     hold([pad([], [0.9, 0])]);
     reader.poll();
     expect(pushed).toHaveLength(4);
+  });
+
+  it('repeats at the Max input pace', () => {
+    const { reader, pushed, keyboard, hold, at } = setup();
+    keyboard.pace = INPUT_PACES.slow;
+    hold([pad([15])]);
+    at(0);
+    reader.poll();
+    at(HOLD_FIRST_MS);
+    reader.poll();
+    at(HOLD_FIRST_MS + INPUT_PACES.slow - 1);
+    reader.poll();
+    expect(pushed).toHaveLength(2);
+    at(HOLD_FIRST_MS + INPUT_PACES.slow);
+    reader.poll();
+    expect(pushed).toHaveLength(3);
+  });
+
+  it('stops a held direction at a new scene, until it is let go and pressed again', () => {
+    const { reader, pushed, keyboard, hold, at } = setup();
+    hold([pad([15])]);
+    at(0);
+    reader.poll();
+    keyboard.holdBreaks++; // a fight begins under the held stick
+    for (let ms = 16; ms < 2000; ms += 16) {
+      at(ms);
+      reader.poll();
+    }
+    expect(pushed).toEqual([Key.Right]);
+    hold([pad([])]);
+    reader.poll();
+    hold([pad([15])]);
+    reader.poll();
+    expect(pushed).toEqual([Key.Right, Key.Right]);
   });
 });
 

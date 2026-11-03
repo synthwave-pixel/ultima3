@@ -24,13 +24,14 @@
  */
 
 import { GraphicsSet, type ImageMap } from './graphics.ts';
-import { Keyboard } from './input.ts';
+import { INPUT_PACE_LABELS, INPUT_PACE_NAMES, INPUT_PACES, Keyboard, type InputPace } from './input.ts';
 import { LEVELS, levelLabel, SoundPlayer } from './sound.ts';
 import { MusicPlayer } from './music.ts';
 import { canvasStage, type AttractStage } from './attract.ts';
 import { DungeonRenderer } from './dungeonView.ts';
 import { markerColour } from './display.ts';
 import { ScanlineOverlay } from './scanlines.ts';
+import { Glide, GLIDE_SLACK_MS, type Point } from './glide.ts';
 import { World, holdCombatMark, STARVATION_MODES, TIMER_MODES } from '../game/world.ts';
 import { PlayerRecord, levelUpDue, statusLetter } from '../game/player.ts';
 import { commandMenu } from '../game/context.ts';
@@ -178,6 +179,16 @@ export class Screen implements GameIO {
   readonly cell: number;
 
   private view: Viewport | null = null;
+  /** The view a square wider all round (`wide` for `wideFor`), painted under Smooth motion for the ring it slides in. */
+  private wide: Viewport | null = null;
+  private wideFor: Viewport | null = null;
+  /** Smooth motion (Visuals): the top-down views glide from square to square (glide.ts). Off: they jump, as ever. */
+  smoothMotion = false;
+  private readonly glide = new Glide();
+  /** The view whose places the glide last took. */
+  private glided: Viewport | null = null;
+  /** Where the last view stood, and in what scene (`noteScene`). */
+  private lastStand: { scene: unknown[]; x: number; y: number } | null = null;
   /** The viewport wants painting; marking it so asks for a frame (`wake`). */
   private dirty = true;
   private get viewDirty(): boolean {
@@ -951,6 +962,15 @@ export class Screen implements GameIO {
     if (!this.frameShown) this.black(1, place.row, COLUMNS - 2, menu.visibleRows + 2 + (menu.hints ? HINT_ROWS : 0));
   }
 
+  /** Max input (Gameplay): how soon a held key, a direction above all, repeats (input.ts INPUT_PACES). */
+  get maxInput(): InputPace {
+    return INPUT_PACE_NAMES.find((name) => INPUT_PACES[name] === this.keyboard.pace) ?? 'medium';
+  }
+
+  set maxInput(pace: InputPace) {
+    this.keyboard.pace = INPUT_PACES[pace];
+  }
+
   /** The Scanlines setting: on, the whole game shows CRT lines, whatever tile set is in use. */
   get scanlines(): boolean {
     return this.crt.enabled;
@@ -1091,17 +1111,19 @@ export class Screen implements GameIO {
     }
   }
 
-  /** Visuals: the tile set (its own list of sets) and the scanlines. */
+  /** Visuals: the tile set (its own list of sets), the scanlines and Smooth motion. */
   private async visualsMenu(): Promise<void> {
     await this.settingsList(
       'Visuals',
       () => [
         { key: 'T', label: `Tiles: ${this.tileSetName}` },
         { key: 'L', label: `Scanlines: ${onOff(this.scanlines)}` },
+        { key: 'M', label: `Smooth motion: ${onOff(this.smoothMotion)}` },
       ],
       async (key) => {
         if (key === 'T') await this.chooseTiles();
         else if (key === 'L') this.scanlines = !this.scanlines;
+        else if (key === 'M') this.smoothMotion = !this.smoothMotion;
       },
     );
   }
@@ -1176,6 +1198,7 @@ export class Screen implements GameIO {
         { key: 'V', label: `Starving: ${named(w.starvation)}` },
         { key: 'X', label: `Balanced XP: ${onOff(w.balancedXp)}` },
         { key: 'R', label: `Timer: ${named(w.timer)}` },
+        { key: 'M', label: `Max input: ${INPUT_PACE_LABELS[this.maxInput]}` },
         { key: 'S', label: `Battery saver: ${onOff(this.batterySaver)}` },
       ],
       (key) => {
@@ -1195,6 +1218,9 @@ export class Screen implements GameIO {
             break;
           case 'R':
             w.timer = TIMER_MODES[(TIMER_MODES.indexOf(w.timer) + 1) % TIMER_MODES.length];
+            break;
+          case 'M':
+            this.maxInput = INPUT_PACE_NAMES[(INPUT_PACE_NAMES.indexOf(this.maxInput) + 1) % INPUT_PACE_NAMES.length];
             break;
           case 'S':
             this.batterySaver = !this.batterySaver;
@@ -2118,9 +2144,31 @@ export class Screen implements GameIO {
 
   redrawMap(): void {
     this.viewCovered = false;
+    this.noteScene();
     this.view = buildViewport(this.world);
     recordView(this.world, this.view); // what the view shows is on the map from now (worldMap.ts)
+    if (this.smoothMotion && !this.world.combat) {
+      this.wide = buildViewport(this.world, this.world.x, this.world.y, VIEW_CENTRE + 1);
+      this.wideFor = this.view;
+    }
     this.viewDirty = true;
+  }
+
+  /**
+   * A view of a new scene breaks the keys held down (input.ts `breakHold`), so a direction held across the map does
+   * not walk on into what comes next: a fight begun or ended, a town, castle, dungeon or level entered or left, or a
+   * jump of more than a square (a moongate, the whirlpool).
+   */
+  private noteScene(): void {
+    const w = this.world;
+    const scene = [w.combat, w.current, w.party.location, w.dungeon.level];
+    const was = this.lastStand;
+    this.lastStand = { scene, x: w.x, y: w.y };
+    if (!was) return;
+    const size = w.mapSize;
+    const near = (d: number) => Math.min(Math.abs(d) % size, size - (Math.abs(d) % size)) <= 1; // round a wrapping map
+    const jumped = !w.combat && !(near(w.x - was.x) && near(w.y - was.y));
+    if (jumped || scene.some((v, i) => v !== was.scene[i])) this.keyboard.breakHold();
   }
 
   clearTiles(): void {
@@ -2139,7 +2187,7 @@ export class Screen implements GameIO {
    * is white, it runs black to grey instead. (The Apple II blinked the
    * figure.)
    */
-  private markActiveMember(): void {
+  private markActiveMember(lag: Point): void {
     const c = this.world.combat;
     if (!c || c.markedMember < 0) return;
     const { ctx, cell } = this;
@@ -2148,8 +2196,8 @@ export class Screen implements GameIO {
     const tile = 2 * cell;
     const gamePixel = tile / 16; // the Apple II tile was 16 pixels, whatever the sheet's size
     const width = 2 * gamePixel;
-    const x = (1 + 2 * me.x) * cell - width / 2;
-    const y = (1 + 2 * me.y) * cell - width / 2;
+    const x = (1 + 2 * me.x) * cell + Math.round(lag.x * tile) - width / 2; // with the member, as it glides
+    const y = (1 + 2 * me.y) * cell + Math.round(lag.y * tile) - width / 2;
     // A menu opened during the wait freezes the fade where it was: the turn can no longer expire.
     const now = c.markedFrozenAt || performance.now();
     const elapsed = c.markedFor > 0 ? (now - c.markedAt) / c.markedFor : 0;
@@ -2169,7 +2217,7 @@ export class Screen implements GameIO {
     ctx.restore();
   }
 
-  private paintViewport(): void {
+  private paintViewport(time: number): void {
     const { ctx, cell, gfx, world } = this;
     const inDungeon = world.party.location === Location.Dungeon && !world.combat;
     const overlay = inDungeon && world.mapMode !== 'off'; // small: the 5x5 map; full: the small first-person view
@@ -2185,10 +2233,30 @@ export class Screen implements GameIO {
         // The level fills the window; the first-person view shrinks into the overlay slot.
         this.overlayShown = true;
         this.black(1, 1, 22, 22);
-        // The party in the middle and the level round it, moving as it walks (dungeonLayout.ts).
+        // The party in the middle and the level round it, moving as it walks (dungeonLayout.ts). Under Smooth
+        // movement the level glides under the party, a square more of it all round to slide in from.
         const span = TOP_DOWN_REACH * 2 + 1;
         const edge = cell + Math.round(((22 - span) * cell) / 2);
-        this.paintAutoMap(aroundParty(world), [-TOP_DOWN_REACH, -TOP_DOWN_REACH], [span, span], [edge, edge], [0, 0]);
+        let lag: Point = { x: 0, y: 0 };
+        if (this.smoothMotion) {
+          const party = new Map([['camera', { x: world.x & 15, y: world.y & 15 }]]);
+          this.glide.update(`level ${world.dungeon.level}`, party, 16, time);
+          lag = this.glide.lag('camera', time);
+        }
+        const ring = lag.x || lag.y ? 1 : 0;
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(edge, edge, span * cell, span * cell);
+        ctx.clip();
+        this.paintAutoMap(
+          aroundParty(world),
+          [-TOP_DOWN_REACH - ring, -TOP_DOWN_REACH - ring],
+          [span + 2 * ring, span + 2 * ring],
+          [edge - ring * cell, edge - ring * cell],
+          [0, 0],
+          [-Math.round(lag.x * cell), -Math.round(lag.y * cell)],
+        );
+        ctx.restore();
         this.black(MAP_OVERLAY_LEFT, MAP_OVERLAY_TOP, MAP_OVERLAY_SIZE, MAP_OVERLAY_SIZE);
         if (view) {
           const w = MAP_OVERLAY_SIZE * cell;
@@ -2197,6 +2265,7 @@ export class Screen implements GameIO {
         }
         return;
       }
+      this.glide.reset(); // the first-person view jumps, as ever; a top-down map shown again starts still
       if (overlay) {
         this.overlayShown = true;
         const half = MAP_OVERLAY_SIZE >> 1;
@@ -2216,23 +2285,75 @@ export class Screen implements GameIO {
       return;
     }
     if (!this.view) return;
+    const view = this.smoothMotion && this.wideFor === this.view && this.wide ? this.wide : this.view;
+    const gliding = this.glideTo(view, time);
+    const still: Point = { x: 0, y: 0 };
+    const lag = (id: string | undefined): Point => (gliding && id !== undefined ? this.glide.lag(id, time) : still);
     const tile = cell * 2;
-    for (let i = 0; i < this.view.cells.length; i++) {
-      const c = this.view.cells[i];
-      const dx = cell + (i % VIEW_SIZE) * tile;
-      const dy = cell + Math.floor(i / VIEW_SIZE) * tile;
-      gfx.drawShape(ctx, c.base, dx, dy, tile);
-      if (c.follower !== undefined && this.partyStyle === 'line') this.drawMember(c.follower, dx, dy, tile);
-      if (c.hit && !this.burstTiles) {
-        // The Apple II way: the ball's "HIT" frame replaces whatever was hit.
-        gfx.drawShape(ctx, c.hit.shape, dx, dy, tile, { masked: true, altFrame: true });
-        continue;
-      }
-      if (c.party && this.partyStyle !== 'symbol') this.drawParty(dx, dy, tile, this.partyStyle);
-      else if (c.overlay !== undefined) gfx.drawShape(ctx, c.overlay, dx, dy, tile, { masked: true, flip: c.flip, altFrame: c.altFrame });
-      if (c.hit) this.drawBurst(dx, dy, tile, c.hit.frame);
+    const { size } = view;
+    const ring = (size - VIEW_SIZE) / 2;
+    const camera = lag('camera');
+    // Where square i of the view is drawn, its figure `by` squares from it; whole pixels, so the squares stay butted.
+    const place = (i: number, by: Point = still): [number, number] => [
+      cell + ((i % size) - ring) * tile + Math.round((by.x - camera.x) * tile),
+      cell + (Math.floor(i / size) - ring) * tile + Math.round((by.y - camera.y) * tile),
+    ];
+    const shown = ([dx, dy]: [number, number]) => dx > 0 && dy > 0 && dx < 23 * cell && dy < 23 * cell;
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(cell, cell, 22 * cell, 22 * cell); // the ring slides in from under the border
+    ctx.clip();
+    // The ground first, then what stands on it, so a figure between two squares is over both: followers, the things
+    // that stay put and the party, then whatever walks.
+    view.cells.forEach((c, i) => {
+      const at = place(i);
+      if (shown(at)) gfx.drawShape(ctx, c.base, ...at, tile);
+    });
+    if (this.partyStyle === 'line') {
+      view.cells.forEach((c, i) => {
+        if (c.follower !== undefined) this.drawMember(c.follower, ...place(i, lag(`f${c.follower}`)), tile);
+      });
     }
-    this.markActiveMember();
+    const centre = world.combat ? -1 : (view.cells.length - 1) / 2; // the party's square, which the view follows
+    for (const walks of [false, true]) {
+      view.cells.forEach((c, i) => {
+        if ((c.mover !== undefined) !== walks) return;
+        const [dx, dy] = place(i, i === centre ? camera : lag(c.mover));
+        if (!shown([dx, dy])) return;
+        if (c.hit && !this.burstTiles) {
+          // The Apple II way: the ball's "HIT" frame replaces whatever was hit.
+          gfx.drawShape(ctx, c.hit.shape, dx, dy, tile, { masked: true, altFrame: true });
+          return;
+        }
+        if (c.party && this.partyStyle !== 'symbol') this.drawParty(dx, dy, tile, this.partyStyle);
+        else if (c.overlay !== undefined) gfx.drawShape(ctx, c.overlay, dx, dy, tile, { masked: true, flip: c.flip, altFrame: c.altFrame });
+        if (c.hit) this.drawBurst(dx, dy, tile, c.hit.frame);
+      });
+    }
+    ctx.restore();
+    const c = world.combat;
+    this.markActiveMember(c && c.markedMember >= 0 ? lag(`p${c.markedMember}`) : still);
+  }
+
+  /**
+   * Smooth motion: hand the glide where everything in a new view stands (the view's corner, each walking figure,
+   * each follower). Whether the view is to be drawn glided.
+   */
+  private glideTo(view: Viewport, time: number): boolean {
+    if (!this.smoothMotion) return false;
+    if (this.glided === view) return true;
+    this.glide.longest = this.keyboard.pace + GLIDE_SLACK_MS; // a held walk glides on from square to square
+    this.glided = view;
+    const w = this.world;
+    const places = new Map<string, Point>();
+    if (!w.combat) places.set('camera', { x: view.originX, y: view.originY });
+    view.cells.forEach((c, i) => {
+      const at = { x: view.originX + (i % view.size), y: view.originY + Math.floor(i / view.size) };
+      if (c.mover !== undefined) places.set(c.mover, at);
+      if (c.follower !== undefined) places.set(`f${c.follower}`, at);
+    });
+    this.glide.update(w.combat ?? w.current, places, w.onSurface ? w.mapSize : 0, time);
+    return true;
   }
 
   /**
@@ -2397,10 +2518,11 @@ export class Screen implements GameIO {
       if (!this.viewCovered) this.dirty = true; // painted below, in this frame: no other asked for
     }
     if (this.viewDirty && !this.viewCovered) {
-      this.paintViewport();
+      this.paintViewport(time);
       this.drawPulse();
       this.viewDirty = false;
       if (this.menu) drawMenu(this.ctx, this.gfx, this.cell, this.menu);
+      if (this.smoothMotion && this.glide.moving(time)) this.viewDirty = true; // the next frame, till all arrive
     }
     this.nextStep(time);
   }
@@ -2449,6 +2571,8 @@ export class Screen implements GameIO {
    * spot them where Peer shows them plainly. The party, at `party` in the
    * same terms, is the figure of its first living member, standing still
    * (Peer's blinking diamond was a distraction on a map that stays up).
+   * The cells, but not the party, are drawn `shift` pixels over: the level
+   * gliding under the party under Smooth motion.
    */
   private paintAutoMap(
     at: (i: number, j: number) => number,
@@ -2456,6 +2580,7 @@ export class Screen implements GameIO {
     [w, h]: [number, number],
     [left, top]: [number, number],
     party: [number, number],
+    [sx, sy]: [number, number] = [0, 0],
   ): void {
     const { ctx, cell, world } = this;
     ctx.fillStyle = '#000';
@@ -2464,7 +2589,7 @@ export class Screen implements GameIO {
       for (let col = 0; col < w; col++) {
         const c = at(i0 + col, j0 + row);
         if (c < 0) continue;
-        const [dx, dy] = [left + col * cell, top + row * cell];
+        const [dx, dy] = [left + col * cell + sx, top + row * cell + sy];
         const value = world.getXYDng(c & 0x0f, c >> 4);
         if (value === DungeonCell.SecretDoor) ctx.drawImage(this.secretDoor(), dx, dy, cell, cell);
         else this.gfx.drawUiPiece(ctx, DUNGEON_MAP_PIECE_COLUMN + dungeonMapPiece(value), 1, dx, dy, cell);

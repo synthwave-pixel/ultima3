@@ -17,7 +17,6 @@ import { Shape, MapValue, isLetter, monsterVariantShape } from './tiles.ts';
 
 export const VIEW_SIZE = 11;
 export const VIEW_CENTRE = 5;
-const CENTRE_OFFSET = VIEW_CENTRE * VIEW_SIZE + VIEW_CENTRE; // 60, 0x3C in the C source
 
 export interface ViewCell {
   base: number;
@@ -36,6 +35,12 @@ export interface ViewCell {
   party?: boolean;
   /** Member index (0-3) of a follower walking behind the leader here (towns and castles). */
   follower?: number;
+  /**
+   * Who the overlay is, the same from one view to the next, so the screen can glide it from square to square
+   * (Smooth motion): a monster table slot, a combat figure, the whirlpool. Unset for what never walks (doors,
+   * chests, signs) and for the party, which the view itself follows; a follower is known by its member.
+   */
+  mover?: string;
 }
 
 export interface Viewport {
@@ -43,6 +48,8 @@ export interface Viewport {
   /** Map coordinates of the top-left cell. (`stx`, `sty`.) */
   originX: number;
   originY: number;
+  /** Cells to a side: VIEW_SIZE, or wider for the ring Smooth motion scrolls into view (`buildViewport`'s `reach`). */
+  size: number;
 }
 
 /**
@@ -50,11 +57,12 @@ export interface Viewport {
  * and convert each to a shape. Letters "I" that are not part of a word are
  * drawn as doors.
  */
-function fillShapes(world: World, x: number, y: number): Uint8Array {
-  const shapes = new Uint8Array(VIEW_SIZE * VIEW_SIZE);
+function fillShapes(world: World, x: number, y: number, reach: number): Uint8Array {
+  const size = reach * 2 + 1;
+  const shapes = new Uint8Array(size * size);
   let offset = 0;
-  for (let ym = y - VIEW_CENTRE; ym <= y + VIEW_CENTRE; ym++) {
-    for (let xm = x - VIEW_CENTRE; xm <= x + VIEW_CENTRE; xm++) {
+  for (let ym = y - reach; ym <= y + reach; ym++) {
+    for (let xm = x - reach; xm <= x + reach; xm++) {
       const val = world.getXYVal(xm, ym);
       shapes[offset] = monsterVariantShape(val);
 
@@ -92,17 +100,19 @@ function fillShapes(world: World, x: number, y: number): Uint8Array {
  * The C code stepped `xt += sign(5 - xt)` for both axes; the sign table
  * `xhide` was reused for y.
  */
-function applyLineOfSight(shapes: Uint8Array): void {
+function applyLineOfSight(shapes: Uint8Array, reach: number): void {
+  const size = reach * 2 + 1;
+  const centre = reach * size + reach;
   const blocks = (s: number) => s === Shape.Forest || s === Shape.Mountains || s === Shape.Wall || s === Shape.Void;
-  const toward = (v: number) => (v < VIEW_CENTRE ? 1 : v > VIEW_CENTRE ? -1 : 0);
+  const toward = (v: number) => (v < reach ? 1 : v > reach ? -1 : 0);
 
-  for (let offset = VIEW_SIZE * VIEW_SIZE - 1; offset >= 0; offset--) {
-    let xt = offset % VIEW_SIZE;
-    let yt = Math.floor(offset / VIEW_SIZE);
+  for (let offset = size * size - 1; offset >= 0; offset--) {
+    let xt = offset % size;
+    let yt = Math.floor(offset / size);
     let cursor = offset;
     for (;;) {
-      const next = cursor + toward(xt) + toward(yt) * VIEW_SIZE;
-      if (next === CENTRE_OFFSET) break; // reached the party: visible
+      const next = cursor + toward(xt) + toward(yt) * size;
+      if (next === centre) break; // reached the party: visible
       cursor = next;
       if (blocks(shapes[cursor])) {
         shapes[offset] = Shape.Void;
@@ -123,7 +133,8 @@ function applyLineOfSight(shapes: Uint8Array): void {
  * monster's `tileUnder`. Other objects (chests, horses, ships) encode or
  * imply their background.
  */
-function applyOverlays(world: World, shapes: Uint8Array, originX: number, originY: number): ViewCell[] {
+function applyOverlays(world: World, shapes: Uint8Array, originX: number, originY: number, reach: number): ViewCell[] {
+  const size = reach * 2 + 1;
   const cells: ViewCell[] = Array.from(shapes, (s) => ({ base: s }));
   const monsters = world.monsters;
   const isBall = (s: number) => s >= Shape.MagicBall && s <= Shape.FireBall;
@@ -137,26 +148,28 @@ function applyOverlays(world: World, shapes: Uint8Array, originX: number, origin
       xm = world.constrain(xm);
       ym = world.constrain(ym);
     }
-    if (xm < 0 || xm >= VIEW_SIZE || ym < 0 || ym >= VIEW_SIZE) continue;
-    const offset = ym * VIEW_SIZE + xm;
+    if (xm < 0 || xm >= size || ym < 0 || ym >= size) continue;
+    const offset = ym * size + xm;
     const s = shapes[offset];
     if (s === Shape.Void || isBall(s)) continue;
-    cells[offset] = { base: monsters.tileUnder(i) >> 1, overlay: s };
+    cells[offset] = { base: monsters.tileUnder(i) >> 1, overlay: s, mover: `m${i}` };
   }
 
   // Objects whose background is implied.
   for (let offset = 0; offset < cells.length; offset++) {
     const cell = cells[offset];
     if (cell.overlay !== undefined) continue;
-    const xm = offset % VIEW_SIZE;
-    const ym = Math.floor(offset / VIEW_SIZE);
+    const xm = offset % size;
+    const ym = Math.floor(offset / size);
     const s = cell.base;
     switch (s) {
+      case Shape.Whirlpool: // a map value, not a table entry; there is only the one
+        cells[offset] = { base: Shape.Water, overlay: s, mover: 'whirlpool' };
+        break;
       case Shape.Jester: // Jester in Lord British's castle stands on water
       case Shape.SnakeBottom:
       case Shape.SnakeTop:
       case Shape.Frigate:
-      case Shape.Whirlpool:
       case Shape.Serpent: // the sea creatures are table entries with water under them; a stray value still sits on water
       case Shape.ManOWar:
       case Shape.Pirate:
@@ -190,12 +203,13 @@ function applyOverlays(world: World, shapes: Uint8Array, originX: number, origin
 
   // The party itself, unless a spell ball is being drawn over it.
   if (world.party.location !== Location.Combat) {
-    const centre = cells[CENTRE_OFFSET];
+    const centre = cells[reach * size + reach];
     if (!isBall(centre.overlay ?? centre.base)) {
       centre.overlay = world.party.shape;
       centre.flip = world.party.shape === Shape.Horse && world.horseFacingEast;
       centre.party = world.party.shape === 0x7e; // on foot (the ranger figure)
-      if (centre.party) markFollowers(world, cells, originX + VIEW_CENTRE, originY + VIEW_CENTRE);
+      delete centre.mover; // a creature on the party's own square (a moongate's arrival) is under it
+      if (centre.party) markFollowers(world, cells, originX + reach, originY + reach, reach);
     }
   }
   return cells;
@@ -209,15 +223,15 @@ function applyOverlays(world: World, shapes: Uint8Array, originX: number, origin
 function buildCombatViewport(world: World): Viewport {
   const c = world.combat!;
   const cells: ViewCell[] = Array.from(c.tiles, (s) => ({ base: s }));
-  for (const m of c.monsters) {
-    if (m.hp <= 0) continue;
-    cells[m.y * VIEW_SIZE + m.x] = { base: m.tileUnder, overlay: m.shape };
-  }
-  c.members.forEach((p) => {
-    if (p.x > 10 || p.y > 10) return;
-    cells[p.y * VIEW_SIZE + p.x] = { base: p.tileUnder, overlay: p.shape };
+  c.monsters.forEach((m, i) => {
+    if (m.hp <= 0) return;
+    cells[m.y * VIEW_SIZE + m.x] = { base: m.tileUnder, overlay: m.shape, mover: `c${i}` };
   });
-  return { cells, originX: 0, originY: 0 };
+  c.members.forEach((p, i) => {
+    if (p.x > 10 || p.y > 10) return;
+    cells[p.y * VIEW_SIZE + p.x] = { base: p.tileUnder, overlay: p.shape, mover: `p${i}` };
+  });
+  return { cells, originX: 0, originY: 0, size: VIEW_SIZE };
 }
 
 /**
@@ -225,7 +239,8 @@ function buildCombatViewport(world: World): Viewport {
  * on the squares the leader came through (`world.trail`). Squares hidden
  * by line of sight, or off the view, show nothing.
  */
-function markFollowers(world: World, cells: ViewCell[], x: number, y: number): void {
+function markFollowers(world: World, cells: ViewCell[], x: number, y: number, reach: number): void {
+  const side = reach * 2 + 1;
   const living = [0, 1, 2, 3].filter((m) => world.party.memberSlot(m) >= 0 && world.memberAlive(m));
   const size = world.mapSize;
   const wrap = (d: number) => ((((d + size / 2) % size) + size) % size) - size / 2; // shortest way round a wrapping map
@@ -235,27 +250,32 @@ function markFollowers(world: World, cells: ViewCell[], x: number, y: number): v
     const ddx = wrap(pos.x - x);
     const ddy = wrap(pos.y - y);
     if (Math.abs(ddx) > 3 || Math.abs(ddy) > 3) return; // a moongate or whirlpool left this square behind
-    const vx = ddx + VIEW_CENTRE;
-    const vy = ddy + VIEW_CENTRE;
-    if (vx < 0 || vx >= VIEW_SIZE || vy < 0 || vy >= VIEW_SIZE) return;
-    const cell = cells[vy * VIEW_SIZE + vx];
+    const vx = ddx + reach;
+    const vy = ddy + reach;
+    if (vx < 0 || vx >= side || vy < 0 || vy >= side) return;
+    const cell = cells[vy * side + vx];
     if (cell.base === Shape.Void) return;
     cell.follower = member;
   });
 }
 
-/** Build the viewport centred on the party (or the arena during combat). */
-export function buildViewport(world: World, x = world.x, y = world.y): Viewport {
+/**
+ * Build the viewport centred on the party (or the arena during combat). `reach` widens it past the 11x11 the game
+ * shows, by a ring the screen scrolls in from while Smooth motion glides the view a square; the cells within
+ * VIEW_CENTRE are the same either way (line of sight only ever looks inward). The arena is always 11x11.
+ */
+export function buildViewport(world: World, x = world.x, y = world.y, reach = VIEW_CENTRE): Viewport {
   let view: Viewport;
   if (world.combat) {
     view = buildCombatViewport(world);
   } else {
-    const shapes = fillShapes(world, x, y);
-    applyLineOfSight(shapes);
-    const originX = x - VIEW_CENTRE;
-    const originY = y - VIEW_CENTRE;
-    view = { cells: applyOverlays(world, shapes, originX, originY), originX, originY };
+    const shapes = fillShapes(world, x, y, reach);
+    applyLineOfSight(shapes, reach);
+    const originX = x - reach;
+    const originY = y - reach;
+    view = { cells: applyOverlays(world, shapes, originX, originY, reach), originX, originY, size: reach * 2 + 1 };
   }
+  const size = view.size;
 
   // A spell ball or cannon shot in flight is drawn over whatever is there.
   const ball = world.ball;
@@ -266,9 +286,9 @@ export function buildViewport(world: World, x = world.x, y = world.y): Viewport 
       vx = world.constrain(vx);
       vy = world.constrain(vy);
     }
-    if (vx >= 0 && vx < VIEW_SIZE && vy >= 0 && vy < VIEW_SIZE) {
-      const cell = view.cells[vy * VIEW_SIZE + vx];
-      view.cells[vy * VIEW_SIZE + vx] = ball.hit
+    if (vx >= 0 && vx < size && vy >= 0 && vy < size) {
+      const cell = view.cells[vy * size + vx];
+      view.cells[vy * size + vx] = ball.hit
         ? { ...cell, hit: { frame: ball.hit, shape: ball.shape } }
         : { base: cell.base, overlay: ball.shape };
     }

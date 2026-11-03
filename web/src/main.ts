@@ -34,7 +34,7 @@ import { AutoMap, MAP_MODES, type MapMode } from './game/automap.ts';
 import { chooseRules, mainMenu } from './game/menu.ts';
 import { Attract } from './ui/attract.ts';
 import { GraphicsSet, loadImages } from './ui/graphics.ts';
-import { Keyboard } from './ui/input.ts';
+import { INPUT_PACE_NAMES, Keyboard, type InputPace } from './ui/input.ts';
 import { LEVELS, SoundPlayer, SOUND_SETS, validLevel, type SoundSet } from './ui/sound.ts';
 import { TouchPad } from './ui/touch.ts';
 import { fullScreen } from './ui/fullScreen.ts';
@@ -51,6 +51,8 @@ interface Prefs {
   tiles: string;
   /** CRT lines over the whole game (scanlines.ts); off unless asked for. */
   scanlines: boolean;
+  /** The top-down views glide from square to square (glide.ts); on unless turned off, for players new and old. */
+  smoothMotion: boolean;
   autoCombat: boolean;
   poisonKills: boolean;
   starvation: Starvation;
@@ -69,12 +71,15 @@ interface Prefs {
   touchPad: boolean;
   /** Battery saver: the map rests a minute after the last press (screen.ts); off unless asked for. */
   batterySaver: boolean;
+  /** Max input: how soon a held key repeats (input.ts INPUT_PACES). */
+  maxInput: InputPace;
 }
 
 const DEFAULT_PREFS: Prefs = {
   inputMode: 'controller',
   tiles: 'Standard',
   scanlines: false,
+  smoothMotion: true,
   autoCombat: false,
   poisonKills: false,
   starvation: 'mild',
@@ -88,6 +93,7 @@ const DEFAULT_PREFS: Prefs = {
   dungeonMap: 'off',
   touchPad: typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches,
   batterySaver: false,
+  maxInput: 'medium',
 };
 
 function loadPrefs(): Prefs {
@@ -99,7 +105,9 @@ function loadPrefs(): Prefs {
     if (prefs.tiles === 'Apple II Color TV') prefs.tiles = 'Apple II Color';
     if (!TILE_SETS.includes(prefs.tiles)) prefs.tiles = DEFAULT_PREFS.tiles;
     if (typeof prefs.scanlines !== 'boolean') prefs.scanlines = DEFAULT_PREFS.scanlines;
+    if (typeof prefs.smoothMotion !== 'boolean') prefs.smoothMotion = DEFAULT_PREFS.smoothMotion;
     if (typeof prefs.batterySaver !== 'boolean') prefs.batterySaver = DEFAULT_PREFS.batterySaver;
+    if (!INPUT_PACE_NAMES.includes(prefs.maxInput)) prefs.maxInput = DEFAULT_PREFS.maxInput;
     if (prefs.inputMode !== 'keyboard') prefs.inputMode = DEFAULT_PREFS.inputMode;
     if (!MAP_MODES.includes(prefs.dungeonMap)) prefs.dungeonMap = 'off';
     if (!STARVATION_MODES.includes(prefs.starvation)) prefs.starvation = 'mild';
@@ -274,7 +282,9 @@ async function start(): Promise<void> {
   screen.inputMode = params.has('controller') ? 'controller' : prefs.inputMode;
   screen.tileSetName = tiles;
   screen.scanlines = prefs.scanlines;
+  screen.smoothMotion = prefs.smoothMotion;
   screen.batterySaver = prefs.batterySaver;
+  screen.maxInput = prefs.maxInput;
   canvas.focus();
   // The Android app sent to the background is held as a hidden page is: its web view may not be told the page is
   // hidden, and would go on animating, the music and the turn timer with it. Capacitor's App plugin says so.
@@ -291,6 +301,7 @@ async function start(): Promise<void> {
       // A set asked for in the address (development) is this page's alone: the one remembered stays.
       tiles: screen.tileSetName === tilesAsked ? prefs.tiles : screen.tileSetName,
       scanlines: screen.scanlines,
+      smoothMotion: screen.smoothMotion,
       autoCombat: world.autoCombat,
       poisonKills: world.poisonKills,
       starvation: world.starvation,
@@ -304,6 +315,7 @@ async function start(): Promise<void> {
       dungeonMap: world.mapMode,
       touchPad: prefs.touchPad,
       batterySaver: screen.batterySaver,
+      maxInput: screen.maxInput,
     });
   };
   screen.onSettingsChange = remember;

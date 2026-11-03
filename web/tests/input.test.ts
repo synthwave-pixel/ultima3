@@ -1,6 +1,6 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Key } from '../src/game/io.ts';
-import { Keyboard, STALE_KEY_MS } from '../src/ui/input.ts';
+import { HOLD_FIRST_MS, INPUT_PACES, Keyboard, STALE_KEY_MS } from '../src/ui/input.ts';
 
 describe('keyboard queue', () => {
   const setup = () => {
@@ -59,20 +59,25 @@ describe('keyboard queue', () => {
     expect(keyboard.lastSource).toBe('keyboard');
   });
 
-  it('drops the auto-repeat of the keys it is told to, and keeps the rest', async () => {
-    const target = new EventTarget();
-    const keyboard = new Keyboard(target, () => 0);
-    keyboard.dropRepeat = (key) => key === 'x'; // x stands in for the B button
-    const keydown = (key: string, repeat: boolean) => target.dispatchEvent(Object.assign(new Event('keydown'), { key, repeat }));
-    keydown('x', false);
-    keydown('x', true);
-    keydown('x', true);
-    keydown('ArrowUp', false);
-    keydown('ArrowUp', true);
-    expect(await keyboard.nextKey()).toBe('x');
-    expect(await keyboard.nextKey()).toBe(Key.Up);
-    expect(await keyboard.nextKey()).toBe(Key.Up); // a held direction still walks
-    expect(keyboard.waiting).toBe(false);
+  it('repeats a held key it is not told to drop, and never one it is', async () => {
+    vi.useFakeTimers();
+    try {
+      const target = new EventTarget();
+      const keyboard = new Keyboard(target, () => Date.now());
+      keyboard.dropRepeat = (key) => key === 'x'; // x stands in for the B button
+      const keydown = (key: string, code: string) =>
+        target.dispatchEvent(Object.assign(new Event('keydown'), { key, code, repeat: false }));
+      keydown('x', 'KeyX');
+      keydown('ArrowUp', 'ArrowUp');
+      expect(await keyboard.nextKey()).toBe('x');
+      expect(await keyboard.nextKey()).toBe(Key.Up);
+      const next = keyboard.nextKey();
+      await vi.advanceTimersByTimeAsync(HOLD_FIRST_MS);
+      expect(await next).toBe(Key.Up); // a held direction still walks; the held button gave nothing more
+      expect(keyboard.waiting).toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('hands a press straight to a waiting game', async () => {
@@ -83,5 +88,74 @@ describe('keyboard queue', () => {
     at(5000);
     keyboard.push('q');
     expect(await next).toBe('q');
+  });
+});
+
+describe('a held key', () => {
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => vi.useRealTimers());
+
+  const setup = () => {
+    const target = new EventTarget();
+    const keyboard = new Keyboard(target, () => Date.now());
+    const pressed: string[] = [];
+    // The game, waiting for key after key, as the field loop does.
+    const read = async () => {
+      for (;;) pressed.push(await keyboard.nextKey());
+    };
+    void read();
+    const key = (type: 'keydown' | 'keyup', repeat = false) =>
+      target.dispatchEvent(Object.assign(new Event(type), { key: 'ArrowRight', code: 'ArrowRight', repeat }));
+    return { keyboard, pressed, key };
+  };
+
+  it("repeats at the game's pace, not the system's, until let go", async () => {
+    const { keyboard, pressed, key } = setup();
+    key('keydown');
+    await vi.advanceTimersByTimeAsync(0);
+    expect(pressed).toEqual([Key.Right]);
+    for (let i = 0; i < 20; i++) key('keydown', true); // the system's own repeats count for nothing
+    await vi.advanceTimersByTimeAsync(HOLD_FIRST_MS);
+    expect(pressed).toHaveLength(2);
+    await vi.advanceTimersByTimeAsync(keyboard.pace * 4);
+    expect(pressed).toHaveLength(6);
+    key('keyup');
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(pressed).toHaveLength(6);
+  });
+
+  it('repeats at the Max input pace chosen', async () => {
+    const { keyboard, pressed, key } = setup();
+    keyboard.pace = INPUT_PACES.slow;
+    key('keydown');
+    await vi.advanceTimersByTimeAsync(HOLD_FIRST_MS + INPUT_PACES.slow * 5);
+    expect(pressed).toHaveLength(1 + 1 + 5);
+  });
+
+  it('stops at a new scene, with what was queued, until pressed again', async () => {
+    const { keyboard, pressed, key } = setup();
+    key('keydown');
+    await vi.advanceTimersByTimeAsync(HOLD_FIRST_MS);
+    expect(pressed).toHaveLength(2);
+    keyboard.breakHold(); // a fight begins
+    key('keydown', true);
+    await vi.advanceTimersByTimeAsync(2000);
+    expect(pressed).toHaveLength(2);
+    key('keyup');
+    key('keydown');
+    await vi.advanceTimersByTimeAsync(0);
+    expect(pressed).toHaveLength(3);
+  });
+
+  it('does not queue repeats while the game is busy', async () => {
+    const target = new EventTarget();
+    const keyboard = new Keyboard(target, () => Date.now());
+    keyboard.hold('touch', Key.Up, 'touch'); // held, with the game busy: nobody is waiting for a key
+    await vi.advanceTimersByTimeAsync(2000);
+    expect(keyboard.waiting).toBe(false);
+    const next = keyboard.nextKey(); // the game asks: a repeat comes, and only the one
+    await vi.advanceTimersByTimeAsync(20);
+    expect(await next).toBe(Key.Up);
+    keyboard.letGo('touch');
   });
 });

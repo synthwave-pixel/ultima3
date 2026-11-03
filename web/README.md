@@ -285,7 +285,8 @@ src/ui/     browser only
   graphics.ts     tile sheet, mask, font and UI sheet; tile animation
   screen.ts       Canvas renderer and the GameIO implementation
   dungeonView.ts  the first-person dungeon renderer
-  input.ts        keyboard as an awaitable queue, and what pauses it
+  input.ts        keyboard as an awaitable queue, what pauses it, held keys at the Max input pace
+  glide.ts        Smooth motion: how far behind its square each thing is drawn
   menus.ts        menu windows (keys, feedback sounds), controller command lists, gamepad reader
   touch.ts        the virtual controller on touch screens
   dungeonArt.ts   dungeon sheets painted per tile set

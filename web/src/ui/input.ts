@@ -8,6 +8,14 @@
  * busy for longer than that (a combat starting, an animation, a load) are
  * dropped when it next asks, so they cannot pile up and play out later.
  *
+ * A key held down repeats at the game's own pace, not the system's: the
+ * Max input setting's (`INPUT_PACES`), the same for a keyboard, a gamepad
+ * (menus.ts) and the touch pad, and only while the game is waiting for a
+ * key, so no repeats queue up. A new scene (a fight beginning or ending, a
+ * town or dungeon entered or left, a moongate) breaks every hold
+ * (`breakHold`): a key still down there does nothing until it is let go and
+ * pressed again, so a run across the map does not walk on into the fight.
+ *
  * Keys are normalised to the single-character codes in `Key` (game/io.ts):
  * arrows map to the Mac arrow codes 28..31; letters keep their case.
  */
@@ -17,6 +25,26 @@ import { Key } from '../game/io.ts';
 const MAX_QUEUED = 8;
 /** A queued press older than this when the game asks for a key is dropped. */
 export const STALE_KEY_MS = 300;
+
+/** Max input (Gameplay): the least time between two repeats of a held key, ms. Separate presses are never held back. */
+export const INPUT_PACES = { verySlow: 250, slow: 200, medium: 150, fast: 130 } as const;
+export type InputPace = keyof typeof INPUT_PACES;
+export const INPUT_PACE_NAMES = Object.keys(INPUT_PACES) as InputPace[];
+/** How the Gameplay menu shows each pace: "V slow" fits the window where "Very slow" would not. */
+export const INPUT_PACE_LABELS: Record<InputPace, string> = { verySlow: 'V slow', slow: 'Slow', medium: 'Medium', fast: 'Fast' };
+/** A held key's first repeat comes after this long (a gamepad's and the touch pad's too). */
+export const HOLD_FIRST_MS = 250;
+/** How soon a held key looks again when the game was busy at its repeat: it repeats once the game waits. */
+const HOLD_RECHECK_MS = 16;
+
+/** A key held down, repeating (`Keyboard.hold`). */
+interface Hold {
+  key: string;
+  source: InputSource;
+  /** When it last counted: its press, or its last repeat. */
+  last: number;
+  timer: ReturnType<typeof setTimeout> | null;
+}
 
 /** What holds the game paused: the window is not focused, or the Pause menu is open. */
 export type PauseReason = 'focus' | 'menu';
@@ -69,12 +97,19 @@ export class Keyboard {
   private pausedAt = 0;
   /** Time spent paused before the current pause, ms. */
   private pausedFor = 0;
+  /** Max input: the least time between a held key's repeats (`INPUT_PACES`). */
+  pace: number = INPUT_PACES.medium;
+  /** Counts the holds broken (`breakHold`), so a gamepad's reader can tell its own held directions are spent. */
+  holdBreaks = 0;
+  /** Keys held down and repeating, by what holds them: a keyboard's key code, or the touch pad. */
+  private keysHeld = new Map<string, Hold>();
 
   constructor(
     target: EventTarget = window,
     private readonly now: () => number = () => performance.now(),
   ) {
     target.addEventListener('keydown', (e) => this.onKeyDown(e as KeyboardEvent));
+    target.addEventListener('keyup', (e) => this.letGo(`key:${(e as KeyboardEvent).code}`));
     if (typeof window !== 'undefined') {
       window.addEventListener('blur', () => this.pause('focus'));
       window.addEventListener('focus', () => this.resume('focus'));
@@ -84,6 +119,7 @@ export class Keyboard {
 
   /** Pause the game: the window lost focus (blur, or the page hidden), or the Pause menu opened. */
   pause(reason: PauseReason = 'focus'): void {
+    if (reason === 'focus') for (const id of [...this.keysHeld.keys()]) this.letGo(id); // their key-ups go elsewhere
     if (this.holds.has(reason)) return;
     const first = !this.paused;
     this.holds.add(reason);
@@ -127,8 +163,47 @@ export class Keyboard {
     const key = translate(e);
     if (key === null) return;
     e.preventDefault();
-    if (e.repeat && this.dropRepeat?.(key)) return;
+    if (e.repeat) return; // the system's repeats: a held key repeats at the game's pace instead (`hold`)
     this.push(key, 'keyboard');
+    if (!this.dropRepeat?.(key)) this.hold(`key:${e.code}`, key, 'keyboard');
+  }
+
+  /**
+   * `key`, just pressed, is held down by `id` (a keyboard's key, the touch pad): it repeats, the first time after
+   * HOLD_FIRST_MS and then every `pace`, each only when the game is waiting for a key, until `letGo` or `breakHold`.
+   */
+  hold(id: string, key: string, source: InputSource): void {
+    this.letGo(id);
+    const hold: Hold = { key, source, last: this.now(), timer: null };
+    this.keysHeld.set(id, hold);
+    const look = (ms: number) => (hold.timer = setTimeout(tick, ms));
+    const tick = () => {
+      const due = hold.last + this.pace - this.now();
+      if (due > 0) return look(due);
+      if (!this.waiting) return look(HOLD_RECHECK_MS);
+      hold.last = this.now();
+      this.push(key, source);
+      look(this.pace);
+    };
+    look(HOLD_FIRST_MS);
+  }
+
+  /** What `id` held is let go: it repeats no more. */
+  letGo(id: string): void {
+    const hold = this.keysHeld.get(id);
+    if (!hold) return;
+    if (hold.timer !== null) clearTimeout(hold.timer);
+    this.keysHeld.delete(id);
+  }
+
+  /**
+   * A new scene: whatever is held down stops repeating, and must be let go and pressed again to count; presses
+   * waiting in the queue are dropped. A gamepad's held directions stop too (menus.ts, by `holdBreaks`).
+   */
+  breakHold(): void {
+    for (const id of [...this.keysHeld.keys()]) this.letGo(id);
+    this.holdBreaks++;
+    this.flush();
   }
 
   /** The oldest queued press that is still fresh, dropping any that went stale. */

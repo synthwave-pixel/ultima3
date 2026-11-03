@@ -13,7 +13,7 @@
 import { Key, Sound, type CommandScope, type MenuOption } from '../game/io.ts';
 import { VIEW_MAP_KEY } from '../game/context.ts';
 import { GraphicsSet } from './graphics.ts';
-import { Keyboard } from './input.ts';
+import { HOLD_FIRST_MS, INPUT_PACES, Keyboard } from './input.ts';
 
 /**
  * How keyboard keys stand in for the controller when in controller mode.
@@ -408,19 +408,17 @@ export function applyMenuKey(menu: MenuWindow, options: MenuOption[], visible: M
   return options[byKey].disabled ? { kind: 'refused' } : { kind: 'choose', index: byKey };
 }
 
-/** A held direction repeats, as a held key does on a keyboard: after this long, then at this rate. */
-export const GAMEPAD_REPEAT_FIRST_MS = 250;
-export const GAMEPAD_REPEAT_MS = 120;
-
 /** How near its centre a stick axis must come to count as at rest (`GamepadReader`). */
 export const STICK_REST = 0.25;
 
 /**
  * Reads gamepads through the Gamepad API and pushes button presses into the
  * keyboard queue as keys. Standard mapping: buttons 0-3 are A, B, X, Y and
- * 12-15 the d-pad; the left stick also steers. A held direction repeats
- * while the game is waiting for a key, so walking flows at the game's pace
- * and no presses pile up in the queue; the buttons never repeat.
+ * 12-15 the d-pad; the left stick also steers. A held direction repeats as
+ * a held key does (input.ts): after HOLD_FIRST_MS, then at the keyboard's
+ * Max input pace, only while the game is waiting for a key, so no presses
+ * pile up in the queue, and not at all once a new scene has broken the hold
+ * until it is let go; the buttons never repeat.
  *
  * A stick's axis steers only once it has been seen at rest near its centre
  * (the Ultima V port's): some pads report a trigger as an axis resting at
@@ -428,13 +426,15 @@ export const STICK_REST = 0.25;
  * for ever.
  */
 export class GamepadReader {
-  /** For each pad and key held: when it went down and when it last counted. */
-  private held = new Map<string, { since: number; last: number }>();
+  /** For each pad and key held: when it went down, when it last counted, and whether a new scene has spent it. */
+  private held = new Map<string, { since: number; last: number; spent: boolean }>();
+  /** The keyboard's `holdBreaks` when last read: a new count spends every direction held. */
+  private breaks = 0;
   /** The stick axes seen at rest, by pad and axis: only these steer. */
   private rested = new Set<string>();
 
   constructor(
-    private readonly keyboard: Pick<Keyboard, 'push' | 'waiting'>,
+    private readonly keyboard: Pick<Keyboard, 'push' | 'waiting'> & Partial<Pick<Keyboard, 'pace' | 'holdBreaks'>>,
     private readonly onActivity: () => void,
     private readonly now: () => number = () => performance.now(),
     private readonly pads: () => (Gamepad | null)[] = () =>
@@ -450,6 +450,12 @@ export class GamepadReader {
   poll(): boolean {
     const t = this.now();
     let any = false;
+    const breaks = this.keyboard.holdBreaks ?? 0;
+    if (breaks !== this.breaks) {
+      this.breaks = breaks;
+      for (const was of this.held.values()) was.spent = true;
+    }
+    const pace = this.keyboard.pace ?? INPUT_PACES.medium;
     for (const pad of this.pads()) {
       if (!pad) continue;
       any = true;
@@ -482,13 +488,13 @@ export class GamepadReader {
           continue;
         }
         if (!was) {
-          this.held.set(id, { since: t, last: t });
+          this.held.set(id, { since: t, last: t, spent: false });
           this.keyboard.push(key, 'gamepad');
           this.onActivity();
           continue;
         }
         const repeats = DIRECTION_KEYS.includes(key);
-        if (repeats && t - was.since >= GAMEPAD_REPEAT_FIRST_MS && t - was.last >= GAMEPAD_REPEAT_MS && this.keyboard.waiting) {
+        if (repeats && !was.spent && t - was.since >= HOLD_FIRST_MS && t - was.last >= pace && this.keyboard.waiting) {
           was.last = t;
           this.keyboard.push(key, 'gamepad');
         }
