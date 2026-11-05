@@ -645,6 +645,17 @@ Every release, with the desktop and Android downloads, is on the
 web version is updated with each release, so it runs the same game as the
 apps.
 
+### v1.0.80, November 5, 2026
+
+- Fixed: the weapons and armour shops' price lists lettered each ware a
+  letter earlier than the Buy menu, so a letter read off the list bought
+  the ware before it (C, listed as Slings, bought a Mace) and A bought
+  nothing. The list now letters from B, as the Buy menu does and as
+  LairWare's did. Reported by GitHub user bcornett32.
+- With a controller or the touch pad, the weapons and armour shops no
+  longer ask "list (Y/N)?": the Buy menu shows every ware with its price,
+  so the shop goes straight to Buy or Sell. A keyboard is still asked.
+
 ### v1.0.77, November 3, 2026
 
 - Smooth motion, a new Visuals setting, on by default: the map scrolls
