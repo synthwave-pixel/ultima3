@@ -645,7 +645,7 @@ Every release, with the desktop and Android downloads, is on the
 web version is updated with each release, so it runs the same game as the
 apps.
 
-### v1.0.80, November 5, 2026
+### v1.0.82, November 5, 2026
 
 - Fixed: the weapons and armour shops' price lists lettered each ware a
   letter earlier than the Buy menu, so a letter read off the list bought
