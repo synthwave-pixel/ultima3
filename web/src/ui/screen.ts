@@ -867,6 +867,10 @@ export class Screen implements GameIO {
     return this.macro.length > 0 ? 'keyboard' : this.inputMode;
   }
 
+  get showsMenus(): boolean {
+    return this.promptMode === 'controller';
+  }
+
   // --- Semantic prompts: keyboard reads a key, controller shows a menu ----
 
   /**

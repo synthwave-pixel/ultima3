@@ -152,6 +152,12 @@ export interface GameIO {
    * or the key and a newline ('line'), matching what the original printed.
    */
   chooseOption(options: MenuOption[], echo: 'none' | 'key' | 'line', place?: MenuPlacement): Promise<string>;
+  /**
+   * Whether `chooseOption` shows its options as a menu (a controller) rather
+   * than reading a key: a question whose answer the menu shows anyway, such
+   * as a shop's "list (Y/N)?", need not be asked.
+   */
+  readonly showsMenus: boolean;
   /** The Settings menu (input mode, tiles, scanlines, difficulty, sound, music, help). Returns when closed. */
   showSettings(): Promise<void>;
   /**

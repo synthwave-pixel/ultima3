@@ -224,6 +224,42 @@ describe('weighing an armament for a member, on a card over the party panel', ()
     }
   });
 
+  // A menu shows the wares with their prices, so with one the shop asks no "list (Y/N)?": it goes to Buy or Sell.
+  it.each([
+    ['weapons', 3, 'WEAPONS SHOP!'],
+    ['armour', 4, 'ARMOUR SHOP!'],
+  ])('offers no price list in the %s shop when its prompts are menus', async (_name, type, welcome) => {
+    const world = newWorld();
+    member(world, 'F', 1, 1);
+    world.party.gold = 500;
+    world.party.surfaceX = 0;
+    const menus: MenuOption[][] = [];
+    const io = new FakeIO(world.resources);
+    io.showsMenus = true;
+    const choose = io.chooseOption.bind(io);
+    io.chooseOption = (options, echo) => {
+      menus.push(options);
+      return choose(options, echo);
+    };
+    io.keys = ['B', Key.Escape]; // Buy, and leave
+    await shop(world, io, type, 0);
+    expect(io.output).toContain(welcome);
+    expect(io.output).not.toContain('list (Y/N)');
+    expect(io.output).not.toContain('AVAILABLE');
+    expect(menus[0].map((o) => o.key)).toEqual(['B', 'S']); // the first question is Buy or Sell
+    expect(io.output).toContain('Buy or Sell?-B');
+  });
+
+  it('still offers the price list when prompts are keys, as the Apple II did', async () => {
+    const world = newWorld();
+    member(world, 'F', 1, 1);
+    world.party.surfaceX = 0;
+    const io = new FakeIO(world.resources);
+    io.keys = ['N', 'B', Key.Escape];
+    await shop(world, io, 3, 0);
+    expect(io.output).toContain('list (Y/N)?-N');
+  });
+
   it("fits the guild's wares and prices whole in a menu window", async () => {
     const world = newWorld();
     const menus: MenuOption[][] = [];

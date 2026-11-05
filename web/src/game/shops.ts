@@ -296,19 +296,25 @@ async function equipmentShop(world: World, io: GameIO, p: PlayerRecord, isWeapon
   const owned = (): MenuOption[] => wares(false).filter((o) => world.party.gear(isWeapon, o.key.charCodeAt(0) - 65) > 0);
   const nothing: MenuOption = { key: ' ', label: 'Nothing' };
 
-  io.printMessage(isWeapon ? Msg.WeaponsShop : Msg.ArmourShop);
-  let key = await io.chooseOption(
-    [
-      { key: 'Y', label: 'Yes, list' },
-      { key: 'N', label: 'No' },
-    ],
-    'none',
-  );
-  io.print(key || 'N');
-  if (key === 'Y') await priceList(world, io, isWeapon, last);
+  const welcome = isWeapon ? Msg.WeaponsShop : Msg.ArmourShop;
+  if (io.showsMenus) {
+    // The Buy menu lists the wares with their prices, so a menu is not asked whether to list them first.
+    io.print(world.resources.strings.Messages[welcome - 1].replace(/\s*list \(Y\/N\)\?-$/, ''));
+  } else {
+    io.printMessage(welcome);
+    const list = await io.chooseOption(
+      [
+        { key: 'Y', label: 'Yes, list' },
+        { key: 'N', label: 'No' },
+      ],
+      'none',
+    );
+    io.print(list || 'N');
+    if (list === 'Y') await priceList(world, io, isWeapon, last);
+  }
   io.print(`\n${isWeapon ? 'Readied' : 'Worn'}: ${names[nameBase + p.bytes[inUseBase]]}`);
   io.printMessage(Msg.BuyOrSell);
-  key = await io.chooseOption(
+  const key = await io.chooseOption(
     [
       { key: 'B', label: 'Buy' },
       { key: 'S', label: 'Sell' },

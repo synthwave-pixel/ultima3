@@ -103,6 +103,8 @@ export class FakeIO implements GameIO {
       if (allowNone && key === Key.Space) return key;
     }
   }
+  /** Prompts are keys, as the Apple II read them; a test sets this for a controller's menus. */
+  showsMenus = false;
   async chooseOption(options: MenuOption[], echo: 'none' | 'key' | 'line'): Promise<string> {
     for (;;) {
       const key = (await this.waitKey()).toUpperCase();

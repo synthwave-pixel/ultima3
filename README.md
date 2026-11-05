@@ -301,6 +301,8 @@ These apply whatever tile set and sound set are chosen.
   better and red where it is worse; in the spell lists, the spell's card
   gives its book name, its cost against the caster's mana and what it
   does.
+- The weapon and armour shops skip "list (Y/N)?" and go straight to Buy
+  or Sell, since the Buy menu lists the wares with their prices.
 - Shortcuts cast at once, with no prompts, choosing the caster with the
   most mana: "Cast (Heal)" or "Cast (Great heal)" leads the menu when
   someone is hurt; "Cast (Safe chest)" sits under Get chest on a chest;
