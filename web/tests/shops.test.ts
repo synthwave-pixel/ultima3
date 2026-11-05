@@ -188,6 +188,42 @@ describe('weighing an armament for a member, on a card over the party panel', ()
     expect(rows(buy.find((o) => o.key === 'B')!.card!)[1]).toBe('In hand now [dim]');
   });
 
+  // Issue #21: the price list lettered the Dagger A and the Buy menu B, so every letter read off the list bought the
+  // ware before it. The original (`PrintWeaponList`, `PrintArmourList`) letters both from B, A being hands and skin.
+  it.each([
+    ['weapons', 3, 0],
+    ['weapons at Dawn', 3, 37],
+    ['armour', 4, 0],
+    ['armour at Dawn', 4, 37],
+  ])("letters the %s price list as the Buy menu takes each ware's key", async (_name, type, surfaceX) => {
+    const world = newWorld();
+    member(world, 'F', 1, 1);
+    world.party.gold = 500;
+    world.party.surfaceX = surfaceX;
+    const menus: MenuOption[][] = [];
+    const io = new FakeIO(world.resources);
+    const choose = io.chooseOption.bind(io);
+    io.chooseOption = (options, echo) => {
+      menus.push(options);
+      return choose(options, echo);
+    };
+    // The list, its pages turned (spare keys are passed over at Buy or sell?), then Buy, and leave.
+    io.keys = ['Y', ...Array<string>(6).fill('Z'), 'B', Key.Escape];
+    await shop(world, io, type, 0);
+    const listed = [...io.output.matchAll(/^([A-Z]):(.+?) *(\d+)gp$/gm)].map(([, letter, name, price]) => ({ letter, name, price }));
+    const buy = menus.find((m) => m.some((o) => o.label.endsWith('gp')))!;
+    const wares = buy.filter((o) => o.label.endsWith('gp'));
+    expect(listed.length).toBe(wares.length);
+    expect(listed[0].letter).toBe('B');
+    for (const { letter, name, price } of listed) {
+      const ware = buy.find((o) => o.key === letter);
+      expect(ware, `${letter}:${name}`).toBeDefined();
+      const [, wareName, warePrice] = /^[A-Z] (.+) (\d+)gp$/.exec(ware!.label)!;
+      expect(name.startsWith(wareName), `${letter}:${name} vs ${ware!.label}`).toBe(true); // the list adds a plural s
+      expect(warePrice).toBe(price);
+    }
+  });
+
   it("fits the guild's wares and prices whole in a menu window", async () => {
     const world = newWorld();
     const menus: MenuOption[][] = [];

@@ -244,7 +244,8 @@ async function priceList(world: World, io: GameIO, isWeapon: boolean, last: numb
     let name = names[nameBase + i];
     if (!name.endsWith('s') && name.length < 7) name += 's';
     const price = `${names[priceBase + i]}gp`;
-    const label = `${String.fromCharCode(64 + i)}:${name}`;
+    // Lettered from B as the Buy and Sell menus are (A is hands or skin, never sold): `'A' + weapon` in the original.
+    const label = `${String.fromCharCode(65 + i)}:${name}`;
     io.print(label + price.padStart(16 - label.length) + '\n');
     if (pageBreaks.includes(i)) await io.waitKey();
   }
