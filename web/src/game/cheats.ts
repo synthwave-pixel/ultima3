@@ -10,6 +10,8 @@
 import { World } from './world.ts';
 import { Location } from './party.ts';
 import { exitToSurface } from './turn.ts';
+import { PartyShape } from './commands.ts';
+import { MapValue } from './tiles.ts';
 import type { GameIO } from './io.ts';
 import { journalCheck, learnWord } from './journal.ts';
 
@@ -81,13 +83,27 @@ export const CHEATS: Cheat[] = [
         world.returnY = HOME_Y;
         leaveDungeon(world);
       } else if (world.inTownOrCastle) {
+        // A horse or ship boarded in a town or castle (the one in Lord British's moat) stays there: the place is
+        // loaded afresh, with it, when next entered. The party walks out of the gate on foot (issue #23).
+        world.party.shape = PartyShape.OnFoot;
         world.returnX = HOME_X;
         world.returnY = HOME_Y;
         exitToSurface(world, io);
       } else {
-        world.x = world.party.surfaceX = HOME_X;
-        world.y = world.party.surfaceY = HOME_Y;
-        world.party.shape = 0x7e; // on foot: a horse or ship stays behind
+        // On foot: a horse or ship stays behind where it was, as getting out of it leaves it (commands.ts exit) - on
+        // water or grass, the squares that hold one: a horse in the woods is let go, not drawn over the trees.
+        const craft = world.party.shape !== PartyShape.OnFoot && world.getXYVal(world.x, world.y) <= MapValue.Grass;
+        if (craft) world.putXYVal(world.party.shape * 2, world.x, world.y);
+        world.party.shape = PartyShape.OnFoot;
+        // From Ambrosia, home is on Sosaria (issue #23): not the same square of Ambrosia, nor Sosaria's way back
+        // from the whirlpool set to the gate, on land, where it would leave the party aboard a ship.
+        if (world.party.location === Location.Ambrosia) {
+          world.returnToSurface();
+          world.party.location = Location.Sosaria;
+          world.trail = [];
+        }
+        world.x = world.returnX = world.party.surfaceX = HOME_X;
+        world.y = world.returnY = world.party.surfaceY = HOME_Y;
       }
       return 'Back at the castle gate.';
     },

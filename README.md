@@ -645,6 +645,20 @@ Every release, with the desktop and Android downloads, is on the
 web version is updated with each release, so it runs the same game as the
 apps.
 
+### v1.0.84, November 17, 2026
+
+- Fixed: the Go home cheat taken aboard the ship in Lord British's moat
+  left the party in a ship on dry land at the castle gate, and the ship
+  stayed beached there once they got out. The party now walks out of
+  the gate on foot, and the ship waits in the moat.
+- Fixed: on Ambrosia, Go home only moved the party across Ambrosia, and
+  set the way back from the whirlpool to the castle gate, so sailing
+  home later left the party aboard a ship on land. It now takes the
+  party home to Sosaria.
+- Fixed: Go home taken aboard a ship or on a horse on Sosaria lost the
+  ship or horse. It now stays where the party left it, as getting out
+  of it does. Reported by GitHub user tuono21.
+
 ### v1.0.82, November 5, 2026
 
 - Fixed: the weapons and armour shops' price lists lettered each ware a
