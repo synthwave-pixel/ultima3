@@ -658,9 +658,6 @@ apps.
   Ultima: Exodus had, white foam on Standard. It shows on the map, in
   towns and castles, in fights at sea and on the opening's demo map.
   Suggested by GitHub user anon569.
-
-### v1.0.84, November 17, 2026
-
 - Fixed: the Go home cheat taken aboard the ship in Lord British's moat
   left the party in a ship on dry land at the castle gate, and the ship
   stayed beached there once they got out. The party now walks out of
