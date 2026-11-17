@@ -518,6 +518,12 @@ fire there, under a slate roof in its own grain.
 Changes that make each of the older tile sets look more like its machine
 than the Mac version did.
 
+- The NES set's water has surf along its coasts, white and light blue
+  speckle as Ultima: Exodus drew it, where LairWare's sheet had plain
+  water square against land. Standard has the same, in white foam over
+  its water. Only coasts in sight have it, on the map, in towns, in
+  fights and in the opening's demo; the other sets keep the Apple II's
+  plain water.
 - Each set paints its own first-person dungeon: wireframe corridors for
   the Apple II, Commodore 64 and Macintosh sets, blue and cyan for CGA,
   flat bricks in each palette for the NES and the EGA, MCGA, VGA and
@@ -644,6 +650,14 @@ Every release, with the desktop and Android downloads, is on the
 [releases page](https://github.com/synthwave-pixel/ultima3/releases). The
 web version is updated with each release, so it runs the same game as the
 apps.
+
+### v1.0.86, November 17, 2026
+
+- Coastlines: with the Standard and Nintendo tiles, water has surf along
+  the land beside it, white and light blue speckle on the NES set as
+  Ultima: Exodus had, white foam on Standard. It shows on the map, in
+  towns and castles, in fights at sea and on the opening's demo map.
+  Suggested by GitHub user anon569.
 
 ### v1.0.84, November 17, 2026
 
