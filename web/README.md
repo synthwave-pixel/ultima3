@@ -287,6 +287,7 @@ src/ui/     browser only
   dungeonView.ts  the first-person dungeon renderer
   input.ts        keyboard as an awaitable queue, what pauses it, held keys at the Max input pace
   glide.ts        Smooth motion: how far behind its square each thing is drawn
+  coast.ts        coastlines for Standard and Nintendo: surf by the land round each water square
   menus.ts        menu windows (keys, feedback sounds), controller command lists, gamepad reader
   touch.ts        the virtual controller on touch screens
   dungeonArt.ts   dungeon sheets painted per tile set

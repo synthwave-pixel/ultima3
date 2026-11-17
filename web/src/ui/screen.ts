@@ -32,6 +32,7 @@ import { DungeonRenderer } from './dungeonView.ts';
 import { markerColour } from './display.ts';
 import { ScanlineOverlay } from './scanlines.ts';
 import { Glide, GLIDE_SLACK_MS, type Point } from './glide.ts';
+import { CoastPainter, coastMask, coastPattern } from './coast.ts';
 import { World, holdCombatMark, STARVATION_MODES, TIMER_MODES } from '../game/world.ts';
 import { PlayerRecord, levelUpDue, statusLetter } from '../game/player.ts';
 import { commandMenu } from '../game/context.ts';
@@ -43,6 +44,7 @@ import { TIPS, tipPages, type Tip } from '../game/tips.ts';
 import { CHEATS } from '../game/cheats.ts';
 import { Location } from '../game/party.ts';
 import { buildViewport, VIEW_SIZE, VIEW_CENTRE, type Viewport } from '../game/viewport.ts';
+import { Shape } from '../game/tiles.ts';
 import { buildDungeonView, secretMessage } from '../game/dungeon.ts';
 import { recordView, MAP_SIDE } from '../game/automap.ts';
 import { aroundParty, wholeLevel } from '../game/dungeonLayout.ts';
@@ -179,12 +181,17 @@ export class Screen implements GameIO {
   readonly cell: number;
 
   private view: Viewport | null = null;
-  /** The view a square wider all round (`wide` for `wideFor`), painted under Smooth motion for the ring it slides in. */
+  /**
+   * The view a square wider all round (`wide` for `wideFor`), the one painted: its ring is what Smooth motion slides
+   * in, and what the coastlines at the view's edge look out on.
+   */
   private wide: Viewport | null = null;
   private wideFor: Viewport | null = null;
   /** Smooth motion (Visuals): the top-down views glide from square to square (glide.ts). Off: they jump, as ever. */
   smoothMotion = false;
   private readonly glide = new Glide();
+  /** The coastlines' pieces (coast.ts). */
+  private readonly coast = new CoastPainter();
   /** The view whose places the glide last took. */
   private glided: Viewport | null = null;
   /** Where the last view stood, and in what scene (`noteScene`). */
@@ -2151,7 +2158,7 @@ export class Screen implements GameIO {
     this.noteScene();
     this.view = buildViewport(this.world);
     recordView(this.world, this.view); // what the view shows is on the map from now (worldMap.ts)
-    if (this.smoothMotion && !this.world.combat) {
+    if (!this.world.combat) {
       this.wide = buildViewport(this.world, this.world.x, this.world.y, VIEW_CENTRE + 1);
       this.wideFor = this.view;
     }
@@ -2289,7 +2296,7 @@ export class Screen implements GameIO {
       return;
     }
     if (!this.view) return;
-    const view = this.smoothMotion && this.wideFor === this.view && this.wide ? this.wide : this.view;
+    const view = this.wideFor === this.view && this.wide ? this.wide : this.view;
     const gliding = this.glideTo(view, time);
     const still: Point = { x: 0, y: 0 };
     const lag = (id: string | undefined): Point => (gliding && id !== undefined ? this.glide.lag(id, time) : still);
@@ -2309,9 +2316,30 @@ export class Screen implements GameIO {
     ctx.clip();
     // The ground first, then what stands on it, so a figure between two squares is over both: followers, the things
     // that stay put and the party, then whatever walks.
+    // The surf along the coasts (coast.ts), with the Standard and Nintendo tiles: by the land beside each water square
+    // in the view, none toward the dark or past the view's edge.
+    const coasts = this.coast.has(this.tileSetName);
+    const land = (i: number, dx: number, dy: number): boolean => {
+      const [x, y] = [(i % size) + dx, Math.floor(i / size) + dy];
+      if (x < 0 || y < 0 || x >= size || y >= size) return false;
+      const base = view.cells[y * size + x].base;
+      return base !== Shape.Water && base !== Shape.Void;
+    };
     view.cells.forEach((c, i) => {
       const at = place(i);
-      if (shown(at)) gfx.drawShape(ctx, c.base, ...at, tile);
+      if (!shown(at)) return;
+      gfx.drawShape(ctx, c.base, ...at, tile);
+      if (coasts && c.base === Shape.Water) {
+        const [x, y] = [view.originX + (i % size), view.originY + Math.floor(i / size)];
+        this.coast.draw(
+          ctx,
+          this.tileSetName,
+          coastMask((dx, dy) => land(i, dx, dy)),
+          coastPattern(x, y),
+          ...at,
+          tile,
+        );
+      }
     });
     if (this.partyStyle === 'line') {
       view.cells.forEach((c, i) => {

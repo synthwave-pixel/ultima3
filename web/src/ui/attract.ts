@@ -18,6 +18,7 @@
 
 import { Shape } from '../game/tiles.ts';
 import { Music } from '../game/io.ts';
+import { CoastPainter, coastMask, coastPattern } from './coast.ts';
 import { displayOf, type DisplayStyle } from './display.ts';
 import { fileStem, loadImage, TILE_COLUMNS, TILE_ROWS, type GraphicsSet, type ImageMap } from './graphics.ts';
 
@@ -464,6 +465,7 @@ export function canvasStage(h: CanvasStageHost): AttractStage {
   const ground = () => (display().lightGround ? '#fff' : '#000');
   /** The sheets lent for the fight, by the set they come from, and how far the lent lava has scrolled. */
   const lent = new Map<string, HTMLCanvasElement>();
+  const coast = new CoastPainter();
   const lentSheet = (): HTMLCanvasElement | undefined => lent.get(BORROWED_ART[h.setName()]);
   let lentScroll = 0;
 
@@ -570,15 +572,30 @@ export function canvasStage(h: CanvasStageHost): AttractStage {
     map: (tiles, background) => {
       const gfx = h.gfx();
       const size = 2 * cell;
+      // The coastlines the game's own map has in this set (coast.ts), by the ground beside each water square.
+      const coasts = coast.has(h.setName());
+      const land = (i: number, dx: number, dy: number): boolean => {
+        const [x, y] = [(i % DEMO_COLUMNS) + dx, Math.floor(i / DEMO_COLUMNS) + dy];
+        if (x < 0 || y < 0 || x >= DEMO_COLUMNS || y >= DEMO_ROWS) return false;
+        return background[y * DEMO_COLUMNS + x] !== Shape.Water;
+      };
       for (let i = 0; i < DEMO_CELLS; i++) {
         const [dx, dy] = [cell + (i % DEMO_COLUMNS) * size, 11 * cell + Math.floor(i / DEMO_COLUMNS) * size];
+        const [col, row] = [i % DEMO_COLUMNS, Math.floor(i / DEMO_COLUMNS)];
         const value = tiles[i];
-        if (value === background[i]) {
-          gfx.drawShape(ctx, value, dx, dy, size);
-        } else {
-          gfx.drawShape(ctx, background[i], dx, dy, size);
-          gfx.drawShape(ctx, demoShape(value), dx, dy, size, { masked: true });
+        gfx.drawShape(ctx, background[i], dx, dy, size);
+        if (coasts && background[i] === Shape.Water) {
+          coast.draw(
+            ctx,
+            h.setName(),
+            coastMask((x, y) => land(i, x, y)),
+            coastPattern(col, row),
+            dx,
+            dy,
+            size,
+          );
         }
+        if (value !== background[i]) gfx.drawShape(ctx, demoShape(value), dx, dy, size, { masked: true });
       }
     },
     animate: () => {
