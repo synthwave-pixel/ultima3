@@ -21,8 +21,9 @@ changes:
    sets: Apple II in color and mono, Commodore 64, NES, the PC's CGA,
    EGA, MCGA and VGA, the Ultima V look and the Macintosh black on
    white.
-3. Includes an updated Standard experience: controller play, new art and
-   sound, and tweakable settings.
+3. Includes two updated looks, Remastered (the default, after the Ultima V
+   port's) and U3 2026 (called Standard before v1.0.87), with controller
+   play, new art and sound, and tweakable settings.
 
 ![The Standard experience: a town, combat, controller mode, a dungeon in first person, with a map beside the view and top down, a dungeon's View map, the map of Sosaria as the party has seen it, the quest journal, Tips, a shop weighing its wares and the Pause menu](promo/features.jpg)
 
@@ -601,9 +602,21 @@ than the Mac version did.
   separate mask files are honored where a set ships one, and a set with
   neither draws creatures opaque, as its machine did.
 
-### Standard-specific changes
+### Remastered
 
-Standard is the port's own theme. It is meant to evoke the memory of a
+Remastered is the look a new player starts in, after the Ultima V port's
+own: its tiles and frame, a frame that changes colour with the place
+(blue on Sosaria, gold in Ambrosia, copper in towns, purple in Exodus'
+castle), sand shores and surf, the party's leader walking alone, and each
+dungeon walled in its own stone, the frame darkening level by level. A
+character made in it chooses a figure and its colours (Organize a Party >
+Inspect party shows and renames them), and that figure is the member in a
+fight. Its words, like U3 2026's, are in sentence case: talk, shops,
+signs and messages, with shouts and abbreviations kept in capitals.
+
+### U3 2026-specific changes
+
+U3 2026, called Standard before v1.0.87, is the port's own theme. It is meant to evoke the memory of a
 classic PC VGA look, with a modern sensibility about color and design:
 how you vaguely remember the game through nostalgia glasses, rather than
 how any specific machine drew it. As I mentioned earlier - I played on the
@@ -660,11 +673,10 @@ those builds and a modern developer sensibility.
 - The lettering is Sixtyfour, after the Commodore 64's letters, as in
   the Ultima V port's Standard look, with a true lowercase where
   LairWare's font had an i like a semicolon and an n and m like small
-  capitals. Each of its dots is 4 pixels of the game's 32-pixel cell, set
-  2 pixels lower than the face has them, so a line clears the border or
-  the highlight bar above it as the old font did; the diamonds of
-  ****VICTORY!**** stay. PC VGA and PC Ultima V share it; Lairware and
-  Macintosh B&W keep LairWare's font.
+  capitals. It is set from the font's outlines at the screen's own size,
+  as the Ultima V port sets it, each letter filling most of its cell; the
+  diamonds of ****VICTORY!**** stay. Remastered, PC VGA and PC Ultima V
+  share it; Lairware and Macintosh B&W keep LairWare's font.
 
 #### The sound
 
@@ -703,6 +715,40 @@ Every release, with the desktop and Android downloads, is on the
 [releases page](https://github.com/synthwave-pixel/ultima3/releases). The
 web version is updated with each release, so it runs the same game as the
 apps.
+
+### v1.0.87, November 18, 2026
+
+- Remastered, a new look after the Ultima V port's, is where a new
+  player starts: its own tiles, a frame coloured by place, shores and
+  surf, the leader walking alone, and walls of its own in each dungeon,
+  the frame darkening level by level. Standard is renamed U3 2026; a
+  player with a save keeps the look they had.
+- Characters made in Remastered choose a figure and its colours, shown
+  in fights and on a new character sheet (Organize a Party > Inspect
+  party), where a character can be renamed.
+- Sentence case in Remastered and U3 2026: talk, shops, signs and
+  messages, with shouts and abbreviations kept in capitals.
+- A Font setting (Visuals): the look's own, Sixtyfour, Legible
+  (Atkinson Hyperlegible), Dyslexic (OpenDyslexic) or DOS. Sixtyfour,
+  Legible and Dyslexic are set at the screen's own size, so their
+  strokes are even at any window size.
+- Snap targets, as in the Ultima V port: in a fight the foe an attack
+  would strike is marked, X strikes it, LB and RB (or [ and ]) mark
+  another, and Y casts a spell. Bolt spells are aimed the same way, a
+  direction asked marks who is asked, the member a healing spell is
+  for is marked in green, and a miss flashes the attacker's outline.
+- Controllers work in older Android WebViews, every connected pad is
+  read, taps on the page's own buttons reach them, and a key held on
+  Android no longer repeats for ever.
+- The desktop apps update themselves where they can: the Windows
+  installer and the AppImage download an update and install it on
+  quitting, the Mac app too now that it is signed, the Flatpak through
+  Flatpak, and the portable Windows app points to the release page.
+- Journal: the Dungeon of the Snake is named so (the game's files call it
+  Clues), the Silver Snake reads ready once the mark and the word are
+  held, a mark's rod counts once stood on, and PAXUM's range is given.
+  Reported by GitHub user tuono21.
+- Smooth motion no longer smears the edge the party walks toward.
 
 ### v1.0.86, November 17, 2026
 
