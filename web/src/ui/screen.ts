@@ -129,6 +129,37 @@ const TEXT_TOP = 13;
 const TEXT_BOTTOM = 24; // exclusive
 
 const ANIMATION_INTERVAL_MS = 1000 / 12;
+
+/**
+ * The snap target's mark (markSnapTarget), as the Ultima V port draws it: in game pixels from its square's top left
+ * corner, a triangle at each side four pixels wide at its foot, three outside the square, and two deep, pointing in.
+ */
+const SNAP_MARK: [number, number][] = [
+  ...[6, 7, 8, 9].flatMap((i): [number, number][] => [
+    [i, -3],
+    [i, 18],
+    [-3, i],
+    [18, i],
+  ]),
+  ...[7, 8].flatMap((i): [number, number][] => [
+    [i, -2],
+    [i, 17],
+    [-2, i],
+    [17, i],
+  ]),
+];
+/** The pixels round it, half darkened in the modern looks (its Standard look's rim). */
+const SNAP_MARK_RIM: [number, number][] = (() => {
+  const on = new Set(SNAP_MARK.map(([x, y]) => `${x},${y}`));
+  const rim = new Map<string, [number, number]>();
+  for (const [x, y] of SNAP_MARK)
+    for (let dy = -1; dy <= 1; dy++)
+      for (let dx = -1; dx <= 1; dx++) if (!on.has(`${x + dx},${y + dy}`)) rim.set(`${x + dx},${y + dy}`, [x + dx, y + dy]);
+  return [...rim.values()];
+})();
+/** Its colours in the modern looks, fading one to the other and back each second (the Ultima V port's aim). */
+const SNAP_MARK_FROM = [236, 32, 28];
+const SNAP_MARK_TO = [190, 78, 8];
 /** How long the figure on a character's sheet shows each of its frames. */
 const SHEET_FIGURE_MS = 450;
 /** How long after the press that ends the attract sequence its echoes are let go (`Screen.attractStage`). */
@@ -934,6 +965,10 @@ export class Screen implements GameIO {
   /** Scripted keys are Apple II keys, so prompts read them keyboard-style whatever the mode. */
   private get promptMode(): 'keyboard' | 'controller' {
     return this.macro.length > 0 ? 'keyboard' : this.inputMode;
+  }
+
+  get lastSource(): 'keyboard' | 'gamepad' | 'touch' {
+    return this.keyboard.lastSource;
   }
 
   get showsMenus(): boolean {
@@ -2488,10 +2523,12 @@ export class Screen implements GameIO {
   }
 
   /**
-   * Snap targets (snap.ts): the foe a snap attack would strike, marked by four small arrows pointing in at its square
-   * from its sides, in the turn outline's colour, with a dark edge so they stand out on any ground.
+   * Snap targets (snap.ts): the foe a snap attack would strike, marked as the Ultima V port marks it - four small
+   * triangles just outside its square's sides, pointing in (SNAP_MARK). In the modern looks they are its Standard look's
+   * snap mark: red fading to dark orange and back each second, with a half-black rim; in the others, its EGA look's
+   * arrows, in the turn outline's colour (white, black on the Macintosh's white ground, a monitor's own colour).
    */
-  private markSnapTarget(monster: number, lag: Point): void {
+  private markSnapTarget(monster: number, lag: Point, time: number): void {
     const c = this.world.combat;
     const m = c?.monsters[monster];
     if (!m || m.hp <= 0 || m.x > 10 || m.y > 10) return;
@@ -2500,33 +2537,22 @@ export class Screen implements GameIO {
     const px = tile / 16; // a game pixel
     const left = (1 + 2 * m.x) * cell + Math.round(lag.x * tile);
     const top = (1 + 2 * m.y) * cell + Math.round(lag.y * tile);
-    const [cx, cy] = [left + tile / 2, top + tile / 2];
-    const reach = 3 * px; // how far an arrow comes in over the square
-    const half = 2.5 * px; // half an arrow's width
+    const fill = (gx: number, gy: number): void => {
+      const x0 = Math.round(left + gx * px);
+      const y0 = Math.round(top + gy * px);
+      ctx.fillRect(x0, y0, Math.round(left + (gx + 1) * px) - x0, Math.round(top + (gy + 1) * px) - y0);
+    };
     ctx.save();
     ctx.beginPath();
     ctx.rect(cell, cell, 22 * cell, 22 * cell); // never paint over the border
     ctx.clip();
-    ctx.beginPath();
-    for (const [ex, ey, nx, ny] of [
-      [cx, top, 0, 1],
-      [cx, top + tile, 0, -1],
-      [left, cy, 1, 0],
-      [left + tile, cy, -1, 0],
-    ]) {
-      // A triangle from outside the square's edge to its point just inside.
-      const [bx, by] = [ex - nx * px, ey - ny * px];
-      ctx.moveTo(bx + ny * half, by + nx * half);
-      ctx.lineTo(bx - ny * half, by - nx * half);
-      ctx.lineTo(ex + nx * reach, ey + ny * reach);
-      ctx.closePath();
-    }
-    ctx.lineJoin = 'round';
-    ctx.lineWidth = px;
-    ctx.strokeStyle = 'rgba(0, 0, 0, 0.8)';
-    ctx.stroke();
-    ctx.fillStyle = `rgb(${markerColour(this.gfx.display, 0).join(',')})`;
-    ctx.fill();
+    if (isModern(this.tileSetName)) {
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+      for (const [gx, gy] of SNAP_MARK_RIM) fill(gx, gy);
+      const k = (1 - Math.cos((2 * Math.PI * (time % 1000)) / 1000)) / 2;
+      ctx.fillStyle = `rgb(${SNAP_MARK_FROM.map((v, i) => Math.round(v + (SNAP_MARK_TO[i] - v) * k)).join(',')})`;
+    } else ctx.fillStyle = `rgb(${markerColour(this.gfx.display, 0).join(',')})`;
+    for (const [gx, gy] of SNAP_MARK) fill(gx, gy);
     ctx.restore();
   }
 
@@ -2673,7 +2699,7 @@ export class Screen implements GameIO {
     ctx.restore();
     const c = world.combat;
     this.markActiveMember(c && c.markedMember >= 0 ? lag(`p${c.markedMember}`) : still);
-    if (c && (c.snapShown ?? -1) >= 0) this.markSnapTarget(c.snapShown!, lag(`c${c.snapShown}`));
+    if (c && (c.snapShown ?? -1) >= 0) this.markSnapTarget(c.snapShown!, lag(`c${c.snapShown}`), time);
   }
 
   /**

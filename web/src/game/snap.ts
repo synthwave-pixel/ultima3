@@ -1,9 +1,10 @@
 /**
  * snap.ts
  *
- * Snap targets (Gameplay), after the Ultima V port's (issue #29): at a member's turn in a fight, the foe their attack
- * would strike without being aimed is marked - the snap target - and one button strikes it: Y on a controller, Enter
- * on a keyboard. LB and RB (or [ and ]) mark the next foe or the one before, nearest first and round, spending no turn.
+ * Snap targets (Gameplay), after the Ultima V port's (issue #29), with its buttons: at a member's turn in a fight, the
+ * foe their attack would strike without being aimed is marked - the snap target - and one button strikes it: X on a
+ * controller (C on a keyboard read as one), Enter on a keyboard. LB and RB (or [ and ]) mark the next foe or the one
+ * before, nearest first and round, spending no turn. Y casts a spell, as in the Ultima V port's fights.
  *
  * The foes a member can strike where they stand are those an attack in one of the directions they may attack in
  * (diagonals as the Diagonal moves setting allows) would reach: the one next to them, or with a sling or a bow the
@@ -15,7 +16,7 @@
 import { Key } from './io.ts';
 import type { World } from './world.ts';
 
-/** The key a snap attack is pressed as (Y in a fight, Enter on a keyboard): an attack on the snap target. */
+/** The key a snap attack is pressed as (X in a fight, Enter on a keyboard): an attack on the snap target. */
 export const SNAP_KEY = '&';
 /** The controller's shoulder buttons, and [ and ] on a keyboard: the snap target before, and the next. */
 export const SNAP_KEYS: Record<string, -1 | 1> = { [Key.LB]: -1, [Key.RB]: 1, '[': -1, ']': 1 };
@@ -94,4 +95,24 @@ export function noteSnapTarget(world: World, member: number, monster: number): v
   if (!c) return;
   c.snapChosen ??= [-1, -1, -1, -1];
   c.snapChosen[member] = monster;
+}
+
+/**
+ * A fight's tips, after the Ultima V port's: one a fight, in this order, each once (World.tipsShown) - for a controller,
+ * or the keyboard read as one (`keys`), and only with Snap targets on. The shoulders' tip waits while the touch pad,
+ * which has none, is what was last pressed.
+ */
+export const COMBAT_TIPS: { id: string; pad: string; keys: string; shoulders?: boolean }[] = [
+  { id: 'snap-attack', pad: 'Tip: Press X for a snap attack!', keys: 'Tip: Press C for a snap attack!' },
+  { id: 'cast', pad: 'Tip: Press Y to cast a spell!', keys: 'Tip: Press Y to cast a spell!' },
+  { id: 'snap-cycle', pad: 'Tip: Press LB/RB to cycle snap targets!', keys: 'Tip: Press [ or ] to cycle snap targets!', shoulders: true },
+];
+
+/** The fight's tip, to give now and noted as given, worded for what the player last pressed (`source`); null, none. */
+export function combatTip(world: World, controller: boolean, source: 'keyboard' | 'gamepad' | 'touch' = 'gamepad'): string | null {
+  if (!controller || !world.snapTargets) return null;
+  const tip = COMBAT_TIPS.find((t) => !world.tipsShown.has(t.id));
+  if (!tip || (tip.shoulders && source === 'touch')) return null;
+  world.tipsShown.add(tip.id);
+  return source === 'keyboard' ? tip.keys : tip.pad;
 }

@@ -26,7 +26,8 @@ import { BASERES } from '../data/resources.ts';
 import { checkAllDead } from './death.ts';
 import { VIEW_SIZE } from './viewport.ts';
 import { autoCombatKeys } from './autocombat.ts';
-import { noteSnapTarget, SNAP_KEY, SNAP_KEYS, snapTarget, stepSnapTarget } from './snap.ts';
+import { wrapWords } from './updateOffer.ts';
+import { combatTip, noteSnapTarget, SNAP_KEY, SNAP_KEYS, snapTarget, stepSnapTarget } from './snap.ts';
 
 /** Messages used by combat (1-based Messages table entries). */
 const Msg = {
@@ -446,10 +447,12 @@ async function waitForCombatKey(world: World, io: GameIO, member: number): Promi
   // Snap targets: the foe an attack would strike, marked; the shoulder buttons (or [ and ]) mark another, no turn spent.
   const snaps = world.snapTargets && !world.autoCombat;
   c.snapShown = snaps ? (snapTarget(world, member)?.monster ?? -1) : -1;
-  if (snaps && c.snapShown >= 0 && !world.snapTipGiven) {
-    world.snapTipGiven = true;
+  // A tip, one a fight (the Ultima V port's), for a controller or a keyboard read as one.
+  const tip = snaps && !c.tipGiven ? combatTip(world, io.showsMenus, io.lastSource) : null;
+  if (tip) {
+    c.tipGiven = true;
     world.onTipGiven?.();
-    io.print('\nY or Enter: strike the\nmarked foe; LB, RB or\n[ ]: mark another.\n');
+    io.print(`\n${wrapWords(tip, 16).join('\n')}\n`); // the message area's sixteen columns
     io.prompt();
   }
   io.redrawMap();

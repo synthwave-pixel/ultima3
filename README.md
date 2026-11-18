@@ -249,8 +249,8 @@ keeps walking as a held key does.
     D-pad   move, or move the cursor in a menu
     A       open the command menu; choose
     B       cancel, or pass a turn (so the menu has no Pass)
-    X       ztats
-    Y       look; ignite a torch in dungeons; in combat, strike the marked foe
+    X       ztats; in combat, a snap attack on the marked foe
+    Y       look; ignite a torch in dungeons; in combat, cast a spell
     LB, RB  in combat, mark the foe before or the next (Snap targets)
     View    open the Pause menu, which stops the game
     Menu    the same; either system button pauses
@@ -263,8 +263,9 @@ With Snap targets on (Gameplay; on to begin with), the foe a member's
 attack would strike without aiming is marked at their turn: the one next
 to them, or with a sling, a bow or a spare dagger to throw, the first in
 line. It is the foe they last struck or chose while it can still be
-reached, else the nearest. Y strikes it, LB and RB mark another, and in
-keyboard mode Enter strikes it and [ and ] mark another. On a
+reached, else the nearest. X strikes it, LB and RB mark another, and in
+keyboard mode Enter strikes it and [ and ] mark another. These are the
+Ultima V port's fight buttons, and its tips, one a fight, say so. On a
 touch screen the pause button is at the top of the virtual pad.
 
 ### Keyboard mode

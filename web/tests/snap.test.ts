@@ -5,8 +5,8 @@ import { MapValue, Shape } from '../src/game/tiles.ts';
 import { Key } from '../src/game/io.ts';
 import { BASERES } from '../src/data/resources.ts';
 import { World, type CombatState } from '../src/game/world.ts';
-import { SNAP_KEY, snapCandidates, snapTarget, stepSnapTarget } from '../src/game/snap.ts';
-import { GamepadReader } from '../src/ui/menus.ts';
+import { combatTip, SNAP_KEY, snapCandidates, snapTarget, stepSnapTarget } from '../src/game/snap.ts';
+import { BUTTON_SHORTCUTS, GamepadReader } from '../src/ui/menus.ts';
 
 /** A flat grass arena with member 0 at (5, 5), no monsters yet, diagonals as `diagonals`. */
 function arena(diagonals = true): { world: World; c: CombatState } {
@@ -69,7 +69,7 @@ describe('snap targets (#29)', () => {
     expect(snapTarget(world, 0)?.monster).toBe(1);
   });
 
-  it('are struck with Y (or Enter) without a direction asked, and the shoulders are read', async () => {
+  it('are struck with X (or Enter) without a direction asked, and the shoulders are read', async () => {
     const { world, c } = arena();
     weapon(world, 4);
     monster(c, 0, 4, 5, 200);
@@ -80,7 +80,7 @@ describe('snap targets (#29)', () => {
     await memberTurnForTest(world, io, 0);
     expect(io.output).toMatch(/Dir-South/);
     expect(io.keys).toEqual([]);
-    world.snapTargets = false; // off: Y is an attack that asks the way, as ever
+    world.snapTargets = false; // off: X is an attack that asks the way, as ever
     io.output = '';
     io.keys = [SNAP_KEY, Key.Left];
     await memberTurnForTest(world, io, 0);
@@ -101,5 +101,24 @@ describe('snap targets (#29)', () => {
       () => [pad as unknown as Gamepad],
     ).poll();
     expect(pushed).toEqual([Key.LB, Key.RB]);
+  });
+
+  it("use the Ultima V port's buttons in a fight: X a snap attack, Y a spell", () => {
+    expect(BUTTON_SHORTCUTS.combat.X).toBe(SNAP_KEY);
+    expect(BUTTON_SHORTCUTS.combat.Y).toBe('C');
+  });
+
+  it("give the Ultima V port's tips, one a fight, each once, worded for what was pressed", () => {
+    const { world } = arena();
+    expect(combatTip(world, false)).toBeNull(); // a keyboard read as letters: none
+    expect(combatTip(world, true, 'keyboard')).toBe('Tip: Press C for a snap attack!');
+    expect(combatTip(world, true, 'gamepad')).toBe('Tip: Press Y to cast a spell!');
+    expect(combatTip(world, true, 'touch')).toBeNull(); // the touch pad has no shoulders: that tip waits
+    expect(combatTip(world, true, 'gamepad')).toBe('Tip: Press LB/RB to cycle snap targets!');
+    expect(combatTip(world, true, 'gamepad')).toBeNull();
+    expect([...world.tipsShown]).toEqual(['snap-attack', 'cast', 'snap-cycle']);
+    world.tipsShown.clear();
+    world.snapTargets = false;
+    expect(combatTip(world, true, 'gamepad')).toBeNull();
   });
 });

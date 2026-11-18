@@ -128,6 +128,8 @@ export interface CombatState {
   snapChosen?: number[];
   /** The foe marked as the snap target of the turn being asked for, or -1 (the UI draws its mark). */
   snapShown?: number;
+  /** Whether this fight's tip has been given (snap.ts combatTip: one a fight). */
+  tipGiven?: boolean;
 }
 
 /**
@@ -726,10 +728,10 @@ export class World {
    * the killer takes it all, as on the Apple II.
    */
   balancedXp = true;
-  /** Snap targets (Gameplay, snap.ts): the foe an attack would strike marked at a member's turn, struck with Y or Enter. */
+  /** Snap targets (Gameplay, snap.ts): the foe an attack would strike marked at a member's turn, struck with X or Enter. */
   snapTargets = true;
-  /** Whether the tip for snap targets has been given (once, at the first fight with one). */
-  snapTipGiven = false;
+  /** The fights' tips given (snap.ts COMBAT_TIPS), each once. */
+  tipsShown = new Set<string>();
 
   /** Each member's last spell this session, for the combat menu's "Cast (spell)" shortcut (this port). */
   lastSpell: (number | undefined)[] = [];

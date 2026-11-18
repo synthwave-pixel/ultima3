@@ -118,7 +118,8 @@ export const COMMAND_MENUS: Record<CommandScope, MenuOption[]> = {
 /** What the B, X and Y buttons do outside a menu, per scope. */
 export const BUTTON_SHORTCUTS: Record<CommandScope, { B: string; X: string; Y: string }> = {
   field: { B: ' ', X: 'Z', Y: 'L' },
-  combat: { B: ' ', X: 'Z', Y: SNAP_KEY }, // Y: a snap attack (snap.ts), or an attack asked a direction
+  // In a fight, the Ultima V port's: X a snap attack (snap.ts), or an attack asked a direction; Y casts a spell.
+  combat: { B: ' ', X: SNAP_KEY, Y: 'C' },
   dungeon: { B: ' ', X: 'Z', Y: 'I' },
 };
 

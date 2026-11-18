@@ -61,9 +61,9 @@ interface Prefs {
   poisonKills: boolean;
   starvation: Starvation;
   balancedXp: boolean;
-  /** Snap targets (snap.ts): on unless turned off; and whether its tip has been given. */
+  /** Snap targets (snap.ts): on unless turned off; and the fights' tips given (snap.ts COMBAT_TIPS). */
   snapTargets: boolean;
-  snapTip: boolean;
+  tips: string[];
   /** The turn timer; Fast, the Apple II's, for games from before the setting. */
   timer: Timer;
   sound: boolean;
@@ -94,7 +94,7 @@ const DEFAULT_PREFS: Prefs = {
   starvation: 'mild',
   balancedXp: true,
   snapTargets: true,
-  snapTip: false,
+  tips: [],
   timer: 'fast',
   sound: true,
   soundSet: 'Standard',
@@ -259,7 +259,7 @@ async function start(): Promise<void> {
   world.starvation = prefs.starvation;
   world.balancedXp = prefs.balancedXp;
   world.snapTargets = prefs.snapTargets !== false;
-  world.snapTipGiven = prefs.snapTip === true;
+  world.tipsShown = new Set(Array.isArray(prefs.tips) ? prefs.tips.filter((t) => typeof t === 'string') : []);
   world.timer = prefs.timer;
   world.soundEnabled = prefs.sound;
   world.mapMode = prefs.dungeonMap;
@@ -330,7 +330,7 @@ async function start(): Promise<void> {
       starvation: world.starvation,
       balancedXp: world.balancedXp,
       snapTargets: world.snapTargets,
-      snapTip: world.snapTipGiven,
+      tips: [...world.tipsShown],
       timer: world.timer,
       sound: world.soundEnabled,
       soundSet: sounds.set,

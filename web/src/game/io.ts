@@ -171,6 +171,8 @@ export interface GameIO {
    * as a shop's "list (Y/N)?", need not be asked.
    */
   readonly showsMenus: boolean;
+  /** What the player last pressed: a keyboard, a controller or the touch pad (a tip's wording: snap.ts combatTip). */
+  readonly lastSource?: 'keyboard' | 'gamepad' | 'touch';
   /** The Settings menu (input mode, tiles, scanlines, difficulty, sound, music, help). Returns when closed. */
   showSettings(): Promise<void>;
   /**
