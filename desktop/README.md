@@ -81,7 +81,7 @@ looks for a newer release, each copy as it can be updated:
   `latest*.yml`, blockmaps and Mac `.zip` the release carries (the
   `publish` block in `package.json` has electron-builder write them, even
   with `--publish never`), and installs it as the game quits, or at once
-  on Restart now. The AppImage is always `ultima3-sp-x86_64.AppImage`, so
+  on Restart now. The AppImage is always `Ultima-III-x86_64.AppImage`, so
   an update replaces it in place. A restart lets go of the one-copy lock
   first, or the new copy, started before this one has gone, would take
   itself for a second launch. Should it fail (a Mac refusing the new

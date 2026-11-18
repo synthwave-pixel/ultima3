@@ -211,7 +211,7 @@ options).
   have hung other Electron apps under gamescope. The `.flatpak` bundle on
   the Releases page is the same build for an offline install
   (`flatpak install --user <file>`, which then never updates), and the
-  `AppImage` (`ultima3-sp-x86_64.AppImage`) suits a Linux without
+  `AppImage` (`Ultima-III-x86_64.AppImage`) suits a Linux without
   Flatpak: make it executable and run it. Its name stays the same from
   release to release, so its updates replace it in place and a Steam
   shortcut to it keeps working.

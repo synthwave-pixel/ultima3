@@ -57,7 +57,7 @@ describe('the desktop app’s updates', () => {
 
   it('are only told of with --no-auto-update, on every desktop build - nothing downloaded or installed', () => {
     const no = ['--no-auto-update'];
-    expect(kind('linux', { APPIMAGE: '/home/deck/ultima3-sp-x86_64.AppImage' }, true, no)).toBe('notice');
+    expect(kind('linux', { APPIMAGE: '/home/deck/Ultima-III-x86_64.AppImage' }, true, no)).toBe('notice');
     expect(kind('win32', {}, true, no)).toBe('notice');
     expect(kind('darwin', {}, true, no, true, true)).toBe('notice');
     expect(kind('linux', { FLATPAK_ID: 'com.synthwavepixel.ultima3' }, true, no)).toBe('notice');
@@ -259,7 +259,7 @@ describe('the desktop app’s updates', () => {
     const pkg = JSON.parse(readFileSync(join(import.meta.dirname, '..', '..', 'desktop', 'package.json'), 'utf8')) as {
       build: { appImage: { artifactName: string } };
     };
-    expect(pkg.build.appImage.artifactName).toBe('ultima3-sp-${arch}.${ext}');
+    expect(pkg.build.appImage.artifactName).toBe('Ultima-III-${arch}.${ext}');
     expect(pkg.build.appImage.artifactName).not.toContain('${version}');
   });
 
@@ -268,7 +268,7 @@ describe('the desktop app’s updates', () => {
     const was = { platform: process.platform };
     Object.defineProperty(process, 'platform', { value: 'linux' });
     const env = { ...process.env };
-    process.env.APPIMAGE = join(dir, 'ultima3-sp-x86_64.AppImage');
+    process.env.APPIMAGE = join(dir, 'Ultima-III-x86_64.AppImage');
     const path = createRequire(join(process.cwd(), '../desktop/updates.cjs')).resolve('electron-updater');
     const real = require.cache[path];
     const handlers = new Map<string, unknown>();

@@ -124,7 +124,7 @@
       }
     },
     "appImage": {
-      "artifactName": "ultima3-sp-${arch}.${ext}"
+      "artifactName": "Ultima-III-${arch}.${ext}"
     },
     "flatpak": {
       "files": [
