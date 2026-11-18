@@ -716,7 +716,7 @@ Every release, with the desktop and Android downloads, is on the
 web version is updated with each release, so it runs the same game as the
 apps.
 
-### v1.0.87, November 18, 2026
+### v1.0.88, November 18, 2026
 
 - Remastered, a new look after the Ultima V port's, is where a new
   player starts: its own tiles, a frame coloured by place, shores and
@@ -749,6 +749,17 @@ apps.
   held, a mark's rod counts once stood on, and PAXUM's range is given.
   Reported by GitHub user tuono21.
 - Smooth motion no longer smears the edge the party walks toward.
+- On a controller, the spells that would do nothing where the party is
+  (a bolt out of a fight, a light out of a dungeon, a heal with nobody
+  hurt) are greyed and listed last, their card saying why. A keyboard
+  may still cast any, as on the Apple II.
+- Fixed: backing out of Fal Divi's cleric spells, or of the cleric spell
+  chosen, kept Fal Divi's mana and spent the turn. Show the map in a
+  fight in a dungeon showed Sosaria instead of the level. Terraform and
+  Conjure frigate cast in a dungeon wrote surface tiles into the
+  dungeon's own map; they, and Armageddon, now fail there.
+- A repeated message's count (x2) no longer runs off the edge of the
+  message area.
 
 ### v1.0.86, November 17, 2026
 
