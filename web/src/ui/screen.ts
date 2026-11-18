@@ -93,6 +93,7 @@ import {
   wrapText,
 } from './menus.ts';
 import { DungeonCell } from '../game/world.ts';
+import { LetterLayer } from './letterLayer.ts';
 
 export const COLUMNS = 40;
 export const ROWS = 24;
@@ -273,6 +274,7 @@ export class Screen implements GameIO {
   /** Letter everything in `font` from now on: its sheet loaded, then the screen drawn again in it (`redraw`). */
   async setFont(font: FontChoice, redraw = true): Promise<void> {
     this.fontChoice = font;
+    await this.letters.ready; // the faces set from their outlines, before the game draws its first letters
     const image = await fontSheet(font);
     if (this.fontChoice !== font) return; // another chosen while this one loaded
     this.fontImage = image;
@@ -284,6 +286,13 @@ export class Screen implements GameIO {
   private letter(gfx: GraphicsSet): void {
     gfx.lettering = this.fontImage;
     gfx.letteringSmooth = isSmoothFont(this.fontChoice);
+    // Sixtyfour (chosen, or the look's own where its sheet is Standard-Font.png), Legible and Dyslexic are set from
+    // their outlines at the screen's own size, as the Ultima V port sets them; the other fonts are the sheets'.
+    const own = this.fontChoice === 'look' && /Standard-Font\.png$/.test(gfx.font.src) ? 'sixtyfour' : null;
+    const choice =
+      this.fontChoice === 'sixtyfour' || this.fontChoice === 'legible' || this.fontChoice === 'dyslexic' ? this.fontChoice : null;
+    this.letters.setFace(choice ?? own);
+    gfx.letterLayer = this.letters.face ? this.letters : null;
   }
   private readonly glide = new Glide();
   /** The coastlines' pieces (coast.ts). */
@@ -402,6 +411,8 @@ export class Screen implements GameIO {
   tileSetName = 'Standard';
   /** CRT lines laid over the whole game when the Scanlines setting is on (scanlines.ts). */
   private readonly crt: ScanlineOverlay;
+  /** Sixtyfour, Legible and Dyslexic, set from their outlines over the canvas (letterLayer.ts). */
+  private readonly letters: LetterLayer;
   /** True while the Pause menu is up: it holds the game paused, and says so itself, so no PAUSED box. */
   private pauseShown = false;
   /**
@@ -441,6 +452,8 @@ export class Screen implements GameIO {
     for (let r = 0; r < TEXT_BOTTOM - TEXT_TOP; r++) this.textRows.push(Array<string>(TEXT_RIGHT - TEXT_LEFT).fill(' '));
     this.dungeonRenderer = DungeonRenderer.forSet(gfx);
     this.crt = new ScanlineOverlay(canvas);
+    // Sixtyfour, Legible and Dyslexic set at the screen's own size, over the canvas (letterLayer.ts).
+    this.letters = new LetterLayer(canvas, this.ctx, COLUMNS, ROWS, this.cell);
     // A pause holds the music and should not eat into a combat turn's timer. A window that loses focus pauses at
     // once and asks for the Pause menu as well: whatever is waiting for a key reads it and opens the menu, which
     // then holds the game until the player resumes. Where the key is swallowed (inside another menu) the PAUSED
@@ -2121,6 +2134,7 @@ export class Screen implements GameIO {
     image.width = w;
     image.height = h;
     image.getContext('2d')!.drawImage(this.ctx.canvas, x, y, w, h, 0, 0, w, h);
+    this.letters.remember(image, x, y, w, h); // its letters on the layer come back with it
     return { image, x, y };
   }
 

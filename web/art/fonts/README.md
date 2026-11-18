@@ -9,9 +9,11 @@ game does not load it.
 `Sixtyfour.ttf`: Sixtyfour, Jens Kutilek's face after the Commodore 64's
 letters (The Sixtyfour Project Authors), under the SIL Open Font License
 1.1 (`OFL-sixtyfour.txt`). The Ultima V port letters its Standard look in
-it. Here it is baked into `public/graphics/Standard-Font.png`, the
-Standard tile set's letters (`tools/font-sheet.ts`); the game loads that
-sheet, not the font.
+it. The game sets it from its outlines at the screen's own size, as the
+port does, from the copy in `public/fonts/` (`src/ui/letterLayer.ts`). It
+is also baked into `public/graphics/Standard-Font.png`
+(`tools/font-sheet.ts`), the sheet drawn until the font has loaded, and
+where it cannot be.
 
 `AtkinsonHyperlegibleMono.ttf`: Atkinson Hyperlegible Mono, the Braille
 Institute of America's, under the SIL Open Font License 1.1
@@ -19,5 +21,6 @@ Institute of America's, under the SIL Open Font License 1.1
 OpenDyslexic Mono, Abbie Gonzalez's (`LICENSE-opendyslexicmono.txt`). They
 are the Font setting's Legible and Dyslexic, as in the Ultima V port, baked
 into `public/fonts/Legible.png` and `public/fonts/Dyslexic.png`
-(`tools/reading-fonts.ts`, `npm run reading-fonts`); the game loads those
-sheets, not the fonts.
+(`tools/reading-fonts.ts`, `npm run reading-fonts`) for when the fonts
+cannot load; the game sets them from the copies in `public/fonts/`, as it
+does Sixtyfour.

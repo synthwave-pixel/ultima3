@@ -167,6 +167,11 @@ export class GraphicsSet {
   readonly uiSize: number;
   /** The letters of the Font setting (lettering.ts), drawn in place of the set's own for LETTERED glyphs; null for the set's. */
   lettering: HTMLImageElement | null = null;
+  /**
+   * The letters set from a font's outlines at the screen's own size (letterLayer.ts), where the font in use is one:
+   * a LETTERED glyph it takes is not drawn here. Null: every glyph from the sheets.
+   */
+  letterLayer: { letter(ctx: CanvasRenderingContext2D, ch: string, dx: number, dy: number, size: number): boolean } | null = null;
   /** Whether `lettering` is a smooth face (Legible, Dyslexic), scaled with smoothing; a pixel font is not. */
   letteringSmooth = false;
 
@@ -354,6 +359,7 @@ export class GraphicsSet {
   drawGlyph(ctx: CanvasRenderingContext2D, ch: string, dx: number, dy: number, size: number): void {
     let code = ch.charCodeAt(0) - 0x20;
     if (code < 0 || code >= FONT_GLYPHS) code = 0;
+    if (this.letterLayer && LETTERED.test(ch) && this.letterLayer.letter(ctx, ch, dx, dy, size)) return;
     const lettering = this.lettering;
     if (lettering && LETTERED.test(ch)) {
       const side = lettering.width / FONT_GLYPHS;

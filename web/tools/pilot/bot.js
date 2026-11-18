@@ -247,7 +247,15 @@
   /** A PNG of the canvas, to tools/pilot/shots.mjs (screenshots/<name>.png at the repository's root). */
   async function shot(name) {
     await idle();
-    const canvas = document.getElementById('screen');
+    // The game's canvas with the letters laid over it (src/ui/letterLayer.ts: the canvas just after it), at its size.
+    const screen = document.getElementById('screen');
+    const canvas = document.createElement('canvas');
+    canvas.width = screen.width;
+    canvas.height = screen.height;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(screen, 0, 0);
+    const letters = screen.nextElementSibling;
+    if (letters?.tagName === 'CANVAS' && letters.style.display !== 'none') ctx.drawImage(letters, 0, 0, canvas.width, canvas.height);
     const blob = await new Promise((r) => canvas.toBlob(r, 'image/png'));
     try {
       await fetch(`http://127.0.0.1:5199/?name=${encodeURIComponent(name)}`, { method: 'POST', body: blob });
