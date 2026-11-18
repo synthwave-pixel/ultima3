@@ -738,11 +738,18 @@ export class Screen implements GameIO {
     this.black(tx, 0, title.length, 1);
     this.drawText(title, tx, 0);
     this.black(24, 1, CARD_WIDTH, CARD_ROWS);
-    // Its lines cased as one text, so a sentence wrapped across them reads on (textCase.ts).
-    const texts =
-      this.caser()
-        ?.run(card.lines.map((l) => l.text).join('\n'), true)
-        .text.split('\n') ?? card.lines.map((l) => l.text);
+    // Each paragraph (its lines between blank ones) cased as one text, so a sentence wrapped across them reads on and
+    // one after a blank line starts afresh (textCase.ts).
+    const caser = this.caser();
+    const texts = caser
+      ? card.lines
+          .map((l) => l.text)
+          .join('\n')
+          .split('\n\n')
+          .map((paragraph) => caser.run(paragraph, true).text)
+          .join('\n\n')
+          .split('\n')
+      : card.lines.map((l) => l.text);
     card.lines.slice(0, CARD_ROWS).forEach((line, i) => {
       this.drawText(texts[i].slice(0, CARD_WIDTH), 24, 1 + i, line.tone ? CARD_TONES[line.tone] : undefined);
     });

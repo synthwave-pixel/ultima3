@@ -125,6 +125,70 @@ export function repelWhyNot(world: World, spell: number): string | null {
   return null;
 }
 
+/**
+ * Why a spell would do nothing to any purpose here and now - a bolt out of a fight, a light out of a dungeon, a heal
+ * with nobody hurt - or null where it could. A controller's spell lists grey these and put them last (chooseWizard,
+ * chooseCleric); a keyboard may still cast them, as on the Apple II, where most fail.
+ */
+export function spellWhyNot(world: World, spell: number): string | null {
+  const repel = repelWhyNot(world, spell);
+  if (repel) return repel;
+  const where = world.party.location;
+  const fight = where === Location.Combat && world.combat !== null;
+  const dungeon = where === Location.Dungeon;
+  const underground = dungeon || (fight && world.combat?.previousLocation === Location.Dungeon);
+  switch (spell) {
+    case 1: // the bolts
+    case 5:
+    case 7:
+    case 11:
+    case 28:
+    case 10: // the spells at every foe
+    case 13:
+    case 14:
+    case 15:
+    case 30:
+      return fight ? null : 'Only in a fight.';
+    // Stop time (12) is never to no purpose: cast before a fight, it holds the foes of the next.
+    case 2: // the lights
+    case 19:
+    case 8:
+    case 25:
+      return underground ? null : 'Only in a dungeon.';
+    case 3: // down a level
+    case 21:
+      if (!dungeon) return 'Only in a dungeon, out of a fight.';
+      return world.dungeon.level > 6 ? 'No level below this one.' : null;
+    case 4: // up a level, near teleport, leave the dungeon
+    case 20:
+    case 22:
+    case 24:
+      return dungeon ? null : 'Only in a dungeon, out of a fight.';
+    case 6: // far teleport
+      if (!world.onSurface) return 'Only on Sosaria, out of a fight.';
+      return world.party.shape === 0x16 && !world.party.exodusDestroyed ? 'Not aboard a ship.' : null;
+    case 17:
+      return chestHere(world) ? null : 'Only standing on a chest.';
+    case 18: // Heal, Great heal
+    case 26:
+      return mostHurt(world) === undefined ? 'Nobody is hurt.' : null;
+    case 23:
+      return poisoned(world) === undefined ? 'Nobody is poisoned.' : null;
+    case 29:
+      if (fight) return 'Not in a fight.';
+      return fallen(world) === undefined ? 'Nobody is dead.' : null;
+    case 31:
+      if (fight) return 'Not in a fight.';
+      return ashes(world) === undefined ? 'Nobody is in ashes.' : null;
+    case 32: // Terraform, Armageddon, Flotellum
+    case 33:
+    case 34:
+      return fight || dungeon ? 'Not in a fight or a dungeon.' : null;
+    default:
+      return null;
+  }
+}
+
 /** The Repel spell `member` could cast to some purpose now (their class's book, the foes its type, the try unspent), or null. */
 export function repelSpell(world: World, member: number): number | null {
   const books = spellBooks(world, member);
@@ -228,13 +292,14 @@ const SPELL_INFO: { name: string; does: string }[] = [
  * Menu option for a spell: its letter and plain name, and its card over the party panel while it is highlighted - the
  * book's name, its cost against the caster's mana (red where they are short of it) and what it does.
  */
-export function spellOption(world: World, spell: number, letter: string, member: number): MenuOption {
+export function spellOption(world: World, spell: number, letter: string, member: number, menu = false): MenuOption {
   const book = spell < 32 ? world.resources.strings.Spells[spell] : ['TERRAFORM', 'ARMAGEDDON', 'FLOTELLUM'][spell - 32];
   const cost = spellCost(spell);
   const info = SPELL_INFO[spell] ?? { name: book.trim() || '?', does: '' };
   const mana = world.member(member).mana;
   const does = info.does.charAt(0).toUpperCase() + info.does.slice(1);
-  const why = repelWhyNot(world, spell);
+  // On a controller's menu, any spell to no purpose here; on a keyboard's, a Repel spell that cannot work, as ever.
+  const why = menu ? spellWhyNot(world, spell) : repelWhyNot(world, spell);
   const card: Card = {
     title: info.name,
     lines: [
@@ -247,9 +312,15 @@ export function spellOption(world: World, spell: number, letter: string, member:
       ...(why ? [{ text: '' }, ...cardWrap(why).map((text) => ({ text, tone: 'worse' as const }))] : []),
     ],
   };
-  // Greyed when the caster cannot afford it, like other menu entries with nothing on hand, or (a Repel spell) where
-  // it cannot work, its card saying why.
-  return { key: letter, label: `${letter} ${info.name}`, disabled: cost > mana || why !== null, card };
+  // Greyed when the caster cannot afford it, like other menu entries with nothing on hand, or where it would do
+  // nothing to any purpose, its card saying why.
+  return { key: letter, label: `${letter} ${info.name}`, disabled: cost > mana || why !== null, card, pointless: why !== null };
+}
+
+/** A spell list as offered: on a controller's menu the spells to no purpose here go last, greyed (spellWhyNot). */
+function spellList(io: GameIO, options: MenuOption[]): MenuOption[] {
+  if (!io.showsMenus) return options;
+  return [...options.filter((o) => !o.pointless), ...options.filter((o) => o.pointless)];
 }
 
 async function chooseEither(world: World, io: GameIO, member: number): Promise<number> {
@@ -270,7 +341,10 @@ async function chooseEither(world: World, io: GameIO, member: number): Promise<n
 async function chooseCleric(world: World, io: GameIO, member: number): Promise<number> {
   io.printMessage(Msg.ClericSpell);
   const key = await io.chooseOption(
-    Array.from('ABCDEFGHIJKLMNOP', (l) => spellOption(world, l.charCodeAt(0) - 65 + 16, l, member)),
+    spellList(
+      io,
+      Array.from('ABCDEFGHIJKLMNOP', (l) => spellOption(world, l.charCodeAt(0) - 65 + 16, l, member, io.showsMenus)),
+    ),
     'line',
   );
   if (!key || world.done) return CANCELLED;
@@ -282,7 +356,10 @@ async function chooseWizard(world: World, io: GameIO, member: number): Promise<n
   const letters = world.party.exodusDestroyed ? 'ABCDEFGHIJKLMNOPQRS' : 'ABCDEFGHIJKLMNOP';
   const number = (l: string) => ({ Q: 32, R: 33, S: 34 })[l] ?? l.charCodeAt(0) - 65;
   const key = await io.chooseOption(
-    Array.from(letters, (l) => spellOption(world, number(l), l, member)),
+    spellList(
+      io,
+      Array.from(letters, (l) => spellOption(world, number(l), l, member, io.showsMenus)),
+    ),
     'line',
   );
   if (!key || world.done) return CANCELLED;

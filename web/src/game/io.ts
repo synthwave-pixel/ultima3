@@ -68,6 +68,8 @@ export interface MenuOption {
   hintColour?: string;
   /** Shown greyed and not selectable (possible in principle, but e.g. nothing to use it with). */
   disabled?: boolean;
+  /** To no purpose here and now (a spell: spells.ts spellWhyNot): greyed, and listed last on a controller's menu. */
+  pointless?: boolean;
   /** Draw the label in this colour (a CSS colour); e.g. a member's state. */
   colour?: string;
   /** Shown over the party panel, in place of the four members, while this item is highlighted (in controller mode). */

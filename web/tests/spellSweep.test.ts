@@ -5,7 +5,8 @@ import { Location } from '../src/game/party.ts';
 import { MapValue, Shape } from '../src/game/tiles.ts';
 import { MapId, BASERES } from '../src/data/resources.ts';
 import { loadArena } from '../src/game/combat.ts';
-import { processMagic, spellCost, spellName } from '../src/game/spells.ts';
+import { cast as castSpell, processMagic, spellCost, spellName, spellWhyNot } from '../src/game/spells.ts';
+import { PlayerOffset } from '../src/game/player.ts';
 import { Key, type MenuOption } from '../src/game/io.ts';
 import { foldedLabel } from '../src/ui/menus.ts';
 
@@ -153,6 +154,52 @@ describe('every spell, everywhere', () => {
     const io = new ScriptIO(world, 'answer');
     await processMagic(world, io, 0, 1);
     expect(io.asked).toEqual(['dir']);
+  });
+});
+
+describe('spells to no purpose here, on a controller', () => {
+  const pointless = (context: Context) => {
+    const world = setUp(context);
+    return SPELLS.filter((spell) => spellWhyNot(world, spell) !== null);
+  };
+
+  it('are the bolts and the spells at every foe out of a fight, the lights out of a dungeon, and the like', () => {
+    // On Sosaria: everything for a fight or a dungeon, the cures with nobody to cure; Far teleport and Heal (one is hurt) are not.
+    expect(pointless('surface')).toEqual([0, 1, 2, 3, 4, 5, 7, 8, 10, 11, 13, 14, 15, 16, 17, 19, 20, 21, 22, 23, 24, 25, 28, 29, 30, 31]);
+    // In a fight with orcs: Repel orcs, the bolts and the spells at every foe are not; the lights, the levels and the rest are.
+    const fight = pointless('fight');
+    for (const spell of [0, 1, 5, 7, 10, 11, 13, 14, 15, 28, 30, 12, 18]) expect(fight, spellName(spell)).not.toContain(spell);
+    for (const spell of [2, 3, 6, 8, 16, 22, 24, 29, 31, 32]) expect(fight, spellName(spell)).toContain(spell);
+    // In a dungeon: the lights and the levels are not; Far teleport and the bolts are.
+    const dungeon = pointless('dungeon');
+    for (const spell of [2, 3, 4, 8, 19, 20, 21, 22, 24, 25]) expect(dungeon, spellName(spell)).not.toContain(spell);
+    for (const spell of [1, 6, 10, 32, 33, 34]) expect(dungeon, spellName(spell)).toContain(spell);
+    // A light in a fight in a dungeon still lights the dungeon after it.
+    expect(pointless('fight-dungeon')).not.toContain(2);
+  });
+
+  it('are greyed and listed last on a controller, and left as ever on a keyboard', async () => {
+    for (const menus of [true, false]) {
+      const world = setUp('surface');
+      world.member(0).bytes[PlayerOffset.Class] = 'W'.charCodeAt(0);
+      const io = new ScriptIO(world, 'cancel');
+      io.showsMenus = menus;
+      let offered: MenuOption[] = [];
+      io.chooseOption = async (options) => {
+        offered = options;
+        return '';
+      };
+      await castSpell(world, io, 0);
+      const keys = offered.map((o) => o.key).join('');
+      if (menus) {
+        expect(keys).toBe('GJMABCDEFHIKLNOP'); // Far teleport, Cleric spell and Stop time, then the rest, greyed
+        expect(offered.slice(3).every((o) => o.disabled)).toBe(true);
+        expect(offered.slice(0, 3).some((o) => o.disabled)).toBe(false);
+      } else {
+        expect(keys).toBe('ABCDEFGHIJKLMNOP');
+        expect(offered.filter((o) => o.disabled).map((o) => o.key)).toEqual(['A']); // Repel orcs, as ever
+      }
+    }
   });
 });
 
