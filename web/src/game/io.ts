@@ -151,9 +151,10 @@ export interface GameIO {
    * `only` (0-based members) limits what the controller menu lists, say to
    * the members who hold a gem; a keyboard still accepts any digit. The
    * selection starts on `preferred` (0-based), where given: the member
-   * the command most likely wants (whom.ts). (`GetChar`)
+   * the command most likely wants (whom.ts). `spell`: a spell's "whom?" - in a fight the member the choice is on is
+   * marked on the field, as the Ultima V port marks them. (`GetChar`)
    */
-  chooseMember(only?: number[], preferred?: number): Promise<number>;
+  chooseMember(only?: number[], preferred?: number, spell?: boolean): Promise<number>;
   /**
    * After a "Direction-" prompt: a movement key (arrows or keypad digits), the
    * space bar when `allowNone`, or null when cancelled.

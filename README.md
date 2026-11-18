@@ -270,7 +270,8 @@ spell (Magic bolt, Fireball, Mind bolt, Death bolt) is aimed the same way:
 the foe it would hit is marked in a spell's colours, LB and RB mark
 another, A or X casts it, a direction sends it that way, and B backs out
 with the mana given back. Whenever a direction is asked, arrows point out
-from whoever is asked it. On a
+from whoever is asked it, and while a healing spell's member is chosen in
+a fight, that member is marked in green on the field. On a
 touch screen the pause button is at the top of the virtual pad.
 
 ### Keyboard mode

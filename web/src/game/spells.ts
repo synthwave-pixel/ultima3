@@ -569,7 +569,7 @@ async function spellEffect(world: World, io: GameIO, member: number, spell: numb
     case 23: {
       // Alcort: cure poison
       io.printMessage(Msg.CureWhom);
-      const n = await io.chooseMember(undefined, poisoned(world));
+      const n = await io.chooseMember(undefined, poisoned(world), true);
       if (n === 0) return refund(world, io, member, spell);
       if (n < 1 || n > 4) return failed(io);
       await io.flashMember(n - 1);
@@ -596,7 +596,7 @@ async function spellEffect(world: World, io: GameIO, member: number, spell: numb
       // Surmandum: resurrect
       if (inCombat) return failed(io);
       io.printMessage(Msg.ResurrectWhom);
-      const n = await io.chooseMember(undefined, fallen(world));
+      const n = await io.chooseMember(undefined, fallen(world), true);
       if (n === 0) return refund(world, io, member, spell);
       if (n < 1 || n > 4) return failed(io);
       await io.flashMember(n - 1);
@@ -614,7 +614,7 @@ async function spellEffect(world: World, io: GameIO, member: number, spell: numb
       // Anju Sermani: recall from ashes, at the cost of 5 wisdom
       if (inCombat) return failed(io);
       io.printMessage(Msg.RecallWhom);
-      const n = await io.chooseMember(undefined, ashes(world));
+      const n = await io.chooseMember(undefined, ashes(world), true);
       if (n === 0) return refund(world, io, member, spell);
       if (n < 1 || n > 4) return failed(io);
       await io.flashMember(n - 1);
@@ -781,7 +781,7 @@ async function necorp(world: World, io: GameIO, spell: number): Promise<void> {
 /** Mirrors `Heal()`: ask whom, then heal them. */
 async function heal(world: World, io: GameIO, caster: number, spell: number, amount: number): Promise<void> {
   io.printMessage(Msg.HealWhom);
-  const n = await io.chooseMember(undefined, mostHurt(world));
+  const n = await io.chooseMember(undefined, mostHurt(world), true);
   if (n === 0) return refund(world, io, caster, spell);
   if (n < 1 || n > 4) return failed(io);
   await healMember(world, io, spell, amount, n - 1);

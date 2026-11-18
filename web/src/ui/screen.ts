@@ -165,10 +165,12 @@ function triangles(base: number, depth: number, inset: number, out = false): Mar
 
 /** A snap target's mark (markSnapTarget): small triangles pointing in, four pixels at the foot, two deep, three out. */
 const SNAP_MARK = triangles(4, 2, 3);
+/** A member a spell is for (chooseMember): triangles pointing in, five pixels at the foot, three deep, three out. */
+const PICK_MARK = triangles(5, 3, 3);
 /** A direction asked (markDirecting): triangles pointing out from whoever is asked, five pixels at the foot, three deep. */
 const DIRECTION_MARK = triangles(5, 3, 0, true);
 /** The marks' colours in the modern looks, the first fading to the second and back each second (the Ultima V port's). */
-const MARK_COLOURS: Record<'attack' | 'spell' | 'direction', [number[], number[]]> = {
+const MARK_COLOURS: Record<'attack' | 'spell' | 'heal' | 'direction', [number[], number[]]> = {
   attack: [
     [236, 32, 28],
     [190, 78, 8],
@@ -176,6 +178,10 @@ const MARK_COLOURS: Record<'attack' | 'spell' | 'direction', [number[], number[]
   spell: [
     [138, 52, 196],
     [44, 58, 178],
+  ],
+  heal: [
+    [52, 212, 84],
+    [18, 118, 44],
   ],
   direction: [
     [255, 255, 255],
@@ -285,6 +291,8 @@ export class Screen implements GameIO {
   private lastStand: { scene: unknown[]; x: number; y: number } | null = null;
   /** A direction is being asked (chooseDirection): whoever is asked is marked (markDirecting). */
   private directing = false;
+  /** The member a spell's whom is on in a fight (chooseMember), marked on the field, or -1. */
+  private spellPick = -1;
   /** The viewport wants painting; marking it so asks for a frame (`wake`). */
   private dirty = true;
   private get viewDirty(): boolean {
@@ -2183,7 +2191,7 @@ export class Screen implements GameIO {
    * prompt itself sits on the map's bottom border. The answer is echoed
    * to the message area as the typed digit was.
    */
-  async chooseMember(only?: number[], preferred?: number): Promise<number> {
+  async chooseMember(only?: number[], preferred?: number, spell = false): Promise<number> {
     const offered = [0, 1, 2, 3].filter((m) => this.world.party.memberSlot(m) >= 0 && (!only || only.includes(m)));
     if (!this.frameShown) return this.chooseMemberByKey();
     this.borderPrompt(this.promptMode === 'controller' ? 'Who? B: Cancel' : 'Who? Esc Cancel');
@@ -2194,6 +2202,11 @@ export class Screen implements GameIO {
       for (;;) {
         this.selectedMember = offered[at] ?? -1;
         this.updateStats();
+        // A spell's whom, in a fight: the member it would be for, marked on the field too (markSpellPick).
+        if (spell && this.world.combat) {
+          this.spellPick = this.selectedMember;
+          this.viewDirty = true;
+        }
         const key = await this.waitKey();
         if (key === Key.Escape || key === Key.B) break;
         if (key >= '1' && key <= '4' && key.length === 1) {
@@ -2210,6 +2223,8 @@ export class Screen implements GameIO {
       }
     } finally {
       this.selectedMember = -1;
+      if (this.spellPick >= 0) this.viewDirty = true;
+      this.spellPick = -1;
       this.updateStats();
       this.restoreBorder();
     }
@@ -2774,6 +2789,10 @@ export class Screen implements GameIO {
     this.markActiveMember(c && c.markedMember >= 0 ? lag(`p${c.markedMember}`) : still);
     if (c && (c.snapShown ?? -1) >= 0) this.markSnapTarget(c.snapShown!, lag(`c${c.snapShown}`), time, c.snapKind ?? 'attack');
     if (this.directing) this.markDirecting(view, lag);
+    // A spell's whom: the member it would be for, green triangles pointing in (the Ultima V port's heal mark).
+    const pick = c && this.spellPick >= 0 ? c.members[this.spellPick] : undefined;
+    if (pick && pick.x <= 10 && pick.y <= 10)
+      this.markSquare(pick.x, pick.y, lag(`p${this.spellPick}`), PICK_MARK, MARK_COLOURS.heal, time);
   }
 
   /**
