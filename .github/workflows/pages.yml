@@ -1,35 +1,23 @@
-# Builds the browser port in web/ and publishes it to GitHub Pages with
-# each release: the release workflow (desktop.yml) starts it once a
-# release is published, naming the commit released, so the site runs the
-# release's game as the apps do. Started by hand (Actions > Deploy to
-# GitHub Pages > Run workflow) it deploys the release branch, or the
-# commit or branch given.
-# The site is served at https://<owner>.github.io/ultima3/, so Vite is told
-# to prefix asset URLs with /ultima3/. The site also serves the newest
-# release's Flatpak as a signed repository under /flatpak/ (see
-# desktop/flatpak-repo.sh), brought up to date by the deploy that follows
-# each release.
-name: Deploy to GitHub Pages
+# Redeploys the latest release to GitHub Pages, for when a release's own deploy failed (a GitHub hiccup) or the site
+# needs putting back. A release deploys the site itself, in the same run as the apps (desktop.yml), so this is only
+# ever a retry: it takes no commit or branch, and builds the newest full release's tag, never anything unreleased.
+# Started by hand: Actions > Redeploy the latest release > Run workflow.
+# The site is served at https://<owner>.github.io/ultima3/, so Vite is told to prefix asset URLs with /ultima3/. The
+# site also serves that release's Flatpak as a signed repository under /flatpak/ (see desktop/flatpak-repo.sh).
+name: Redeploy the latest release
 
-# The workflow runs on main (the github-pages environment accepts no other
-# branch, and the concurrency group would let a run elsewhere cancel a real
-# deploy) and builds the commit asked for. A push to main deploys nothing.
 on:
   workflow_dispatch:
-    inputs:
-      source:
-        description: The commit or branch to build and deploy
-        type: string
-        default: release
 
 permissions:
   contents: read
   pages: write
   id-token: write
 
+# One deploy at a time, shared with a release's: neither stops the other half way.
 concurrency:
   group: pages
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   build:
@@ -38,26 +26,28 @@ jobs:
       run:
         working-directory: web
     steps:
+      # The newest full release (pre-releases are skipped): its tag is what gets built.
+      - id: latest
+        working-directory: ${{ github.workspace }}
+        run: echo "tag=$(gh release view --repo "$GITHUB_REPOSITORY" --json tagName --jq .tagName)" >>"$GITHUB_OUTPUT"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - uses: actions/checkout@v7
         with:
-          ref: ${{ inputs.source || 'release' }}
+          ref: ${{ steps.latest.outputs.tag }}
       - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
           cache-dependency-path: web/package-lock.json
       - run: npm ci
-      - run: npm run format:check
-      - run: npm run lint
-      - run: npm test
-      # The build's mark: the commit built, not main's, where the workflow runs.
+      # The build's mark: the commit built.
       - run: VITE_BUILD="$(git rev-parse --short=7 HEAD)" npm run build
         env:
           VITE_BASE: /ultima3/
-      # The Flatpak repository: the newest release's bundle, imported into a fresh OSTree repository and signed. A
-      # pruned repository holds one commit anyway, so nothing needs keeping between deploys. flatpak and ostree come from
-      # the cache kept per runner image, else the mirror, its stale package lists (a superseded version 404s) refreshed
-      # first (.github/actions/apt-install).
+      # The Flatpak repository: the same release's bundle, downloaded, imported into a fresh OSTree repository and
+      # signed. flatpak and ostree come from the cache kept per runner image, else the mirror
+      # (.github/actions/apt-install).
       - timeout-minutes: 20
         uses: ./.github/actions/apt-install
         with:

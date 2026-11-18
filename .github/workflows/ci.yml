@@ -1,0 +1,39 @@
+# The checks: formatting, lint, the tests and the web build. Run on every push to main and every pull request, and
+# called by the desktop workflow (desktop.yml) before it builds anything, so neither a release nor a dev build is made
+# from a commit that fails them. Nothing is built for players here (as the Ultima V port's).
+name: Checks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_call:
+
+permissions:
+  contents: read
+
+# A newer push to main, or to a pull request, stops the checks still running for the one before. Called from
+# desktop.yml the group is that workflow's, so a release's checks are never stopped by a push to main.
+concurrency:
+  group: checks-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.workflow == 'Checks' }}
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+      - run: npm run format:check
+      - run: npm run lint
+      - run: npm test
+      - run: npm run build

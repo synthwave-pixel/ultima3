@@ -16,9 +16,15 @@ npm run smoke:built  # the same smoke test, of the app as dist/ packaged it
 ```
 
 Builds for all three platforms come from the "Desktop and Android builds"
-workflow under Actions: a push to main that touches the game or an app
-keeps them as artifacts; a manual run, or a push to the `release` branch
-(`git push origin main:release`), publishes them as a release. The
+workflow under Actions, which runs only for releases and on demand: a push
+to main gets the checks alone (the "Checks" workflow, `ci.yml`), which
+every build run also passes first. A push to the `release` branch
+(`git push origin main:release`) is a release: the apps and the web game
+are built, then published as a GitHub Release and the site deployed, in
+one run. A manual run does what its "kind" says: `dev-builds` (the
+default) keeps the builds as artifacts, `prerelease` publishes a GitHub
+pre-release for testers (the update offer ignores it, and the site is not
+deployed), and `release` is a release. The
 version comes from `version.cjs`: the major.minor of `version` in
 `package.json` with the run number as the patch in Actions, or a
 timestamped pre-release (`1.0.0-dev.20260915.2214`) for a build made
@@ -26,8 +32,7 @@ anywhere else; `BUILD_VERSION` overrides both. `npm run dist` passes it
 to electron-builder as metadata, so `package.json` is never edited.
 macOS builds are Apple Silicon only, for macOS 13 or later (Electron 44's
 minimum), and signed ad-hoc (`identity: "-"`), which Apple Silicon needs
-once the fuses below have changed the Electron binary. A manual run with
-"publish" off keeps the builds as artifacts instead of making a release.
+once the fuses below have changed the Electron binary.
 
 The packaged app checks its own code as it loads. electron-builder sets
 Electron's fuses (`electronFuses` in `package.json`): the app is loaded
@@ -97,14 +102,16 @@ database, which Chromium needs before it lists a gamepad. Under gamescope
 Chromium sandbox, which have hung other Electron apps there.
 
 The site also serves the newest release as a Flatpak repository, at
-`/flatpak/` under the Pages address: the Pages workflow runs
-`flatpak-repo.sh`, which downloads the release's bundle, imports it into
-a fresh OSTree repository, signs it with the key in the `FLATPAK_GPG_KEY`
-and `FLATPAK_GPG_KEY_ID` secrets, and writes the `.flatpakrepo` and
-`.flatpakref` files beside it. The release job starts a Pages deploy of
-the commit it released, so the site's game and the repository both follow
-each release (a push to main deploys nothing); a pruned repository holds
-one commit, so nothing is kept between deploys. The
+`/flatpak/` under the Pages address: a release's run builds the site and
+runs `flatpak-repo.sh` with that run's own Linux bundle, which it imports
+into a fresh OSTree repository, signs with the key in the
+`FLATPAK_GPG_KEY` and `FLATPAK_GPG_KEY_ID` secrets, and serves with the
+`.flatpakrepo` and `.flatpakref` files beside it; the site is deployed
+once the release is published, so the site's game and the repository
+both follow each release (a push to main deploys nothing). The "Redeploy
+the latest release" workflow (`pages.yml`) puts the newest release back,
+downloading its bundle. A pruned repository holds one commit, so nothing
+is kept between deploys. The
 service worker leaves `/flatpak/` alone (`navigateFallbackDenylist` in
 `../web/vite.config.ts`), or a browser that had played the game would be
 handed the game instead of the `.flatpakref`.

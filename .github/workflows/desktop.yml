@@ -1,62 +1,64 @@
 # Builds the desktop app (desktop/, Electron) for Windows, macOS and Linux
-# and the Android app (mobile/, Capacitor). A push to main that changes the
-# game or an app is a development build: the files stay as workflow
-# artifacts. A manual run (Actions > Run workflow), or a push to the
-# release branch (git push origin main:release), is a release: the same
-# builds are published as a GitHub Release. Either way the version is the
-# major.minor from desktop/package.json with the run number as the patch
-# (1.0.37, say), decided by desktop/version.cjs; a new series starts by
-# changing that major.minor. A release's notes are the root README's
-# changelog section headed with its version ("### v1.0.37, <date>"), so
-# that heading names the run number the release push will get (the push
-# to main just before it takes the one below). Desktop builds are
-# unsigned: see the README's Desktop section for what that means on each
-# platform. The APK is signed
-# with the committed sideload key unless the ANDROID_KEYSTORE_* secrets
-# provide a release key. Linux gets a Flatpak bundle as well as an
-# AppImage; the Linux job installs (and caches) the runtimes it needs. A
-# manual run with "publish" off keeps every build as an artifact instead
-# of making a release, to try a change first. Every run also runs the
-# game's checks (the format, the lint and the tests), and a release is
-# published only once they pass.
+# and the Android app (mobile/, Capacitor), as the Ultima V port's do. It
+# runs for releases and on demand, never for a push to main: main gets the
+# checks alone (ci.yml), which every run here also passes first.
+# A push to the release branch (git push origin main:release) is a
+# release, to every platform at once: the apps and the web game are all
+# built first, then the builds are published as a GitHub Release and the
+# site is deployed, in this one run, so a failure anywhere stops it before
+# anything reaches a player. (pages.yml only redeploys the latest release.)
+# A run started by hand (Actions > Desktop and Android builds > Run
+# workflow) does what "kind" says: dev-builds (the default) keeps the
+# builds as workflow artifacts, to try a change, with nothing published;
+# prerelease publishes a GitHub pre-release, for testers (the update offer
+# looks only at the latest full release, so nothing is offered it, and the
+# site is not deployed); release is a release, as a push to the release
+# branch is. With "android_only" on, only the APK is built, and there is
+# no release.
+# The version is the major.minor from desktop/package.json with this
+# workflow's run number as the patch (1.0.37, say), decided by
+# desktop/version.cjs. A push to main no longer runs it, so a release's
+# number is the last run's plus one (dev builds count too); a new series
+# starts by changing that major.minor. Keep the builds in this workflow:
+# another would count from 1. A release's notes are the root README's
+# changelog section headed with its version ("### v1.0.37, <date>"),
+# through desktop/release-notes.cjs, above GitHub's generated compare
+# link. Desktop builds are unsigned: see the README's Desktop section for
+# what that means on each platform. The APK is signed with the committed
+# sideload key unless the ANDROID_KEYSTORE_* secrets provide a release
+# key. Linux gets a Flatpak bundle as well as an AppImage; the Linux job
+# installs (and caches) the runtimes it needs.
 name: Desktop and Android builds
+
+run-name: ${{ github.event_name == 'push' && 'Release' || inputs.android_only && 'Android dev build' || inputs.kind == 'dev-builds' && 'Dev builds' || inputs.kind == 'prerelease' && 'Pre-release' || 'Release' }} from ${{ github.ref_name }}
 
 on:
   workflow_dispatch:
     inputs:
-      publish:
-        description: Publish a GitHub Release (off keeps the builds as artifacts only)
+      kind:
+        description: dev-builds keeps the builds as artifacts; prerelease publishes for testers; release publishes for everyone
+        type: choice
+        options: [dev-builds, prerelease, release]
+        default: dev-builds
+      android_only:
+        description: Build only the Android app (no desktop builds, so no release)
         type: boolean
-        default: true
+        default: false
   # No paths filter: GitHub skips a filtered workflow when a push creates the branch, which is how a release starts.
   push:
-    branches: [main, release]
+    branches: [release]
 
 permissions:
   contents: write
-  actions: write # to start the Pages deploy after a release
 
 jobs:
-  # The game's checks on every push and run, as the Pages deploy runs them on the commit it builds: a release waits for
-  # them, so one that fails them is never published (and the site and the Flatpak repository never left behind it).
+  # The checks main gets (ci.yml), first: nothing is built from a commit that fails them.
   checks:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: web
-    steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
-        with:
-          node-version: 22
-          cache: npm
-          cache-dependency-path: web/package-lock.json
-      - run: npm ci
-      - run: npm run format:check
-      - run: npm run lint
-      - run: npm test
+    uses: ./.github/workflows/ci.yml
 
   build:
+    if: ${{ !inputs.android_only }}
+    needs: checks
     strategy:
       fail-fast: false
       matrix:
@@ -141,6 +143,7 @@ jobs:
           if-no-files-found: error
 
   android:
+    needs: checks
     runs-on: ubuntu-latest
     env:
       ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
@@ -183,20 +186,73 @@ jobs:
           path: mobile/dist/*.apk
           if-no-files-found: error
 
-  # A manual run (unless told not to publish), or a push to the release branch, publishes one release with every file
-  # once all four builds exist and the checks have passed; the tag lands on this commit.
+
+  # The site, for a release (not a pre-release, nor dev builds): the web game built from this commit, and the Flatpak
+  # repository it serves made from this run's own Flatpak, all before anything is published, so a failure here stops
+  # the release whole and the site is always the release's game, as the apps are.
+  site:
+    if: ${{ github.event_name == 'push' || inputs.kind == 'release' }}
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+      # The build's mark: the commit built.
+      - run: VITE_BUILD="$(git rev-parse --short=7 HEAD)" npm run build
+        env:
+          VITE_BASE: /ultima3/
+      # The Flatpak repository: this run's own bundle, imported into a fresh OSTree repository and signed. A pruned
+      # repository holds one commit anyway, so nothing needs keeping between deploys. flatpak and ostree come from the
+      # cache kept per runner image, else the mirror (.github/actions/apt-install).
+      - uses: actions/download-artifact@v8
+        with:
+          name: ultima3-linux
+          path: linux
+      - timeout-minutes: 20
+        uses: ./.github/actions/apt-install
+        with:
+          packages: flatpak ostree
+      - run: bash desktop/flatpak-repo.sh "$GITHUB_WORKSPACE/web/dist/flatpak" "$(ls "$GITHUB_WORKSPACE"/linux/*.flatpak | head -1)"
+        working-directory: ${{ github.workspace }}
+        env:
+          FLATPAK_GPG_KEY: ${{ secrets.FLATPAK_GPG_KEY }}
+          FLATPAK_GPG_KEY_ID: ${{ secrets.FLATPAK_GPG_KEY_ID }}
+          SITE: https://synthwave-pixel.github.io/ultima3
+      - uses: actions/configure-pages@v6
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: web/dist
+
+  # A push to the release branch, or a manual run of kind release or prerelease, publishes one release with every file
+  # once all four builds (and, for a release, the site) exist; the tag lands on this commit. Dev builds stop at their
+  # artifacts. A pre-release has no site, so a skipped one is no reason to stop.
   release:
-    if: ${{ (github.event_name == 'workflow_dispatch' && inputs.publish) || github.ref == 'refs/heads/release' }}
-    needs: [checks, build, android]
+    if: >-
+      ${{ !cancelled() && needs.build.result == 'success' && needs.android.result == 'success'
+      && (needs.site.result == 'success' || needs.site.result == 'skipped')
+      && (github.event_name == 'push' || inputs.kind == 'release' || inputs.kind == 'prerelease') }}
+    needs: [build, android, site]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
       - id: v
         run: echo "version=$(node desktop/version.cjs)" >> "$GITHUB_OUTPUT"
+      # The apps' builds only: not the site's artifact (github-pages), nor a smoke screenshot from a failed attempt.
       - uses: actions/download-artifact@v8
         with:
           path: files
-          pattern: ultima3-* # the builds only: not a smoke screenshot from a failed attempt before a re-run
+          pattern: ultima3-*
           merge-multiple: true
       - run: ls -la files
       # The notes are the README changelog's section for this version (desktop/release-notes.cjs), above GitHub's
@@ -205,12 +261,26 @@ jobs:
           node desktop/release-notes.cjs "$VERSION" > notes.md
           notes=()
           if [ -s notes.md ]; then notes=(--notes-file notes.md); else echo "::warning::README.md has no changelog section for v$VERSION"; fi
+          if [ "$PRERELEASE" = true ]; then notes+=(--prerelease); fi
           gh release create "v$VERSION" files/* --title "v$VERSION" --generate-notes "${notes[@]}" --target "$GITHUB_SHA"
         env:
+          PRERELEASE: ${{ inputs.kind == 'prerelease' }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VERSION: ${{ steps.v.outputs.version }}
-      # The site follows the releases: deploy the commit just released, which also brings its Flatpak repository up to
-      # this release.
-      - run: gh workflow run pages.yml --ref main -f source="$GITHUB_SHA"
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # The site, deployed once the release is out: the build the site job made from this commit. Not for a pre-release.
+  deploy:
+    needs: [release, site]
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5

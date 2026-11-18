@@ -1,20 +1,29 @@
 #!/usr/bin/env bash
-# Builds the Flatpak repository the site serves under /flatpak/: the newest GitHub release's bundle, imported into
-# a fresh OSTree repository and signed, with the .flatpakrepo and .flatpakref files that let Discover, or one
+# Builds the Flatpak repository the site serves under /flatpak/: a release's bundle, imported into a fresh OSTree
+# repository and signed, with the .flatpakrepo and .flatpakref files that let Discover, or one
 # flatpak command, add the repository and install the game. Updates then arrive like any other Flatpak's.
 #
-# Needs flatpak, ostree, gpg and gh; FLATPAK_GPG_KEY (the armoured private key) and FLATPAK_GPG_KEY_ID; GH_TOKEN;
-# and SITE, the site's address without a trailing slash. Usage: flatpak-repo.sh <output directory>
+# The bundle is the one named, when one is: the release run's own Linux build, so the site carries the Flatpak of the
+# release it deploys. Without one it is downloaded from the newest full GitHub release (a redeploy, pages.yml).
+#
+# Needs flatpak, ostree and gpg, and gh with GH_TOKEN when downloading; FLATPAK_GPG_KEY (the armoured private key) and
+# FLATPAK_GPG_KEY_ID; and SITE, the site's address without a trailing slash.
+# Usage: flatpak-repo.sh <output directory> [bundle.flatpak]
 set -euo pipefail
-out=${1:?usage: flatpak-repo.sh <output directory>}
+out=${1:?usage: flatpak-repo.sh <output directory> [bundle.flatpak]}
 : "${FLATPAK_GPG_KEY:?}" "${FLATPAK_GPG_KEY_ID:?}" "${SITE:?}"
 repo=${GITHUB_REPOSITORY:-synthwave-pixel/ultima3}
 work=$(mktemp -d)
 
 gpg --batch --quiet --import <<<"$FLATPAK_GPG_KEY"
-gh release download --repo "$repo" --pattern '*.flatpak' --dir "$work/bundle"
-bundle=$(find "$work/bundle" -name '*.flatpak' | head -1)
-[ -n "$bundle" ] || { echo "the latest release has no .flatpak bundle" >&2; exit 1; }
+if [ -n "${2:-}" ]; then
+  bundle=$2
+  [ -f "$bundle" ] || { echo "no bundle at $bundle" >&2; exit 1; }
+else
+  gh release download --repo "$repo" --pattern '*.flatpak' --dir "$work/bundle"
+  bundle=$(find "$work/bundle" -name '*.flatpak' | head -1)
+  [ -n "$bundle" ] || { echo "the latest release has no .flatpak bundle" >&2; exit 1; }
+fi
 
 ostree init --repo="$work/repo" --mode=archive-z2
 flatpak build-import-bundle --gpg-sign="$FLATPAK_GPG_KEY_ID" "$work/repo" "$bundle"
