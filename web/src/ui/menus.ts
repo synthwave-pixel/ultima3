@@ -14,6 +14,7 @@ import { Key, Sound, type CommandScope, type MenuOption } from '../game/io.ts';
 import { VIEW_MAP_KEY } from '../game/context.ts';
 import { GraphicsSet } from './graphics.ts';
 import { HOLD_FIRST_MS, INPUT_PACES, Keyboard } from './input.ts';
+import { axis, browserPads, connectedPads, pressed, type PadList } from './pads.ts';
 
 /**
  * How keyboard keys stand in for the controller when in controller mode.
@@ -431,9 +432,14 @@ export const STICK_REST = 0.25;
  * (the Ultima V port's): some pads report a trigger as an axis resting at
  * -1, and a worn stick drifts, either of which would be a direction held
  * for ever.
+ *
+ * Every connected pad is read as one (issue #27): a button is down if it is
+ * down on any, a stick the one pushed furthest. The browser may list another
+ * device as a pad ahead of the one played with (a Shield's remote), and a
+ * Steam Deck's own controls and a pad plugged into it are both played with.
  */
 export class GamepadReader {
-  /** For each pad and key held: when it went down, when it last counted, and whether a new scene has spent it. */
+  /** For each key held: when it went down, when it last counted, and whether a new scene has spent it. */
   private held = new Map<string, { since: number; last: number; spent: boolean }>();
   /** The keyboard's `holdBreaks` when last read: a new count spends every direction held. */
   private breaks = 0;
@@ -444,69 +450,68 @@ export class GamepadReader {
     private readonly keyboard: Pick<Keyboard, 'push' | 'waiting'> & Partial<Pick<Keyboard, 'pace' | 'holdBreaks'>>,
     private readonly onActivity: () => void,
     private readonly now: () => number = () => performance.now(),
-    private readonly pads: () => (Gamepad | null)[] = () =>
-      typeof navigator === 'undefined' || !navigator.getGamepads ? [] : navigator.getGamepads(),
+    private readonly pads: () => PadList = browserPads,
   ) {}
 
   /** Whether any pad is connected: the screen reads them only while one is (screen.ts `readPads`). */
   connected(): boolean {
-    return this.pads().some((pad) => pad !== null);
+    return connectedPads(this.pads()).length > 0;
   }
 
   /** Call once per animation frame. Returns whether any pad is connected, to go on reading (screen.ts `readPads`). */
   poll(): boolean {
     const t = this.now();
-    let any = false;
     const breaks = this.keyboard.holdBreaks ?? 0;
     if (breaks !== this.breaks) {
       this.breaks = breaks;
       for (const was of this.held.values()) was.spent = true;
     }
     const pace = this.keyboard.pace ?? INPUT_PACES.medium;
-    for (const pad of this.pads()) {
-      if (!pad) continue;
-      any = true;
-      // An axis, once seen at rest; until then, none.
-      const axis = (n: number): number => {
-        const value = pad.axes[n] ?? 0;
-        const id = `${pad.index}:${pad.id}:${n}`;
+    const pads = connectedPads(this.pads());
+    // Every pad as one: a button down on any, and each stick axis the one pushed furthest of those seen at rest.
+    const down = (button: number): boolean => pads.some((pad) => pressed(pad, button));
+    const stick = (n: number): number => {
+      let furthest = 0;
+      pads.forEach((pad, place) => {
+        const value = axis(pad, n);
+        const id = `${typeof pad.index === 'number' ? pad.index : place}:${pad.id}:${n}`;
         if (Math.abs(value) < STICK_REST) this.rested.add(id);
-        return this.rested.has(id) ? value : 0;
-      };
-      const [x, y] = [axis(0), axis(1)];
-      const map: [string, boolean][] = [
-        [Key.A, pad.buttons[0]?.pressed ?? false],
-        [Key.B, pad.buttons[1]?.pressed ?? false],
-        [Key.X, pad.buttons[2]?.pressed ?? false],
-        [Key.Y, pad.buttons[3]?.pressed ?? false],
-        // The two system buttons either side of the maker's logo (View and Menu on an Xbox pad, Select and Start
-        // elsewhere): both pause, as a console's do.
-        [Key.Pause, (pad.buttons[8]?.pressed ?? false) || (pad.buttons[9]?.pressed ?? false)],
-        [Key.Up, (pad.buttons[12]?.pressed ?? false) || y < -0.5],
-        [Key.Down, (pad.buttons[13]?.pressed ?? false) || y > 0.5],
-        [Key.Left, (pad.buttons[14]?.pressed ?? false) || x < -0.5],
-        [Key.Right, (pad.buttons[15]?.pressed ?? false) || x > 0.5],
-      ];
-      for (const [key, down] of map) {
-        const id = `${pad.index}:${key}`;
-        const was = this.held.get(id);
-        if (!down) {
-          this.held.delete(id);
-          continue;
-        }
-        if (!was) {
-          this.held.set(id, { since: t, last: t, spent: false });
-          this.keyboard.push(key, 'gamepad');
-          this.onActivity();
-          continue;
-        }
-        const repeats = DIRECTION_KEYS.includes(key);
-        if (repeats && !was.spent && t - was.since >= HOLD_FIRST_MS && t - was.last >= pace && this.keyboard.waiting) {
-          was.last = t;
-          this.keyboard.push(key, 'gamepad');
-        }
+        if (this.rested.has(id) && Math.abs(value) > Math.abs(furthest)) furthest = value;
+      });
+      return furthest;
+    };
+    const [x, y] = [stick(0), stick(1)];
+    const map: [string, boolean][] = [
+      [Key.A, down(0)],
+      [Key.B, down(1)],
+      [Key.X, down(2)],
+      [Key.Y, down(3)],
+      // The two system buttons either side of the maker's logo (View and Menu on an Xbox pad, Select and Start
+      // elsewhere): both pause, as a console's do.
+      [Key.Pause, down(8) || down(9)],
+      [Key.Up, down(12) || y < -0.5],
+      [Key.Down, down(13) || y > 0.5],
+      [Key.Left, down(14) || x < -0.5],
+      [Key.Right, down(15) || x > 0.5],
+    ];
+    for (const [key, isDown] of map) {
+      const was = this.held.get(key);
+      if (!isDown) {
+        this.held.delete(key);
+        continue;
+      }
+      if (!was) {
+        this.held.set(key, { since: t, last: t, spent: false });
+        this.keyboard.push(key, 'gamepad');
+        this.onActivity();
+        continue;
+      }
+      const repeats = DIRECTION_KEYS.includes(key);
+      if (repeats && !was.spent && t - was.since >= HOLD_FIRST_MS && t - was.last >= pace && this.keyboard.waiting) {
+        was.last = t;
+        this.keyboard.push(key, 'gamepad');
       }
     }
-    return any;
+    return pads.length > 0;
   }
 }

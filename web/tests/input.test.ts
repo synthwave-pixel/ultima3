@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Key } from '../src/game/io.ts';
-import { HOLD_FIRST_MS, INPUT_PACES, Keyboard, STALE_KEY_MS } from '../src/ui/input.ts';
+import { HOLD_FIRST_MS, HOLD_UNSEEN_MS, INPUT_PACES, Keyboard, losesKeyUps, STALE_KEY_MS } from '../src/ui/input.ts';
 
 describe('keyboard queue', () => {
   const setup = () => {
@@ -121,6 +121,36 @@ describe('a held key', () => {
     expect(pressed).toHaveLength(6);
     key('keyup');
     await vi.advanceTimersByTimeAsync(1000);
+    expect(pressed).toHaveLength(6);
+  });
+
+  it('where a key-up may be lost (Android), repeats only while the system says the key is down (#25)', async () => {
+    expect(losesKeyUps('Mozilla/5.0 (Linux; Android 14; wv) AppleWebKit/537.36')).toBe(true);
+    expect(losesKeyUps('Mozilla/5.0 (Macintosh; Intel Mac OS X 15_0) AppleWebKit/605.1.15')).toBe(false);
+    const { keyboard, pressed, key } = setup();
+    keyboard.vouched = true;
+    key('keydown');
+    await vi.advanceTimersByTimeAsync(HOLD_FIRST_MS);
+    expect(pressed).toHaveLength(1); // no system repeat yet: not taken for held
+    key('keydown', true);
+    await vi.advanceTimersByTimeAsync(keyboard.pace);
+    expect(pressed.length).toBeGreaterThan(1);
+    // The key-up is lost: the system's repeats stop, and so does the key.
+    const before = pressed.length;
+    await vi.advanceTimersByTimeAsync(5000);
+    expect(pressed.length - before).toBeLessThanOrEqual(4);
+    // A press the system never repeats is let go, not held for ever.
+    const after = pressed.length;
+    key('keydown');
+    await vi.advanceTimersByTimeAsync(HOLD_UNSEEN_MS + 5000);
+    expect(pressed.length - after).toBe(1);
+  });
+
+  it('elsewhere repeats a held key with no system repeat at all', async () => {
+    const { keyboard, pressed, key } = setup();
+    keyboard.vouched = false;
+    key('keydown');
+    await vi.advanceTimersByTimeAsync(HOLD_FIRST_MS + keyboard.pace * 4);
     expect(pressed).toHaveLength(6);
   });
 

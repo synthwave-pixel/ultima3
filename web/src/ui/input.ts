@@ -16,6 +16,14 @@
  * (`breakHold`): a key still down there does nothing until it is let go and
  * pressed again, so a run across the map does not walk on into the fight.
  *
+ * Where a key's key-up may never come (Android: its web view loses them for a
+ * controller's buttons, which the system sends as keys), a key held until
+ * then would repeat for ever - a menu opened and shut, a choice made unasked
+ * (issue #25). There a key repeats only once the system's own repeats say it
+ * is still down, and stops when they stop (`losesKeyUps`). Elsewhere the
+ * key-up comes, and a held key repeats at the game's pace whatever the
+ * system's repeat is set to: slow, or off.
+ *
  * Keys are normalised to the single-character codes in `Key` (game/io.ts):
  * arrows map to the Mac arrow codes 28..31; letters keep their case.
  */
@@ -36,6 +44,13 @@ export const INPUT_PACE_LABELS: Record<InputPace, string> = { verySlow: 'V slow'
 export const HOLD_FIRST_MS = 250;
 /** How soon a held key looks again when the game was busy at its repeat: it repeats once the game waits. */
 const HOLD_RECHECK_MS = 16;
+/** How long after the system's last repeat of a key it is still taken for held (the slowest a system repeats). */
+export const HOLD_STALE_MS = 500;
+/** How long a key held waits for the system's first repeat before it is taken for let go (the slowest first delay). */
+export const HOLD_UNSEEN_MS = 1200;
+
+/** Whether the browser may lose a key's key-up, so a key held must be vouched for by the system's repeats: Android's. */
+export const losesKeyUps = (userAgent: string): boolean => /Android/i.test(userAgent);
 
 /** A key held down, repeating (`Keyboard.hold`). */
 interface Hold {
@@ -44,6 +59,8 @@ interface Hold {
   /** When it last counted: its press, or its last repeat. */
   last: number;
   timer: ReturnType<typeof setTimeout> | null;
+  /** A key the system must vouch for (`losesKeyUps`): when it last repeated it, null until it has; else undefined. */
+  seen?: number | null;
 }
 
 /** What holds the game paused: the window is not focused, or the Pause menu is open. */
@@ -105,6 +122,8 @@ export class Keyboard {
   private keysHeld = new Map<string, Hold>();
   /** Whether losing the focus pauses the game; not for a game shown beside another (looks.html, ?awake). */
   followsFocus = true;
+  /** Whether a keyboard's key held needs the system's repeats to say it is still down (`losesKeyUps`). */
+  vouched = typeof navigator !== 'undefined' && losesKeyUps(navigator.userAgent ?? '');
 
   constructor(
     target: EventTarget = window,
@@ -168,29 +187,45 @@ export class Keyboard {
     const key = translate(e);
     if (key === null) return;
     e.preventDefault();
-    if (e.repeat) return; // the system's repeats: a held key repeats at the game's pace instead (`hold`)
+    // The system's repeats are not presses: a held key repeats at the game's pace instead (`hold`); they only say the
+    // key is still down.
+    if (e.repeat) return this.seen(`key:${e.code}`);
     this.push(key, 'keyboard');
-    if (!this.dropRepeat?.(key)) this.hold(`key:${e.code}`, key, 'keyboard');
+    if (!this.dropRepeat?.(key)) this.hold(`key:${e.code}`, key, 'keyboard', this.vouched);
   }
 
   /**
    * `key`, just pressed, is held down by `id` (a keyboard's key, the touch pad): it repeats, the first time after
    * HOLD_FIRST_MS and then every `pace`, each only when the game is waiting for a key, until `letGo` or `breakHold`.
+   * `vouched`: it repeats only while the system's own repeats (`seen`) say it is still down.
    */
-  hold(id: string, key: string, source: InputSource): void {
+  hold(id: string, key: string, source: InputSource, vouched = false): void {
     this.letGo(id);
-    const hold: Hold = { key, source, last: this.now(), timer: null };
+    const pressed = this.now();
+    const hold: Hold = { key, source, last: pressed, timer: null, ...(vouched ? { seen: null } : {}) };
     this.keysHeld.set(id, hold);
     const look = (ms: number) => (hold.timer = setTimeout(tick, ms));
     const tick = () => {
       const due = hold.last + this.pace - this.now();
       if (due > 0) return look(due);
+      if (hold.seen === null) {
+        // Not yet repeated by the system: wait for it, or take the key for let go.
+        if (this.now() - pressed >= HOLD_UNSEEN_MS) return this.letGo(id);
+        return look(HOLD_RECHECK_MS);
+      }
+      if (hold.seen !== undefined && this.now() - hold.seen > HOLD_STALE_MS) return this.letGo(id);
       if (!this.waiting) return look(HOLD_RECHECK_MS);
       hold.last = this.now();
       this.push(key, source);
       look(this.pace);
     };
     look(HOLD_FIRST_MS);
+  }
+
+  /** The system repeated the key `id` holds: it is still down. */
+  seen(id: string): void {
+    const hold = this.keysHeld.get(id);
+    if (hold && hold.seen !== undefined) hold.seen = this.now();
   }
 
   /** What `id` held is let go: it repeats no more. */

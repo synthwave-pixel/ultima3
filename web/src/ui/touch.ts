@@ -25,6 +25,18 @@ import { Key } from '../game/io.ts';
 import type { Keyboard } from './input.ts';
 import type { FullScreen } from './fullScreen.ts';
 
+/** The page's own controls, over the game: a tap on one is its click. */
+const CONTROLS = 'button, input, textarea, select, label, a';
+
+/**
+ * Whether the pad cancels a touch on `target`: everywhere but on the page's own controls (CONTROLS), since a cancelled
+ * touchend cancels the click a tap would make (issue #26, as the Ultima V port found).
+ */
+export function cancelsTouch(target: unknown): boolean {
+  const closest = (target as { closest?: (s: string) => unknown } | null)?.closest;
+  return typeof closest !== 'function' || !closest.call(target, CONTROLS);
+}
+
 /** Sizes in millimetres: the NES d-pad is about 24 across and its buttons about 10; thumbs on glass want more, the d-pad most. */
 const DPAD_MM = 42;
 const BUTTON_MM = 14;
@@ -76,8 +88,11 @@ export class TouchPad {
     // iOS WebKit zooms in on a double-tapped element whatever the CSS and
     // viewport say, unless the page cancels the tap itself: the pad works
     // through pointer events, so the touch events can be cancelled outright,
-    // and the pinch gesture with them. Nothing else on the page needs them.
-    const cancel = (e: Event) => e.preventDefault();
+    // and the pinch gesture with them - but not on the page's own controls
+    // (cancelsTouch), where a cancelled touchend cancels the tap's click.
+    const cancel = (e: Event) => {
+      if (cancelsTouch(e.target)) e.preventDefault();
+    };
     document.addEventListener('touchend', cancel, { passive: false });
     document.addEventListener('touchmove', cancel, { passive: false });
     document.addEventListener('gesturestart', cancel, { passive: false });
