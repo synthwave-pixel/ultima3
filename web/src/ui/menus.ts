@@ -12,6 +12,7 @@
 
 import { Key, Sound, type CommandScope, type MenuOption } from '../game/io.ts';
 import { VIEW_MAP_KEY } from '../game/context.ts';
+import { SNAP_KEY } from '../game/snap.ts';
 import { GraphicsSet } from './graphics.ts';
 import { HOLD_FIRST_MS, INPUT_PACES, Keyboard } from './input.ts';
 import { axis, browserPads, connectedPads, pressed, type PadList } from './pads.ts';
@@ -117,7 +118,7 @@ export const COMMAND_MENUS: Record<CommandScope, MenuOption[]> = {
 /** What the B, X and Y buttons do outside a menu, per scope. */
 export const BUTTON_SHORTCUTS: Record<CommandScope, { B: string; X: string; Y: string }> = {
   field: { B: ' ', X: 'Z', Y: 'L' },
-  combat: { B: ' ', X: 'Z', Y: 'A' },
+  combat: { B: ' ', X: 'Z', Y: SNAP_KEY }, // Y: a snap attack (snap.ts), or an attack asked a direction
   dungeon: { B: ' ', X: 'Z', Y: 'I' },
 };
 
@@ -489,6 +490,9 @@ export class GamepadReader {
       // The two system buttons either side of the maker's logo (View and Menu on an Xbox pad, Select and Start
       // elsewhere): both pause, as a console's do.
       [Key.Pause, down(8) || down(9)],
+      // The shoulders: Snap targets' foe before and next (snap.ts).
+      [Key.LB, down(4)],
+      [Key.RB, down(5)],
       [Key.Up, down(12) || y < -0.5],
       [Key.Down, down(13) || y > 0.5],
       [Key.Left, down(14) || x < -0.5],

@@ -17,7 +17,7 @@ import { World, type CombatState, type Combatant } from './world.ts';
 import { Location } from './party.ts';
 import { MapValue, Shape, classTile } from './tiles.ts';
 import { type GameIO, Key, Sound, Music, deathSound } from './io.ts';
-import { getDirection, moveForKey, moveDelta, what2, cancelled, DIAGONAL_KEYS, Msg as CmdMsg } from './commands.ts';
+import { getDirection, moveForKey, moveDelta, stepMessage, what2, cancelled, DIAGONAL_KEYS, Msg as CmdMsg } from './commands.ts';
 import { ageChars } from './turn.ts';
 import { cast, quickCast, repelCast } from './spells.ts';
 import { QUICK_CAST_KEY, REPEL_KEY } from './context.ts';
@@ -26,6 +26,7 @@ import { BASERES } from '../data/resources.ts';
 import { checkAllDead } from './death.ts';
 import { VIEW_SIZE } from './viewport.ts';
 import { autoCombatKeys } from './autocombat.ts';
+import { noteSnapTarget, SNAP_KEY, SNAP_KEYS, snapTarget, stepSnapTarget } from './snap.ts';
 
 /** Messages used by combat (1-based Messages table entries). */
 const Msg = {
@@ -442,9 +443,23 @@ async function waitForCombatKey(world: World, io: GameIO, member: number): Promi
   const limit = world.timeLimit(TURN_TIMEOUT_MS);
   c.markedFor = limit ?? 0; // 0: no countdown, the outline stays white
   c.markedFrozenAt = 0;
+  // Snap targets: the foe an attack would strike, marked; the shoulder buttons (or [ and ]) mark another, no turn spent.
+  const snaps = world.snapTargets && !world.autoCombat;
+  c.snapShown = snaps ? (snapTarget(world, member)?.monster ?? -1) : -1;
+  if (snaps && c.snapShown >= 0 && !world.snapTipGiven) {
+    world.snapTipGiven = true;
+    world.onTipGiven?.();
+    io.print('\nY or Enter: strike the\nmarked foe; LB, RB or\n[ ]: mark another.\n');
+    io.prompt();
+  }
   io.redrawMap();
   try {
-    const key = await io.waitCommand('combat', limit);
+    let key = await io.waitCommand('combat', limit);
+    while (key !== null && key in SNAP_KEYS) {
+      if (snaps) c.snapShown = stepSnapTarget(world, member, SNAP_KEYS[key])?.monster ?? -1;
+      io.redrawMap();
+      key = await io.waitCommand('combat', limit);
+    }
     if (key !== null) {
       c.idleMs = 0;
       return key;
@@ -459,6 +474,7 @@ async function waitForCombatKey(world: World, io: GameIO, member: number): Promi
     return Key.Pause;
   } finally {
     c.markedFor = 0; // the outline stays, steady, while the command's prompts run (a direction, a target)
+    c.snapShown = -1;
     io.redrawMap();
   }
 }
@@ -511,10 +527,18 @@ async function memberTurn(world: World, io: GameIO, member: number): Promise<voi
       handleMove(world, io, member, delta.dx, delta.dy);
       return;
     }
-    switch (key.toUpperCase()) {
+    switch (key === Key.Enter && world.snapTargets ? SNAP_KEY : key.toUpperCase()) {
       case ' ':
         io.printMessage(CmdMsg.Pass);
         return;
+      case SNAP_KEY: {
+        // A snap attack: the snap target struck, no direction asked; with none in reach, an attack as ever.
+        const snap = world.snapTargets ? snapTarget(world, member) : null;
+        const way = snap ? stepMessage(snap.dx, snap.dy) : undefined;
+        await combatAttack(world, io, member, snap && way !== undefined ? { dx: snap.dx, dy: snap.dy, message: way } : undefined);
+        if (world.takeCancelled()) continue;
+        return;
+      }
       case 'A':
         await combatAttack(world, io, member);
         if (world.takeCancelled()) continue; // backed out at the direction: ask again
@@ -635,6 +659,9 @@ export function handleMove(world: World, io: GameIO, member: number, dx: number,
   p.tileUnder = arenaTile(c, xs, ys);
 }
 
+/** A member's turn, for tests. */
+export const memberTurnForTest = (world: World, io: GameIO, member: number) => memberTurn(world, io, member);
+
 /** The attack routine, for tests. */
 export const combatAttackForTest = (world: World, io: GameIO, member: number) => combatAttack(world, io, member);
 
@@ -683,6 +710,7 @@ async function combatAttack(world: World, io: GameIO, member: number, preset?: {
       if (target < 0) return missed();
     }
   }
+  noteSnapTarget(world, member, target); // the foe struck at stays the snap target while it can be struck
   // Only exotic weapons work in Exodus' castle.
   if (world.inExodusCastle() && weapon !== 15) return missed();
   if (world.rng.range(0, 255) < 128 && p.dexterity < world.rng.range(0, 99)) return missed();

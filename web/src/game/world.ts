@@ -124,6 +124,10 @@ export interface CombatState {
    * were given, ms (this port). A minute of it and the fight pauses (combat.ts `waitForCombatKey`).
    */
   idleMs: number;
+  /** Snap targets (snap.ts): the foe each member last struck or chose, by monster index, or -1. */
+  snapChosen?: number[];
+  /** The foe marked as the snap target of the turn being asked for, or -1 (the UI draws its mark). */
+  snapShown?: number;
 }
 
 /**
@@ -722,6 +726,10 @@ export class World {
    * the killer takes it all, as on the Apple II.
    */
   balancedXp = true;
+  /** Snap targets (Gameplay, snap.ts): the foe an attack would strike marked at a member's turn, struck with Y or Enter. */
+  snapTargets = true;
+  /** Whether the tip for snap targets has been given (once, at the first fight with one). */
+  snapTipGiven = false;
 
   /** Each member's last spell this session, for the combat menu's "Cast (spell)" shortcut (this port). */
   lastSpell: (number | undefined)[] = [];
@@ -800,6 +808,8 @@ export class World {
   }
   /** Called when the game itself turns auto-combat off, so the page can show it. */
   onAutoCombatChange: (() => void) | null = null;
+  /** Called when a one-time tip has been given (Snap targets'), to remember it. */
+  onTipGiven: (() => void) | null = null;
 
   /** Once-per-fight flags for the Repond and Pontori spells. (`g5521`, `g56E7`) */
   spellFlags = { repond: false, pontori: false };

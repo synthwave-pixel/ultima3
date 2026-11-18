@@ -182,6 +182,11 @@ const MOVES: Record<string, MoveSpec> = {
 
 export type MoveName = keyof typeof MOVES;
 
+/** The message for a step of (dx, dy) ("North", "Southeast"), or undefined for no step. */
+export function stepMessage(dx: number, dy: number): number | undefined {
+  return Object.values(MOVES).find((m) => m.dx === dx && m.dy === dy)?.message;
+}
+
 /** The step and message for a movement name (used by combat, which moves on the arena instead of the map). */
 export function moveDelta(name: MoveName): { dx: number; dy: number; message: number } {
   const spec = MOVES[name];

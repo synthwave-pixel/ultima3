@@ -1273,6 +1273,7 @@ export class Screen implements GameIO {
         { key: 'P', label: `Poison kills: ${onOff(w.poisonKills)}` },
         { key: 'V', label: `Starving: ${named(w.starvation)}` },
         { key: 'X', label: `Balanced XP: ${onOff(w.balancedXp)}` },
+        { key: 'G', label: `Snap targets: ${onOff(w.snapTargets)}` },
         { key: 'R', label: `Timer: ${named(w.timer)}` },
         { key: 'M', label: `Max input: ${INPUT_PACE_LABELS[this.maxInput]}` },
         { key: 'S', label: `Battery saver: ${onOff(this.batterySaver)}` },
@@ -1291,6 +1292,9 @@ export class Screen implements GameIO {
             break;
           case 'X':
             w.balancedXp = !w.balancedXp;
+            break;
+          case 'G':
+            w.snapTargets = !w.snapTargets;
             break;
           case 'R':
             w.timer = TIMER_MODES[(TIMER_MODES.indexOf(w.timer) + 1) % TIMER_MODES.length];
@@ -2050,6 +2054,7 @@ export class Screen implements GameIO {
       const key = await this.readKey(left);
       if (key === null || this.promptMode === 'keyboard') return key;
       if (DIRECTION_KEYS.includes(key)) return key;
+      if ((key === Key.LB || key === Key.RB) && scope !== 'combat') continue; // the shoulders mark foes, in a fight
       const shortcuts = BUTTON_SHORTCUTS[scope];
       if (key === Key.B) return shortcuts.B;
       if (key === Key.X) return shortcuts.X;
@@ -2445,6 +2450,49 @@ export class Screen implements GameIO {
     ctx.restore();
   }
 
+  /**
+   * Snap targets (snap.ts): the foe a snap attack would strike, marked by four small arrows pointing in at its square
+   * from its sides, in the turn outline's colour, with a dark edge so they stand out on any ground.
+   */
+  private markSnapTarget(monster: number, lag: Point): void {
+    const c = this.world.combat;
+    const m = c?.monsters[monster];
+    if (!m || m.hp <= 0 || m.x > 10 || m.y > 10) return;
+    const { ctx, cell } = this;
+    const tile = 2 * cell;
+    const px = tile / 16; // a game pixel
+    const left = (1 + 2 * m.x) * cell + Math.round(lag.x * tile);
+    const top = (1 + 2 * m.y) * cell + Math.round(lag.y * tile);
+    const [cx, cy] = [left + tile / 2, top + tile / 2];
+    const reach = 3 * px; // how far an arrow comes in over the square
+    const half = 2.5 * px; // half an arrow's width
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(cell, cell, 22 * cell, 22 * cell); // never paint over the border
+    ctx.clip();
+    ctx.beginPath();
+    for (const [ex, ey, nx, ny] of [
+      [cx, top, 0, 1],
+      [cx, top + tile, 0, -1],
+      [left, cy, 1, 0],
+      [left + tile, cy, -1, 0],
+    ]) {
+      // A triangle from outside the square's edge to its point just inside.
+      const [bx, by] = [ex - nx * px, ey - ny * px];
+      ctx.moveTo(bx + ny * half, by + nx * half);
+      ctx.lineTo(bx - ny * half, by - nx * half);
+      ctx.lineTo(ex + nx * reach, ey + ny * reach);
+      ctx.closePath();
+    }
+    ctx.lineJoin = 'round';
+    ctx.lineWidth = px;
+    ctx.strokeStyle = 'rgba(0, 0, 0, 0.8)';
+    ctx.stroke();
+    ctx.fillStyle = `rgb(${markerColour(this.gfx.display, 0).join(',')})`;
+    ctx.fill();
+    ctx.restore();
+  }
+
   private paintViewport(time: number): void {
     const { ctx, cell, gfx, world } = this;
     const inDungeon = world.party.location === Location.Dungeon && !world.combat;
@@ -2588,6 +2636,7 @@ export class Screen implements GameIO {
     ctx.restore();
     const c = world.combat;
     this.markActiveMember(c && c.markedMember >= 0 ? lag(`p${c.markedMember}`) : still);
+    if (c && (c.snapShown ?? -1) >= 0) this.markSnapTarget(c.snapShown!, lag(`c${c.snapShown}`));
   }
 
   /**

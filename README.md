@@ -215,12 +215,21 @@ keeps walking as a held key does.
     A       open the command menu; choose
     B       cancel, or pass a turn (so the menu has no Pass)
     X       ztats
-    Y       look; attack in combat; ignite a torch in dungeons
+    Y       look; ignite a torch in dungeons; in combat, strike the marked foe
+    LB, RB  in combat, mark the foe before or the next (Snap targets)
     View    open the Pause menu, which stops the game
     Menu    the same; either system button pauses
 
 On a keyboard the stand-ins are WASD or the arrows for the d-pad, Enter or
-Z for A, X or B for B, C for X, V or Y for Y, and Escape pauses. On a
+Z for A, X or B for B, C for X, V or Y for Y, [ and ] for LB and RB, and
+Escape pauses.
+
+With Snap targets on (Gameplay; on to begin with), the foe a member's
+attack would strike without aiming is marked at their turn: the one next
+to them, or with a sling, a bow or a spare dagger to throw, the first in
+line. It is the foe they last struck or chose while it can still be
+reached, else the nearest. Y strikes it, LB and RB mark another, and in
+keyboard mode Enter strikes it and [ and ] mark another. On a
 touch screen the pause button is at the top of the virtual pad.
 
 ### Keyboard mode

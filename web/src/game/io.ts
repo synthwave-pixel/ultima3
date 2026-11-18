@@ -29,6 +29,9 @@ export const Key = {
   Y: '\x04',
   /** The controller's system buttons (View and Menu), the touch pad's pause button, and a window that loses focus. */
   Pause: '\x05',
+  /** The controller's shoulder buttons (Snap targets: the foe before, and the next). */
+  LB: '\x06',
+  RB: '\x07',
 } as const;
 
 /** One choice in a menu or a letter prompt. */
