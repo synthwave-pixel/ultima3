@@ -131,7 +131,7 @@ export const PLACE_DUNGEON_STYLES: Record<string, Record<number, DungeonStyle>> 
     412: WALLS['red bricks'], // Doom
     413: WALLS['red rock'], // Fires of Hell
     414: WALLS['violet blocks'], // Time Awaits
-    415: WALLS['green fieldstone'], // Clues
+    415: WALLS['green fieldstone'], // the Snake (Clues in the game's files)
     416: WALLS['slate blocks'], // Perinian Depths
     417: WALLS['grey rock'], // Mines of Morinia
     418: WALLS['earth'], // Dardin's Pit

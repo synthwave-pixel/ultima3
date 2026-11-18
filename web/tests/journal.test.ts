@@ -215,6 +215,23 @@ describe('the journal', () => {
     expect(section(world, 'Main quest').label).toBe('Main quest       2/9'); // the Mark of Kings and the exotics
   });
 
+  it("calls map 415 the Dungeon of the Snake, and the snake's step ready with the mark and the word (#35)", () => {
+    const world = newWorld();
+    expect(world.resources.mapNames.get(415)).toBe('Dungeon Snake');
+    rodFound(world, 415, 2); // the Mark of Snake's rod (x & 3 = 2)
+    expect(lineOf(world, 'Dungeons', 'Snake').label).toMatch(/^Snake +1\/1$/);
+    // Fawn's 'INVOKE' line says what the invocation is.
+    hearClue(world, 'Fawn#3');
+    const fawn = lineOf(world, 'Main quest', 'Silver Snake').open;
+    expect(fawn?.text?.join(' ') ?? '').toContain('The invocation: the word a prayer is answered with.');
+    // The mark and the word: ready, the passing itself all that is left.
+    world.member(0).bytes[14] |= 0x40;
+    world.journal.words.push('EVOCARE');
+    const snake = lineOf(world, 'Main quest', 'Silver Snake');
+    expect(snake.label).toMatch(/ready$/);
+    expect(snake.about).toContain('Next: yell the word');
+  });
+
   it('praying in the circle of light in Yew teaches EVOCARE, a clue of Yew and of the snake', async () => {
     const { world, io } = inTown(404); // Yew
     world.x = 0x30;
@@ -265,7 +282,7 @@ describe('the journal', () => {
     expect(io.output).toContain('Journal updated');
   });
 
-  it('the writing on the walls of Clues teaches INSERT and SEARCH', () => {
+  it("the writing on the walls of the Snake's dungeon teaches INSERT and SEARCH", () => {
     const world = newWorld();
     expect(readWriting(world, 415, 1)).toBe(true);
     expect(readWriting(world, 415, 1)).toBe(false);
@@ -274,8 +291,8 @@ describe('the journal', () => {
     expect(knownWords(world)).toEqual(['SEARCH', 'INSERT']);
     // "INSERT CARDS" names the cards; the order of them it only bears on.
     expect(lineOf(world, 'Main quest', 'The four cards').open?.text).toEqual([
-      'Clues, level 2: <INSERT> CARDS INTO EXODUS!',
-      'Clues, level 3: <SEARCH> THE SHRINES!',
+      'Snake, level 2: <INSERT> CARDS INTO EXODUS!',
+      'Snake, level 3: <SEARCH> THE SHRINES!',
     ]);
     expect(labels(world, 'Main quest')[7]).toBe('Mystery...');
   });

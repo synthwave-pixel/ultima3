@@ -90,6 +90,8 @@ export function resourcesFromBundle(bundle: Bundle): GameResources {
   const maps = bundle.maps as Record<string, { name: string; data: string }>;
   const mapNames = new Map<number, string>();
   for (const [id, entry] of Object.entries(maps)) mapNames.set(Number(id), entry.name);
+  // The game's files name the Snake's dungeon Clues; players and the guides know it as the Dungeon of the Snake.
+  if (mapNames.get(415) === 'Dungeon Clues') mapNames.set(415, 'Dungeon Snake');
 
   const misc = toByteMap(bundle.misc as Record<string, { name: string; data: string }>);
   const table = (id: number): Uint8Array => {

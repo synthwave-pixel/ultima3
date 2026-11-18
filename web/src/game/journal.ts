@@ -122,6 +122,8 @@ interface Clue {
   /** Who says it, and what, where it is not a townsperson's line. */
   from?: string;
   text?: string;
+  /** A word after the line, where it reads as something it is not. */
+  note?: string;
 }
 
 export const CLUES: Record<string, Clue> = {
@@ -165,7 +167,8 @@ export const CLUES: Record<string, Clue> = {
   'Devil Guard#7': { quest: ['kings'] },
   'Fawn#1': { word: 'PRAY', quest: ['snake'] },
   'Fawn#2': { word: 'PRAY', quest: ['snake'] },
-  'Fawn#3': { quest: ['snake'], names: ['snake'] },
+  // 'INVOKE' reads as a word to say, and is none: the invocation is the word a prayer in Yew is answered with.
+  'Fawn#3': { quest: ['snake'], names: ['snake'], note: 'The invocation: the word a prayer is answered with.' },
   'Fawn#4': { quest: ['snake'] },
   'Death Gulch#2': { word: 'BRIBE' },
   'Death Gulch#3': { quest: ['order', 'exodus'] },
@@ -234,7 +237,7 @@ const STEPS: { id: Step; name: string; hint: string }[] = [
   {
     id: 'snake',
     name: 'Silver Snake',
-    hint: "Mark of Snake: level 8 of Clues. PRAY in Yew's circle of light for the word. Yell it from a ship just south of the serpent.",
+    hint: "Mark of Snake: level 8 of the Snake's dungeon. PRAY in Yew's circle of light for the word. Yell it from a ship just south of the serpent.",
   },
   {
     id: 'order',
@@ -345,7 +348,8 @@ const DUNGEONS: { id: number; name: string; goals: Goal[]; hint: string }[] = [
     hint: 'South of Britain, on foot. Level 8: the Marks of Fire and Force.',
   },
   { id: 412, name: 'Doom', goals: ['force'], hint: 'In the far south-west. On foot. Level 8: the Mark of Force.' },
-  { id: 415, name: 'Clues', goals: ['snake'], hint: 'An isle in the east: a ship is needed. Level 8: the Mark of Snake.' },
+  // The game's files call it Clues; players and the guides know it as the Dungeon of the Snake.
+  { id: 415, name: 'Snake', goals: ['snake'], hint: 'An isle in the east: a ship is needed. Level 8: the Mark of Snake.' },
   {
     id: 414,
     name: 'Time Awaits',
@@ -382,7 +386,7 @@ export const WORDS: { word: string; about: string; hint: string }[] = [
   { word: 'DIG', about: 'Digs where something lies buried.', hint: 'Taught in Dawn, which stands only while both moons are new.' },
   {
     word: 'PAXUM',
-    about: 'In a town or castle, calms those nearby who have turned on the party. Pax: peace.',
+    about: 'In a town or castle, calms those within five squares who have turned on the party. Pax: peace.',
     hint: 'Learnt in Moon, from one who wishes the party peace.',
   },
 ];
@@ -462,6 +466,12 @@ function clueText(world: World, id: string): string {
   return world.townLine(town, Number(n));
 }
 
+/** A clue as the journal shows it: its words, and its note where it has one. */
+function clueLine(world: World, id: string): string {
+  const note = CLUES[id]?.note;
+  return note ? `${clueText(world, id)} (${note})` : clueText(world, id);
+}
+
 /** Who said a clue, for a step's list of them. */
 function clueFrom(world: World, id: string): string {
   const clue = CLUES[id];
@@ -530,6 +540,9 @@ function stepState(world: World, id: Step): { done: boolean; right: string; abou
       if (j.serpentParted) return { done: true, right: 'done', about: 'Passed: the serpent parted at the word.', started: true };
       const about = `The mark: ${who.length ? who.join(', ') : 'not held'}. The word: ${word ? 'EVOCARE' : 'not known'}.`;
       const parts = (who.length ? 1 : 0) + (word ? 1 : 0);
+      // The third part is the passing itself: with the mark and the word it is ready, not a clue short.
+      if (parts === 2)
+        return { done: false, right: 'ready', about: `${about} Next: yell the word from a ship just south of the serpent.`, started: true };
       return { done: false, right: `${parts}/3`, about, started: parts > 0 };
     }
     case 'order':
@@ -553,7 +566,7 @@ function mainQuest(world: World): JournalLine[] {
     const known = step.id === 'king' || step.id === 'exodus' || state.started || state.done || named;
     if (!known) return mystery(step.hint);
     const line: JournalLine = { label: row(step.name, state.right), name: step.name, about: state.about, hint: step.hint };
-    if (told.length) line.open = { title: step.name, text: told.map((id) => `${clueFrom(world, id)}: ${clueText(world, id)}`) };
+    if (told.length) line.open = { title: step.name, text: told.map((id) => `${clueFrom(world, id)}: ${clueLine(world, id)}`) };
     return line;
   });
 }
@@ -600,7 +613,7 @@ function townLine(world: World, town: (typeof TOWNS)[number]): JournalLine {
     if (!heard(world, id)) return MYSTERY;
     if (id === AUDIENCE) return 'An audience with Lord British.';
     if (id === 'Yew:pray') return `In the circle of light: ${clueText(world, id)}`;
-    return clueText(world, id);
+    return clueLine(world, id);
   });
   return {
     label: row(town.name, `${n}/${all}`),
