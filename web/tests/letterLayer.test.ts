@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { LetterCells, parseColour } from '../src/ui/letterLayer.ts';
+import { LetterCells, clipRect, parseColour } from '../src/ui/letterLayer.ts';
 
 /** A 40 x 24 screen of 32-pixel cells, as the game's canvas is. */
 const screen = () => new LetterCells(40, 24, 32);
@@ -64,5 +64,17 @@ describe('the letters set at the screen size', () => {
     expect(parseColour('#70a0ff')).toEqual([0x70, 0xa0, 0xff]);
     expect(parseColour('rgba(12, 34, 56, 0.5)')).toEqual([12, 34, 56]);
     expect(parseColour({})).toBeNull();
+  });
+
+  it("leave a letter beside the map that a figure slid half off it overhangs, the map's clip hiding the overhang", () => {
+    const cells = screen();
+    cells.set(24 * 32, 2 * 32, 32, '1'); // the panel's first column, beside the map (columns 1 to 22)
+    const view: [number, number, number, number] = [32, 32, 23 * 32, 23 * 32];
+    const tile: [number, number, number, number] = [22.6 * 32, 32, 24.6 * 32, 3 * 32]; // a square glided past the edge
+    const shown = clipRect(tile, view);
+    if (shown) cells.clear(...shown);
+    expect(cells.glyphs.get(2 * 40 + 24)?.ch).toBe('1');
+    expect(clipRect([0, 0, 10, 10], [20, 20, 30, 30])).toBeNull();
+    expect(clipRect([0, 0, 10, 10], null)).toEqual([0, 0, 10, 10]);
   });
 });

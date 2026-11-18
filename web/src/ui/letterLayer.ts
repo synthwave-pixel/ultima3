@@ -128,6 +128,24 @@ export function parseColour(style: unknown): [number, number, number] | null {
 }
 
 /**
+ * A rectangle [x0, y0, x1, y1] as far as a clip region's bounds let it show (null: no clip), or null where it shows
+ * nowhere: a figure slid half off the map is drawn whole but shown only within the map.
+ */
+export function clipRect(
+  r: [number, number, number, number],
+  clip: [number, number, number, number] | null,
+): [number, number, number, number] | null {
+  if (!clip) return r;
+  const out: [number, number, number, number] = [
+    Math.max(r[0], clip[0]),
+    Math.max(r[1], clip[1]),
+    Math.min(r[2], clip[2]),
+    Math.min(r[3], clip[3]),
+  ];
+  return out[0] < out[2] && out[1] < out[3] ? out : null;
+}
+
+/**
  * A face as it is set (the Ultima V port's measures): its file in public/fonts, how much of a cell it fills, and how much
  * of its size its outline is thickened by; `weight`, the weight a file of several is set in, `weights` their range.
  */
@@ -161,6 +179,15 @@ export class LetterLayer {
   /** What copyRegion took, by the canvas it was copied to: the letters to come back with it. */
   private readonly snapshots = new WeakMap<object, Taken>();
   private frameAsked = false;
+  /**
+   * Where the canvas draws at all: the bounds of its clip region (canvas pixels), null for the whole canvas, saved and
+   * restored with the context. A figure slid half off the map under Smooth motion is drawn whole but shown only
+   * within the map, and must not take the letters beside it.
+   */
+  private clipRect: Rect | null = null;
+  private readonly clipStack: (Rect | null)[] = [];
+  /** The bounds of the path being built (canvas pixels), for a clip made of it. */
+  private pathRect: Rect | null = null;
   /** Settled once the faces have loaded, failed to, or the wait ran out. */
   readonly ready: Promise<void>;
 
@@ -234,8 +261,65 @@ export class LetterLayer {
     return [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)];
   }
 
+  /** `r` as far as the clip region lets it show, or null where it shows nowhere. */
+  private shown(r: Rect): Rect | null {
+    return clipRect(r, this.clipRect);
+  }
+
+  /** The path's bounds grown to take in `r`. */
+  private addToPath(r: Rect): void {
+    const p = this.pathRect;
+    this.pathRect = p ? [Math.min(p[0], r[0]), Math.min(p[1], r[1]), Math.max(p[2], r[2]), Math.max(p[3], r[3])] : r;
+  }
+
+  /** Follow the clip region: the path's bounds as it is built, a clip made of it, and the context's save and restore. */
+  private followClip(): void {
+    const ctx = this.ctx;
+    const bind = <K extends keyof CanvasRenderingContext2D>(k: K) => (ctx[k] as (...a: unknown[]) => unknown).bind(ctx);
+    const [save, restore, beginPath, rect, arc, moveTo, lineTo, clip] = (
+      ['save', 'restore', 'beginPath', 'rect', 'arc', 'moveTo', 'lineTo', 'clip'] as const
+    ).map((k) => bind(k));
+    ctx.save = () => {
+      save();
+      this.clipStack.push(this.clipRect);
+    };
+    ctx.restore = () => {
+      restore();
+      if (this.clipStack.length) this.clipRect = this.clipStack.pop()!;
+    };
+    ctx.beginPath = () => {
+      beginPath();
+      this.pathRect = null;
+    };
+    ctx.rect = (x: number, y: number, w: number, h: number) => {
+      rect(x, y, w, h);
+      this.addToPath(this.bounds(x, y, w, h));
+    };
+    ctx.arc = (x: number, y: number, r: number, ...more: unknown[]) => {
+      arc(x, y, r, ...more);
+      this.addToPath(this.bounds(x - r, y - r, 2 * r, 2 * r));
+    };
+    ctx.moveTo = (x: number, y: number) => {
+      moveTo(x, y);
+      this.addToPath(this.bounds(x, y, 0, 0));
+    };
+    ctx.lineTo = (x: number, y: number) => {
+      lineTo(x, y);
+      this.addToPath(this.bounds(x, y, 0, 0));
+    };
+    ctx.clip = (...args: unknown[]) => {
+      clip(...args);
+      // A clip given its own path (a Path2D) is not followed: the region is left as it was, the safe side.
+      if (args.length && typeof args[0] === 'object') return;
+      const p = this.pathRect;
+      if (!p) return;
+      this.clipRect = this.shown(p) ?? [0, 0, 0, 0];
+    };
+  }
+
   /** Watch the canvas's drawing: what is drawn over a letter's cell takes it away, or tints it, or brings one back. */
   private follow(): void {
+    this.followClip();
     const ctx = this.ctx;
     const cells = this.cells;
     const fillRect = ctx.fillRect.bind(ctx);
@@ -248,7 +332,9 @@ export class LetterLayer {
     ctx.fillRect = (x: number, y: number, w: number, h: number) => {
       fillRect(x, y, w, h);
       if (cells.glyphs.size === 0 || ctx.globalAlpha < 1) return; // a veil over the letters leaves them
-      const [x0, y0, x1, y1] = this.bounds(x, y, w, h);
+      const r = this.shown(this.bounds(x, y, w, h));
+      if (!r) return;
+      const [x0, y0, x1, y1] = r;
       const op = ctx.globalCompositeOperation;
       if (op === 'multiply' || op === 'difference') {
         const rgb = parseColour(ctx.fillStyle);
@@ -258,8 +344,8 @@ export class LetterLayer {
     };
     ctx.clearRect = (x: number, y: number, w: number, h: number) => {
       clearRect(x, y, w, h);
-      const [x0, y0, x1, y1] = this.bounds(x, y, w, h);
-      cells.clear(x0, y0, x1, y1);
+      const r = this.shown(this.bounds(x, y, w, h));
+      if (r) cells.clear(...r);
       changed();
     };
     ctx.putImageData = (...args: unknown[]) => {
@@ -286,10 +372,12 @@ export class LetterLayer {
       const carried = source === this.target && sw === dw && sh === dh ? cells.take(sx, sy, sx + sw, sy + sh) : null;
       if (cells.glyphs.size === 0 && !kept) return;
       if (ctx.globalAlpha < 1) return;
-      const [x0, y0, x1, y1] = this.bounds(dx, dy, dw, dh);
-      cells.clear(x0, y0, x1, y1);
-      if (carried) cells.paste(carried, x0, y0);
-      else if (kept && sw === dw && sh === dh) cells.paste(kept, x0, y0);
+      const whole = this.bounds(dx, dy, dw, dh);
+      const r = this.shown(whole);
+      if (r) cells.clear(...r);
+      // What came with it is put back where the whole was drawn (a region put back is never clipped).
+      if (carried) cells.paste(carried, whole[0], whole[1]);
+      else if (kept && sw === dw && sh === dh) cells.paste(kept, whole[0], whole[1]);
       changed();
     };
   }
