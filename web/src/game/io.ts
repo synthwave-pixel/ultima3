@@ -11,6 +11,8 @@
  */
 
 /** Single-character key codes used throughout the game logic. */
+import type { Appearance } from './appearance.ts';
+
 export const Key = {
   Left: '\x1c',
   Right: '\x1d',
@@ -40,6 +42,14 @@ export interface MenuPlacement {
   title: string;
   /** Item to highlight first (default 0). */
   cursor?: number;
+  /** The column the window's left edge is at (default: centred). */
+  column?: number;
+}
+
+/** A row of `adjustRows`: its label, and the values left and right step through. */
+export interface AdjustRow {
+  label: string;
+  values: string[];
 }
 
 export interface MenuOption {
@@ -185,6 +195,21 @@ export interface GameIO {
    */
   allocatePoints(labels: string[], total: number, min: number, max: number, place: MenuPlacement): Promise<number[] | null>;
   /**
+   * Choose a value for each of `rows` (indices into its `values`, from `start`) on a screen where left and right step
+   * a row through its values, round and round, and `changed` is told each change; then OK. `surprise`, where given,
+   * is a row before OK that picks them all at once; each of `actions` a row before that, which runs its `act` with the
+   * values as they stand (the window closed meanwhile; the act draws what it needs to again). The values chosen, or
+   * null if cancelled.
+   */
+  adjustRows(
+    rows: AdjustRow[],
+    start: number[],
+    place: MenuPlacement,
+    changed: (values: number[]) => void,
+    surprise?: () => number[],
+    actions?: { label: string; act: (values: number[]) => Promise<void> }[],
+  ): Promise<number[] | null>;
+  /**
    * Read a line of text at the cursor with a blinking cursor, echoing each
    * character. Backspace edits; Enter finishes. (`UInputText`) With a
    * controller, numbers use a spinner and words an on-screen keyboard; the
@@ -241,6 +266,15 @@ export interface GameIO {
   showTitle(): void;
   /** Draw the in-game border with the stats boxes. (`DrawFrame(1)`) */
   showGameFrame(): void;
+  /** The plain border with nothing in it, for a screen of its own off the title (a character's sheet). */
+  showSheet(): void;
+  /** Whether characters are drawn in their looks (the Remastered tiles), so a look may be chosen (appearance.ts). */
+  customisable(): boolean;
+  /**
+   * A character drawn `cells` cells square with its top left at cell (x, y): as the tile set in use draws its class,
+   * or with the Remastered tiles in `look` (null: its class's look) - `sex` the record's letter.
+   */
+  drawCharacter(classLetter: string, sex: string, look: Appearance | null, x: number, y: number, cells: number): void;
   /** Black out the lower part of the title screen where menu text goes. (`ClearBottom`) */
   clearBottom(): void;
   /** Draw text at a cell position, outside the message area. (`UPrint`) */

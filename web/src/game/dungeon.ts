@@ -175,7 +175,7 @@ async function peer(world: World, io: GameIO): Promise<void> {
  */
 export async function runDungeon(world: World, io: GameIO): Promise<void> {
   const d = world.dungeon;
-  d.torch = 0;
+  d.torch = world.devLit ? 255 : 0;
   d.exit = false;
   world.music = Music.Dungeon;
   io.music(Music.Dungeon);

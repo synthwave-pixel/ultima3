@@ -21,6 +21,7 @@ import { Roster, PLAYER_RECORD_SIZE, ROSTER_SIZE } from './player.ts';
 import { Random } from './random.ts';
 import { MapValue } from './tiles.ts';
 import { type JournalState, emptyJournal } from './journal.ts';
+import type { Appearance } from './appearance.ts';
 import { speech } from './talk.ts';
 
 /** A loaded map plus the creatures living on it. */
@@ -725,8 +726,17 @@ export class World {
   /** Each member's last spell this session, for the combat menu's "Cast (spell)" shortcut (this port). */
   lastSpell: (number | undefined)[] = [];
 
+  /** Development (?lit, devStarts.ts): a dungeon is entered with a torch already burning. */
+  devLit = false;
+
   /** The quest journal (this port; see journal.ts). Saved with the game. */
   journal: JournalState = emptyJournal();
+
+  /**
+   * Each roster entry's look in the Remastered tiles (appearance.ts), by slot: null for the look of its class until
+   * one is chosen. Saved with the game; the record itself has no room for it.
+   */
+  looks: (Appearance | null)[] = new Array<Appearance | null>(ROSTER_SIZE).fill(null);
 
   /**
    * A townsperson's line as the talk table has it: `town` is a map name

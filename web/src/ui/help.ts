@@ -9,11 +9,14 @@
 
 /**
  * Tile sets shipped in public/graphics, as the Settings menu lists them:
- * best first. Standard is LairWare's 64-pixel art, drawn at native size;
- * then the 32-pixel colour sets, the Apple II colour set, the
- * monochrome sets, and the 16-pixel 8-bit and early PC sets.
+ * best first. Remastered is the Ultima V port's look (tools/remastered.ts);
+ * Standard, shown as "U3 2026", this port's own 64-pixel art; then the
+ * 32-pixel colour sets, the Apple II colour set, the monochrome sets, and
+ * the 16-pixel 8-bit and early PC sets. A set is kept by its name here
+ * (the files' and the saved settings'), and shown by its label.
  */
 export const TILE_SETS = [
+  'Remastered',
   'Standard',
   'Lairware',
   'PC VGA',
@@ -27,6 +30,21 @@ export const TILE_SETS = [
   'PC CGA',
   'Commodore 64',
 ];
+
+/** The sets shown by another name than their own. */
+const TILE_SET_LABELS: Record<string, string> = { Standard: 'U3 2026' };
+
+/** A set's name as the menus show it. */
+export const tileSetLabel = (name: string): string => TILE_SET_LABELS[name] ?? name;
+
+/**
+ * The sets drawn as a modern game is, not as an old machine was: a member's state in the colour of the name, a burst
+ * where a blow lands, a spell's flash on its caster, the party walking as a party.
+ */
+const MODERN_SETS = new Set(['Remastered', 'Standard']);
+
+/** Whether `name` is one of the modern sets (MODERN_SETS). */
+export const isModern = (name: string): boolean => MODERN_SETS.has(name);
 
 export interface HelpPage {
   title: string;
@@ -47,7 +65,7 @@ export const BUILD: string = (import.meta.env.VITE_BUILD as string | undefined) 
  * whichever the player is looking at.
  */
 function partyStatus(tileSet: string): string[] {
-  return tileSet === 'Standard'
+  return isModern(tileSet)
     ? ["The name's colour:", 'Green: poisoned', 'Grey: dead', 'Dark grey: ashes', 'Blue: level up from', '  Lord British']
     : ['A letter by the name', 'G: good', 'L: level up from', '  Lord British', 'P: poisoned', 'D: dead', 'A: ashes'];
 }

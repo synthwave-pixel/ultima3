@@ -210,8 +210,14 @@ function spreadRow(menu: MenuWindow): number {
 /** Border pieces in row 0 of the UI sheet (1-based numbers as in `DrawFramePiece`). */
 const Piece = { TopLeft: 1, TopRight: 3, BottomLeft: 7, BottomRight: 9, Horizontal: 10, Vertical: 11 };
 
-/** Draw a menu window with the bitmap font and the border tiles. */
-export function drawMenu(ctx: CanvasRenderingContext2D, gfx: GraphicsSet, cell: number, menu: MenuWindow): void {
+/** Draw a menu window with the bitmap font and the border tiles, its words cased by `cased` (screen.ts, textCase.ts). */
+export function drawMenu(
+  ctx: CanvasRenderingContext2D,
+  gfx: GraphicsSet,
+  cell: number,
+  menu: MenuWindow,
+  cased: (s: string) => string = (s) => s,
+): void {
   const { x, y, width } = menu;
   const height = menu.visibleRows + 2;
   ctx.fillStyle = '#000';
@@ -230,7 +236,8 @@ export function drawMenu(ctx: CanvasRenderingContext2D, gfx: GraphicsSet, cell: 
   piece(Piece.BottomLeft, x, y + height - 1);
   piece(Piece.BottomRight, x + width - 1, y + height - 1);
 
-  const text = (s: string, tx: number, ty: number) => {
+  const text = (raw: string, tx: number, ty: number) => {
+    const s = raw.length > 1 ? cased(raw) : raw;
     for (let i = 0; i < s.length; i++) gfx.drawGlyph(ctx, s[i], (tx + i) * cell, ty * cell, cell);
   };
   // Title on the top border.

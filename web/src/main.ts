@@ -12,7 +12,7 @@
 import { loadResources } from './data/resources.ts';
 import { World, STARVATION_MODES, TIMER_MODES, type Starvation, type Timer } from './game/world.ts';
 import { Game } from './game/game.ts';
-import { localSave, exportGame, parseExport, restoreExported } from './game/save.ts';
+import { localSave, exportGame, parseExport, restoreExported, SAVE_KEY } from './game/save.ts';
 import { registerSW } from 'virtual:pwa-register';
 import type { Transfer, Update, UpdateNews } from './game/menu.ts';
 import { appQuit, launchWarning, warningDue, type NativeQuit } from './ui/platform.ts';
@@ -42,6 +42,7 @@ import { bootHold } from './ui/bootHold.ts';
 import { MusicPlayer } from './ui/music.ts';
 import { Screen } from './ui/screen.ts';
 import { TILE_SETS } from './ui/help.ts';
+import { WALLS } from './ui/dungeonArt.ts';
 
 const PREFS_KEY = 'ultima3.settings';
 
@@ -77,7 +78,8 @@ interface Prefs {
 
 const DEFAULT_PREFS: Prefs = {
   inputMode: 'controller',
-  tiles: 'Standard',
+  // A new player's look; one who has played before keeps theirs (loadPrefs).
+  tiles: 'Remastered',
   scanlines: false,
   smoothMotion: true,
   autoCombat: false,
@@ -101,6 +103,10 @@ function loadPrefs(): Prefs {
     const raw = localStorage.getItem(PREFS_KEY);
     const saved = raw ? (JSON.parse(raw) as Partial<Prefs>) : {};
     const prefs = { ...DEFAULT_PREFS, ...saved };
+    // Remastered became the look a new player starts in after Standard ("U3 2026") had been: anyone who has played
+    // before - settings kept, or a game saved - stays in Standard unless they chose another set.
+    const played = raw !== null || localStorage.getItem(SAVE_KEY) !== null;
+    if (saved.tiles === undefined && played) prefs.tiles = 'Standard';
     // Apple II Color TV was dropped when scanlines became a setting; Apple II Color is its art without the fringing.
     if (prefs.tiles === 'Apple II Color TV') prefs.tiles = 'Apple II Color';
     if (!TILE_SETS.includes(prefs.tiles)) prefs.tiles = DEFAULT_PREFS.tiles;
@@ -264,6 +270,8 @@ async function start(): Promise<void> {
   sounds.onLong = (seconds) => music.duck(seconds); // long effects duck the music
   music.enabled = prefs.music;
   const keyboard = new Keyboard();
+  // ?awake (development): the game plays on without the focus, as one of looks.html's pair does.
+  if (dev && params.has('awake')) keyboard.followsFocus = false;
   // Audio may only start after a user gesture. A key press or a click is
   // one; a gamepad button is not, but once the page has had a click (to
   // focus it, say) the browser lets audio start, so every key from any
@@ -281,6 +289,9 @@ async function start(): Promise<void> {
   // ?controller starts in controller mode whatever was remembered (a Steam shortcut, a kiosk).
   screen.inputMode = params.has('controller') ? 'controller' : prefs.inputMode;
   screen.tileSetName = tiles;
+  // ?walls=NAME (development): those walls in every dungeon (dungeonArt.ts WALLS), to try them.
+  const wallsParam = dev ? params.get('walls') : null;
+  if (wallsParam) screen.wallsAsked = Object.keys(WALLS).find((name) => dev!.slug(name) === dev!.slug(wallsParam)) ?? null;
   screen.scanlines = prefs.scanlines;
   screen.smoothMotion = prefs.smoothMotion;
   screen.batterySaver = prefs.batterySaver;
@@ -408,6 +419,7 @@ async function start(): Promise<void> {
   const attract = { run: () => (skipAttract ? Promise.resolve() : sequence.run()), demo: () => sequence.demo() };
   // ?play and ?at= (development): straight into the game, placed where asked, the start's first key played.
   if (dev && (params.has('play') || params.has('at'))) {
+    world.devLit = params.has('lit'); // ?lit: dungeons entered lit, to look at them
     const at = dev.parseAt(params.get('at'));
     const placed = at ? dev.startAt(world, at) : { key: null };
     if (typeof placed === 'string') console.warn(`?at=${params.get('at')}: ${placed}`);

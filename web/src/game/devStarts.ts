@@ -20,6 +20,10 @@
  *   ?peek                nothing this page does is saved: not the game, the
  *                        auto-map, nor the settings
  *   ?tiles=NAME          this page's tile set, not saved
+ *   ?walls=NAME          those walls in every dungeon (dungeonArt.ts WALLS)
+ *   ?lit                 a dungeon is entered with a torch burning
+ *   ?awake               the game plays on when the page loses the focus
+ *                        (looks.html's pairs, side by side)
  *
  * Any ?at= skips the title as ?play does.
  */

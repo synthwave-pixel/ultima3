@@ -15,11 +15,13 @@
 
 import { World } from './world.ts';
 import { Location } from './party.ts';
-import { PlayerRecord, ROSTER_SIZE } from './player.ts';
+import { PlayerOffset, PlayerRecord, ROSTER_SIZE } from './player.ts';
 import { Music, type GameIO, type MenuOption } from './io.ts';
 import { randomName } from './names.ts';
 import { emptyJournal } from './journal.ts';
 import { statLimit } from './interact.ts';
+import { type Appearance, defaultLook, FIGURES, HAIR, HUE_NAMES, randomAppearance, SKIN_NAMES } from './appearance.ts';
+import { gearName } from './cards.ts';
 
 /** 1-based indices into the MoreMessages table. */
 const MM = {
@@ -307,6 +309,7 @@ export async function organize(world: World, io: GameIO): Promise<void> {
     io.centreText(11, mm(world, MM.PartyOrganization));
     const options: MenuOption[] = [
       { key: 'C', label: mm(world, MM.CreateACharacter) },
+      { key: 'I', label: 'Inspect party' },
       { key: 'F', label: mm(world, MM.FormThePartyOption) },
       { key: 'D', label: mm(world, MM.DisperseThePartyOption) },
       { key: 'N', label: 'Clear notes' },
@@ -321,6 +324,9 @@ export async function organize(world: World, io: GameIO): Promise<void> {
     switch (key || 'M') {
       case 'C':
         await createCharacter(world, io);
+        break;
+      case 'I':
+        await inspectParty(world, io);
         break;
       case 'F':
         await formParty(world, io);
@@ -489,6 +495,25 @@ export async function createCharacter(world: World, io: GameIO): Promise<void> {
   });
   if (!values) return;
 
+  // Their look, with the Remastered tiles (appearance.ts): from their class's, on a sheet of its own.
+  let look: Appearance | null = null;
+  if (io.customisable()) {
+    const sheet: Sheet = {
+      name,
+      classLetter: careers[career],
+      sex,
+      lines: [
+        `${races[race]} ${classes[career]}`,
+        SEX_NAMES[sex] ?? '',
+        `STR ${pad2(values[0])}  DEX ${pad2(values[1])}`,
+        `INT ${pad2(values[2])}  WIS ${pad2(values[3])}`,
+      ],
+    };
+    look = await chooseLook(world, io, sheet, defaultLook(careers[career]), 'Appearance');
+    io.showTitle();
+    if (!look) return;
+  }
+
   header();
   io.centreText(MENU_ROW - 1, `STR ${values[0]}  DEX ${values[1]}  INT ${values[2]}  WIS ${values[3]}`);
   const ok = await io.chooseFromList(
@@ -519,7 +544,174 @@ export async function createCharacter(world: World, io: GameIO): Promise<void> {
   p.bytes[40] = 1; //   worn
   p.bytes[49] = 1; // dagger
   p.bytes[48] = 1; //   readied
+  world.looks[slot] = look;
   await notice(io, mm(world, MM.Created));
+}
+
+// ---------------------------------------------------------------------------
+// Inspect: a character's sheet, and their look
+// ---------------------------------------------------------------------------
+
+const SEX_NAMES: Record<string, string> = { M: 'Male', F: 'Female', O: 'Other' };
+const pad2 = (n: number): string => String(n).padStart(2, '0');
+
+/** What a character's sheet shows: who, and the lines beside their figure (at most SHEET_WIDTH letters each). */
+interface Sheet {
+  name: string;
+  classLetter: string;
+  sex: string;
+  lines: string[];
+}
+
+/** The sheet's figure: its top left cell and its size in cells; the lines to the right of it. */
+const FIGURE_AT = { x: 3, y: 3, cells: 8 };
+const LINES_AT = { x: 13, y: 3 };
+const SHEET_WIDTH = 25;
+/** Where the look's rows go, under the figure and the lines (at most ten of them). */
+const LOOK_ROW = 13;
+
+/** Draw `sheet`: the plain border, the name across the top, the figure in `look`, the lines beside it. */
+function drawSheet(io: GameIO, sheet: Sheet, look: Appearance | null): void {
+  io.showSheet();
+  io.centreText(1, sheet.name);
+  io.drawCharacter(sheet.classLetter, sheet.sex, look, FIGURE_AT.x, FIGURE_AT.y, FIGURE_AT.cells);
+  sheet.lines.forEach((line, i) => io.textAt(LINES_AT.x, LINES_AT.y + i, line.slice(0, SHEET_WIDTH)));
+}
+
+/**
+ * Choose a look for the character on `sheet`, from `start` (appearance.ts): a row each for the figure, the skin, the
+ * hair, the clothes and the trim, left and right stepping through them, the figure drawn afresh at each step, and
+ * Surprise me. The look chosen, or null if cancelled.
+ */
+async function chooseLook(
+  world: World,
+  io: GameIO,
+  sheet: Sheet,
+  start: Appearance,
+  title: string,
+  rename?: (look: Appearance) => Promise<void>,
+): Promise<Appearance | null> {
+  drawSheet(io, sheet, start);
+  const asLook = (v: number[]): Appearance => ({ figure: v[0], skin: v[1], hair: v[2], main: v[3], trim: v[4] });
+  const values = await io.adjustRows(
+    [
+      { label: 'Figure', values: FIGURES.map((f) => f.name) },
+      { label: 'Skin', values: [...SKIN_NAMES] },
+      { label: 'Hair', values: HAIR.map((h) => h.name) },
+      { label: 'Clothes', values: [...HUE_NAMES] },
+      { label: 'Trim', values: [...HUE_NAMES] },
+    ],
+    [start.figure, start.skin, start.hair, start.main, start.trim],
+    { row: LOOK_ROW, title },
+    (v) => io.drawCharacter(sheet.classLetter, sheet.sex, asLook(v), FIGURE_AT.x, FIGURE_AT.y, FIGURE_AT.cells),
+    () => {
+      const a = randomAppearance((lo, hi) => world.rng.range(lo, hi));
+      return [a.figure, a.skin, a.hair, a.main, a.trim];
+    },
+    rename ? [{ label: 'Rename', act: (v) => rename(asLook(v)) }] : [],
+  );
+  return values ? asLook(values) : null;
+}
+
+/** The marks and cards a character bears, as their sheet names them. */
+const MARKS: [number, string][] = [
+  [0x10, 'Force'],
+  [0x20, 'Fire'],
+  [0x40, 'Snake'],
+  [0x80, 'Kings'],
+];
+const CARDS: [number, string][] = [
+  [0x08, 'Death'],
+  [0x02, 'Sol'],
+  [0x01, 'Love'],
+  [0x04, 'Moons'],
+];
+
+/** Roster entry `slot`'s sheet: who they are, what they can do, what they carry and bear. */
+function sheetOf(world: World, slot: number): Sheet {
+  const p = world.roster.get(slot);
+  const careers = String.fromCharCode(...world.resources.misc.careerTable);
+  const career = world.resources.strings.Classes[Math.max(0, careers.indexOf(p.classLetter))] ?? '';
+  const race = world.resources.strings.Races.find((r) => r[0] === p.race) ?? '';
+  const borne = (table: [number, string][]) => table.filter(([bit]) => p.marks & bit).map(([, name]) => name);
+  const lines = [
+    `${race} ${career}`,
+    `${SEX_NAMES[p.sex] ?? ''}, level ${p.level}`,
+    `STR ${pad2(p.strength)}  DEX ${pad2(p.dexterity)}`,
+    `INT ${pad2(p.intelligence)}  WIS ${pad2(p.wisdom)}`,
+    `HP ${p.hitPoints}/${p.maxHitPoints}`,
+    `MP ${p.mana}  EXP ${p.experience}`,
+    `Weapon: ${gearName(world, true, p.bytes[PlayerOffset.WeaponReadied])}`,
+    `Armour: ${gearName(world, false, p.bytes[PlayerOffset.ArmourWorn])}`,
+  ];
+  const marks = borne(MARKS);
+  const cards = borne(CARDS);
+  if (marks.length) lines.push(`Marks: ${marks.join(' ')}`);
+  if (cards.length) lines.push(`Cards: ${cards.join(' ')}`);
+  return { name: p.name, classLetter: p.classLetter, sex: p.sex, lines };
+}
+
+/**
+ * Inspect party (this port's): the party, in marching order - or with no party formed, the whole roster - and for
+ * the one picked their sheet; with the Remastered tiles, their look to change there too.
+ */
+export async function inspectParty(world: World, io: GameIO): Promise<void> {
+  let cursor = 0;
+  for (;;) {
+    io.showTitle();
+    io.clearBottom();
+    io.centreText(11, 'Inspect party');
+    const slots = world.party.formed
+      ? [0, 1, 2, 3].map((m) => world.party.memberSlot(m)).filter((slot) => slot >= 0)
+      : [...Array(ROSTER_SIZE).keys()].filter((slot) => world.roster.get(slot).exists);
+    if (slots.length === 0) {
+      await notice(io, 'The roster is empty.');
+      return;
+    }
+    const options = slots.map((slot) => ({ key: String(slot + 1), label: rosterLabel(world, slot) }));
+    const key = await io.chooseFromList(options, { row: MENU_ROW, title: world.party.formed ? 'Whom?' : 'Whom? (no party)', cursor });
+    if (!key) return;
+    const slot = Number(key) - 1;
+    cursor = Math.max(0, slots.indexOf(slot));
+    await characterSheet(world, io, slot);
+  }
+}
+
+/**
+ * Roster entry `slot`'s sheet, and what can be done there: with the Remastered tiles their look changed, and their
+ * name - for one the player would write otherwise (in capitals, say, which the modern sets keep as typed) - from the
+ * look's rows; in any other set the name alone, from a menu of its own.
+ */
+async function characterSheet(world: World, io: GameIO, slot: number): Promise<void> {
+  const p = world.roster.get(slot);
+  /** Ask for a new name under the sheet, drawn in `look`; the sheet drawn again with it. */
+  const rename = async (look: Appearance | null, sheet: Sheet): Promise<void> => {
+    drawSheet(io, sheet, look);
+    io.textAt(LINES_AT.x - 6, LOOK_ROW + 1, 'New name:');
+    const name = (await io.inputTextAt(LINES_AT.x + 4, LOOK_ROW + 1, 13, false)).trim();
+    if (name) p.name = name;
+    Object.assign(sheet, sheetOf(world, slot));
+    drawSheet(io, sheet, look);
+  };
+  if (io.customisable()) {
+    const sheet = sheetOf(world, slot);
+    const look = await chooseLook(world, io, sheet, world.looks[slot] ?? defaultLook(p.classLetter), 'Appearance', (l) => rename(l, sheet));
+    if (look) world.looks[slot] = look;
+    return;
+  }
+  for (;;) {
+    const sheet = sheetOf(world, slot);
+    drawSheet(io, sheet, null);
+    const key = await io.chooseFromList(
+      [
+        { key: 'R', label: 'Rename' },
+        { key: 'B', label: 'Back' },
+      ],
+      { row: LOOK_ROW, title: sheet.name },
+    );
+    if (key !== 'R') return;
+    await rename(null, sheet);
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -673,5 +865,6 @@ export async function terminateCharacter(world: World, io: GameIO): Promise<void
   );
   if (answer !== 'Y') return;
   p.bytes.fill(0);
+  world.looks[slot] = null;
   await notice(io, mm(world, MM.Terminated));
 }

@@ -17,7 +17,7 @@
  */
 
 import { EXODUS_INDEX, GraphicsSet } from './ui/graphics.ts';
-import { TILE_SETS } from './ui/help.ts';
+import { TILE_SETS, tileSetLabel } from './ui/help.ts';
 import { Shape } from './game/tiles.ts';
 
 /** Tiles in a sheet: 6 column pairs of 16. */
@@ -269,7 +269,7 @@ async function build(): Promise<void> {
   for (const [i, name] of shown.entries()) {
     const section = document.createElement('section');
     const heading = document.createElement('h2');
-    heading.textContent = name;
+    heading.textContent = tileSetLabel(name);
     const canvas = document.createElement('canvas');
     section.append(heading, canvas);
     main.append(section);
@@ -308,7 +308,7 @@ function setUp(): void {
   const grouped = document.getElementById('grouped') as HTMLInputElement;
   fill(
     set,
-    [...TILE_SETS, 'All'].map((n) => ({ value: n, label: n === 'All' ? 'All sets' : n })),
+    [...TILE_SETS, 'All'].map((n) => ({ value: n, label: n === 'All' ? 'All sets' : tileSetLabel(n) })),
     state.set,
   );
   fill(

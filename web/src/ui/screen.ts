@@ -32,17 +32,22 @@ import { DungeonRenderer } from './dungeonView.ts';
 import { markerColour } from './display.ts';
 import { ScanlineOverlay } from './scanlines.ts';
 import { Glide, GLIDE_SLACK_MS, type Point } from './glide.ts';
-import { CoastPainter, coastMask, coastPattern } from './coast.ts';
+import { CoastPainter, coastMask, coastPattern, shoreBy } from './coast.ts';
 import { World, holdCombatMark, STARVATION_MODES, TIMER_MODES } from '../game/world.ts';
 import { PlayerRecord, levelUpDue, statusLetter } from '../game/player.ts';
 import { commandMenu } from '../game/context.ts';
 import { hasMagic } from '../game/whom.ts';
 import { memberShape } from '../game/combat.ts';
-import { TILE_SETS, helpPages, PAGE_ROWS, PAGE_WIDTH } from './help.ts';
+import { TILE_SETS, helpPages, isModern, PAGE_ROWS, PAGE_WIDTH, tileSetLabel } from './help.ts';
 import { journalCard, journalSnapshot, journalTop, wordCard, type JournalLine } from '../game/journal.ts';
 import { TIPS, tipPages, type Tip } from '../game/tips.ts';
 import { CHEATS } from '../game/cheats.ts';
 import { Location } from '../game/party.ts';
+import { ROSTER_SIZE } from '../game/player.ts';
+import { borderToneAt } from './borderTone.ts';
+import { FigurePainter } from './figures.ts';
+import { TextCaser } from './textCase.ts';
+import { type Appearance, beardless, defaultLook, FIGURES } from '../game/appearance.ts';
 import { buildViewport, VIEW_SIZE, VIEW_CENTRE, type Viewport } from '../game/viewport.ts';
 import { Shape } from '../game/tiles.ts';
 import { buildDungeonView, secretMessage } from '../game/dungeon.ts';
@@ -62,6 +67,7 @@ import {
   type MenuOption,
   type CommandScope,
   type MenuPlacement,
+  type AdjustRow,
   type SpellFlash,
 } from '../game/io.ts';
 import { cardWrap, gearName } from '../game/cards.ts';
@@ -121,6 +127,8 @@ const TEXT_TOP = 13;
 const TEXT_BOTTOM = 24; // exclusive
 
 const ANIMATION_INTERVAL_MS = 1000 / 12;
+/** How long the figure on a character's sheet shows each of its frames. */
+const SHEET_FIGURE_MS = 450;
 /** How long after the press that ends the attract sequence its echoes are let go (`Screen.attractStage`). */
 const ATTRACT_SETTLE_MS = 60;
 /** How long after the last press Battery saver lets the map rest (`Screen.batterySaver`). */
@@ -237,6 +245,10 @@ export class Screen implements GameIO {
   /** The frame's light and dark edge colours in the tile set in use (`chrome`), read once a set. */
   private chromeColours: { light: string; dark: string } | null = null;
   private dungeonRenderer: DungeonRenderer | null;
+  /** Renderers for dungeons with walls of their own (GraphicsSet.dungeonArtFor), by map id. */
+  private placeRenderers = new Map<number, DungeonRenderer | null>();
+  /** Walls to try in every dungeon (development, ?walls=: a name in dungeonArt.ts WALLS), or null. */
+  wallsAsked: string | null = null;
   /** A spell's white pulse over part of the view, while it lasts (cells). */
   private pulse: { x: number; y: number; w: number; h: number } | null = null;
 
@@ -299,18 +311,20 @@ export class Screen implements GameIO {
   /** True while the Pause menu is up: it holds the game paused, and says so itself, so no PAUSED box. */
   private pauseShown = false;
   /**
-   * How the party on foot is drawn here: 'grid' is the 2x2 of members (Standard,
-   * overworld), 'line' the leader with the others following in a line (Standard
-   * in towns and castles, Nintendo everywhere), 'symbol' the Apple II's single figure.
+   * How the party on foot is drawn here: 'grid' is the 2x2 of members (U3 2026,
+   * overworld), 'leader' the first living member alone (Remastered, overworld, as
+   * the Ultima V port shows its Avatar), 'line' the leader with the others following
+   * in a line (the modern sets in towns and castles, Nintendo everywhere), 'symbol'
+   * the Apple II's single figure.
    */
-  private get partyStyle(): 'grid' | 'line' | 'symbol' {
+  private get partyStyle(): 'grid' | 'leader' | 'line' | 'symbol' {
     if (this.tileSetName === 'Nintendo') return 'line';
-    if (this.tileSetName === 'Standard') return this.world.inTownOrCastle ? 'line' : 'grid';
+    if (isModern(this.tileSetName)) return this.world.inTownOrCastle ? 'line' : this.tileSetName === 'Remastered' ? 'leader' : 'grid';
     return 'symbol';
   }
-  /** Standard alone shows the red burst on a hit instead of the HIT tile. */
+  /** The modern sets alone show the red burst on a hit instead of the HIT tile. */
   private get burstTiles(): boolean {
-    return this.tileSetName === 'Standard';
+    return isModern(this.tileSetName);
   }
   private readonly gamepads: GamepadReader;
   /** The menu window being shown, drawn over the map every frame. */
@@ -444,6 +458,7 @@ export class Screen implements GameIO {
 
   /** Draw the in-game border. (`DrawFrame(1)`) */
   showGameFrame(): void {
+    this.stopSheetFigure();
     this.viewCovered = false;
     this.frameShown = true;
     this.black(0, 0, COLUMNS, ROWS);
@@ -477,6 +492,8 @@ export class Screen implements GameIO {
 
   /** The plain border and nothing in it, with the rule across row 10 if `divided`. (`DrawFrame(3)`, `DrawFrame(2)`) */
   private showBorder(divided = false): void {
+    this.stopSheetFigure();
+    if (this.gfx.setBorderTone(null)) this.chromeColours = null; // the title's frame is the copper
     this.viewCovered = true;
     this.frameShown = false;
     this.titleText = [];
@@ -557,7 +574,9 @@ export class Screen implements GameIO {
     this.secretDoorPiece = null;
     this.chromeColours = null;
     this.dungeonRenderer = DungeonRenderer.forSet(gfx);
+    this.placeRenderers.clear();
     this.redrawAll();
+    if (this.frameShown) this.toneBorder(); // a set that tones its frame, tones it for here at once
   }
 
   /** The frame round the party panel: its top, the separators between the members' boxes with their numbers, its sides. */
@@ -610,8 +629,13 @@ export class Screen implements GameIO {
     this.black(tx, 0, title.length, 1);
     this.drawText(title, tx, 0);
     this.black(24, 1, CARD_WIDTH, CARD_ROWS);
+    // Its lines cased as one text, so a sentence wrapped across them reads on (textCase.ts).
+    const texts =
+      this.caser()
+        ?.run(card.lines.map((l) => l.text).join('\n'), true)
+        .text.split('\n') ?? card.lines.map((l) => l.text);
     card.lines.slice(0, CARD_ROWS).forEach((line, i) => {
-      this.drawText(line.text.slice(0, CARD_WIDTH), 24, 1 + i, line.tone ? CARD_TONES[line.tone] : undefined);
+      this.drawText(texts[i].slice(0, CARD_WIDTH), 24, 1 + i, line.tone ? CARD_TONES[line.tone] : undefined);
     });
   }
 
@@ -650,6 +674,7 @@ export class Screen implements GameIO {
   /** Draw a string with the bitmap font at cell (x, y), no wrapping. */
   drawText(text: string, x: number, y: number, colour?: string): void {
     const { ctx, cell } = this;
+    if (text.length > 1) text = this.caseLine(text);
     if (this.overlayShown && y >= MAP_OVERLAY_TOP && y < MAP_OVERLAY_TOP + MAP_OVERLAY_SIZE && x + text.length > MAP_OVERLAY_LEFT) {
       // Only the part left of the overlay is drawn; the overlay repaints itself.
       const keep = Math.max(0, MAP_OVERLAY_LEFT - x);
@@ -704,6 +729,13 @@ export class Screen implements GameIO {
   }
 
   print(text: string): void {
+    const caser = this.caser();
+    if (caser) {
+      // A sentence begins where the last one ended, or at the start of a line.
+      const r = caser.run(text, this.caseStart || this.cursorX <= TEXT_LEFT + 1);
+      text = r.text;
+      this.caseStart = r.start;
+    }
     for (const ch of text) {
       if (ch === '\n') {
         if (!this.foldRepeat()) this.newline();
@@ -793,6 +825,7 @@ export class Screen implements GameIO {
   }
 
   prompt(): void {
+    this.caseStart = true;
     this.endTurn(); // may print unfolded lines, so before the prompt row is cleared
     this.piece(Piece.BottomTee, 23, 23);
     this.piece(Piece.CapLeft, 24, 23);
@@ -962,7 +995,7 @@ export class Screen implements GameIO {
     const longest = Math.max(menu.title.length, ...menu.items.map((s) => s.length));
     if (menu.columns === 1) menu.width = Math.min(COLUMNS - 2, longest + 4); // up to the frame's inner edge, for a long title
     menu.y = place.row;
-    menu.x = Math.floor((COLUMNS - menu.width) / 2);
+    menu.x = place.column ?? Math.floor((COLUMNS - menu.width) / 2);
     // Keep the window (and its hint row) inside the frame; long lists scroll.
     const available = ROWS - 1 - place.row - 2 - (menu.hints ? HINT_ROWS : 0);
     menu.visibleRows = Math.max(1, Math.min(menu.visibleRows, available));
@@ -970,7 +1003,11 @@ export class Screen implements GameIO {
       menu.cursor = place.cursor;
       if (menu.cursor >= menu.visibleRows) menu.top = menu.cursor - menu.visibleRows + 1;
     }
-    if (!this.frameShown) this.black(1, place.row, COLUMNS - 2, menu.visibleRows + 2 + (menu.hints ? HINT_ROWS : 0));
+    // Off the game's frame, the rows the window and its hint take are cleared - across the screen, or beside what is
+    // there (a character's sheet) where the window is placed at a column.
+    const height = menu.visibleRows + 2 + (menu.hints ? HINT_ROWS : 0);
+    if (!this.frameShown && place.column === undefined) this.black(1, place.row, COLUMNS - 2, height);
+    else if (!this.frameShown) this.black(menu.x, place.row, Math.min(menu.width, COLUMNS - 1 - menu.x), height);
   }
 
   /** Max input (Gameplay): how soon a held key, a direction above all, repeats (input.ts INPUT_PACES). */
@@ -1127,7 +1164,7 @@ export class Screen implements GameIO {
     await this.settingsList(
       'Visuals',
       () => [
-        { key: 'T', label: `Tiles: ${this.tileSetName}` },
+        { key: 'T', label: `Tiles: ${tileSetLabel(this.tileSetName)}` },
         { key: 'L', label: `Scanlines: ${onOff(this.scanlines)}` },
         { key: 'M', label: `Smooth motion: ${onOff(this.smoothMotion)}` },
       ],
@@ -1278,7 +1315,7 @@ export class Screen implements GameIO {
 
   /** The Tiles sub-menu: pick a set and switch to it. */
   private async chooseTiles(): Promise<void> {
-    const options = TILE_SETS.map((name) => ({ key: '', label: name }));
+    const options = TILE_SETS.map((name) => ({ key: '', label: tileSetLabel(name) }));
     const current = Math.max(0, TILE_SETS.indexOf(this.tileSetName));
     const place: MenuPlacement | undefined = this.frameShown ? undefined : { row: 13, title: 'Tiles', cursor: current };
     const picked = await this.runMenu('Tiles', options, 1, place, current);
@@ -1393,7 +1430,7 @@ export class Screen implements GameIO {
           if (level.selected >= level.top + PAGE_ROWS) level.top = level.selected - PAGE_ROWS + 1;
           cursor = level.selected - level.top;
         } else {
-          rows = (level.text ?? []).flatMap((p, i) => [...(i ? [''] : []), ...wrapText(p, PAGE_WIDTH, 12)]);
+          rows = (level.text ?? []).flatMap((p, i) => [...(i ? [''] : []), ...wrapText(this.caseLine(p), PAGE_WIDTH, 12)]);
           level.top = Math.max(0, Math.min(rows.length - PAGE_ROWS, level.top));
         }
         const opens = !!line?.open && !!level.lines;
@@ -1803,6 +1840,135 @@ export class Screen implements GameIO {
     }
   }
 
+  async adjustRows(
+    rows: AdjustRow[],
+    start: number[],
+    place: MenuPlacement,
+    changed: (values: number[]) => void,
+    surprise?: () => number[],
+    actions: { label: string; act: (values: number[]) => Promise<void> }[] = [],
+  ): Promise<number[] | null> {
+    const values = [...start];
+    const n = rows.length;
+    const width = Math.max(...rows.map((r) => r.label.length));
+    const valueWidth = Math.max(...rows.flatMap((r) => r.values.map((v) => v.length)));
+    const items = () => [
+      ...rows.map((r, i) => `${r.label.padEnd(width)} < ${r.values[values[i]].padEnd(valueWidth)} >`),
+      ...actions.map((a) => a.label),
+      ...(surprise ? ['Surprise me'] : []),
+      'O.K.',
+    ];
+    const surpriseAt = n + actions.length;
+    const ok = surpriseAt + (surprise ? 1 : 0);
+    const menu = layoutMenu(place.title, items(), 1);
+    this.placeMenu(menu, place);
+    this.openMenu(menu);
+    const show = () => {
+      menu.items = items();
+      this.showMenuNow();
+      changed([...values]);
+    };
+    try {
+      for (;;) {
+        const key = await this.readKey();
+        if (key === null) continue;
+        if ((key === Key.Left || key === Key.Right) && menu.cursor < n) {
+          const count = rows[menu.cursor].values.length;
+          values[menu.cursor] = (values[menu.cursor] + (key === Key.Right ? 1 : count - 1)) % count;
+          show();
+          continue;
+        }
+        if (moveCursor(menu, key)) {
+          this.showMenuNow();
+          continue;
+        }
+        if (key === Key.A || key === Key.Enter) {
+          if (menu.cursor < n) {
+            menu.cursor++; // step to the next row, as a form would
+            this.showMenuNow();
+            continue;
+          }
+          if (menu.cursor >= n && menu.cursor < surpriseAt) {
+            const action = actions[menu.cursor - n];
+            this.closeMenu();
+            await action.act([...values]);
+            this.placeMenu(menu, place);
+            this.openMenu(menu);
+            show();
+            continue;
+          }
+          if (surprise && menu.cursor === surpriseAt) {
+            values.splice(0, n, ...surprise());
+            show();
+            continue;
+          }
+          if (menu.cursor === ok) return values;
+          continue;
+        }
+        if (key === Key.B || key === Key.Escape) return null;
+      }
+    } finally {
+      this.closeMenu();
+    }
+  }
+
+  showSheet(): void {
+    this.showBorder();
+  }
+
+  customisable(): boolean {
+    return this.figurePainter() !== null;
+  }
+
+  drawCharacter(classLetter: string, sex: string, look: Appearance | null, x: number, y: number, cells: number): void {
+    const was = this.sheetFigure;
+    this.sheetFigure = { classLetter, sex, look, x, y, cells, frame: was?.frame ?? 0 };
+    this.paintSheetFigure();
+    // The figure steps between its two frames while it is shown, as the figures on the map do.
+    this.sheetTimer ??= setInterval(() => {
+      if (!this.sheetFigure) return;
+      this.sheetFigure.frame = this.sheetFigure.frame ? 0 : 1;
+      this.paintSheetFigure();
+    }, SHEET_FIGURE_MS);
+  }
+
+  /** The figure on a character's sheet (drawCharacter), and the frame it shows; null when none is shown. */
+  private sheetFigure: {
+    classLetter: string;
+    sex: string;
+    look: Appearance | null;
+    x: number;
+    y: number;
+    cells: number;
+    frame: 0 | 1;
+  } | null = null;
+  private sheetTimer: ReturnType<typeof setInterval> | null = null;
+
+  private paintSheetFigure(): void {
+    const f = this.sheetFigure;
+    if (!f) return;
+    const { ctx, cell } = this;
+    const size = f.cells * cell;
+    this.black(f.x, f.y, f.cells, f.cells);
+    const canvas = this.figurePainter()?.figure(f.look ?? defaultLook(f.classLetter), f.frame, beardless(f.sex));
+    const smoothing = ctx.imageSmoothingEnabled;
+    ctx.imageSmoothingEnabled = false;
+    if (canvas) ctx.drawImage(canvas, f.x * cell, f.y * cell, size, size);
+    else
+      this.gfx.drawShape(ctx, memberShape(this.world, f.classLetter), f.x * cell, f.y * cell, size, {
+        masked: true,
+        altFrame: f.frame === 1,
+      });
+    ctx.imageSmoothingEnabled = smoothing;
+  }
+
+  /** The sheet's figure gone with the screen it was on. */
+  private stopSheetFigure(): void {
+    this.sheetFigure = null;
+    if (this.sheetTimer !== null) clearInterval(this.sheetTimer);
+    this.sheetTimer = null;
+  }
+
   /** Pixels under the open menu, restored when it closes over a static screen. */
   private underMenu: { image: HTMLCanvasElement; x: number; y: number } | null = null;
 
@@ -1842,7 +2008,7 @@ export class Screen implements GameIO {
   /** Redraw the open menu (after the cursor moved or its text changed). */
   private showMenuNow(): void {
     if (!this.menu) return;
-    if (this.viewCovered) drawMenu(this.ctx, this.gfx, this.cell, this.menu);
+    if (this.viewCovered) drawMenu(this.ctx, this.gfx, this.cell, this.menu, (t) => this.caseLine(t));
     else this.viewDirty = true;
   }
 
@@ -2156,6 +2322,7 @@ export class Screen implements GameIO {
   redrawMap(): void {
     this.viewCovered = false;
     this.noteScene();
+    this.toneBorder();
     this.view = buildViewport(this.world);
     recordView(this.world, this.view); // what the view shows is on the map from now (worldMap.ts)
     if (!this.world.combat) {
@@ -2180,6 +2347,28 @@ export class Screen implements GameIO {
     const near = (d: number) => Math.min(Math.abs(d) % size, size - (Math.abs(d) % size)) <= 1; // round a wrapping map
     const jumped = !w.combat && !(near(w.x - was.x) && near(w.y - was.y));
     if (jumped || scene.some((v, i) => v !== was.scene[i])) this.keyboard.breakHold();
+  }
+
+  /** The renderer for the dungeon of map `mapId`: its own walls' where it has them (GraphicsSet.dungeonArtFor), else the set's. */
+  private dungeonRendererFor(mapId: number): DungeonRenderer | null {
+    let renderer = this.placeRenderers.get(mapId);
+    if (renderer === undefined) {
+      const art = this.gfx.dungeonArtFor(mapId, this.wallsAsked);
+      renderer = art && this.gfx.dungeonMasks ? new DungeonRenderer(art.shapes, this.gfx.dungeonMasks, art.style) : this.dungeonRenderer;
+      this.placeRenderers.set(mapId, renderer);
+    }
+    return renderer;
+  }
+
+  /** In a set whose frame takes the colour of where the party is (borderTone.ts), tone it for here: drawn again if changed. */
+  private toneBorder(): void {
+    const w = this.world;
+    const location = w.party.location === Location.Combat && w.combat ? w.combat.previousLocation : w.party.location;
+    const tone = borderToneAt({ location, level: w.dungeon.level, exodusCastle: w.inExodusCastle() });
+    if (this.frameShown && this.gfx.setBorderTone(tone)) {
+      this.chromeColours = null;
+      this.redrawAll();
+    }
   }
 
   clearTiles(): void {
@@ -2238,8 +2427,9 @@ export class Screen implements GameIO {
       this.redrawTextArea();
     }
     if (inDungeon) {
-      const lit = world.dungeon.torch > 0 && this.dungeonRenderer;
-      const view = lit ? this.dungeonRenderer!.render(buildDungeonView(world), world.dungeon.torch, secretMessage(world)) : null;
+      const renderer = this.dungeonRendererFor(world.current.id);
+      const lit = world.dungeon.torch > 0 && renderer;
+      const view = lit ? renderer.render(buildDungeonView(world), world.dungeon.torch, this.caseSecret(secretMessage(world))) : null;
       if (world.mapMode === 'full') {
         // The level fills the window; the first-person view shrinks into the overlay slot.
         this.overlayShown = true;
@@ -2309,7 +2499,11 @@ export class Screen implements GameIO {
       cell + ((i % size) - ring) * tile + Math.round((by.x - camera.x) * tile),
       cell + (Math.floor(i / size) - ring) * tile + Math.round((by.y - camera.y) * tile),
     ];
-    const shown = ([dx, dy]: [number, number]) => dx > 0 && dy > 0 && dx < 23 * cell && dy < 23 * cell;
+    // Whether a square drawn at (dx, dy) shows at all: any of it inside the map's window. One only partly in (the ring
+    // sliding in on the side the party walks toward) must be drawn, or what was there before stays.
+    // Whether a square drawn at (dx, dy) shows at all: any of it inside the map's window. One only partly in (the ring
+    // sliding in or out at an edge) must be drawn, or what was there before stays.
+    const shown = ([dx, dy]: [number, number]) => dx + tile > cell && dy + tile > cell && dx < 23 * cell && dy < 23 * cell;
     ctx.save();
     ctx.beginPath();
     ctx.rect(cell, cell, 22 * cell, 22 * cell); // the ring slides in from under the border
@@ -2322,8 +2516,7 @@ export class Screen implements GameIO {
     const land = (i: number, dx: number, dy: number): boolean => {
       const [x, y] = [(i % size) + dx, Math.floor(i / size) + dy];
       if (x < 0 || y < 0 || x >= size || y >= size) return false;
-      const base = view.cells[y * size + x].base;
-      return base !== Shape.Water && base !== Shape.Void;
+      return shoreBy(this.tileSetName, view.cells[y * size + x].base);
     };
     view.cells.forEach((c, i) => {
       const at = place(i);
@@ -2358,6 +2551,8 @@ export class Screen implements GameIO {
           return;
         }
         if (c.party && this.partyStyle !== 'symbol') this.drawParty(dx, dy, tile, this.partyStyle);
+        else if (world.combat && c.mover?.startsWith('p') && this.figurePainter())
+          this.drawMember(Number(c.mover.slice(1)), dx, dy, tile, true);
         else if (c.overlay !== undefined) gfx.drawShape(ctx, c.overlay, dx, dy, tile, { masked: true, flip: c.flip, altFrame: c.altFrame });
         if (c.hit) this.drawBurst(dx, dy, tile, c.hit.frame);
       });
@@ -2398,9 +2593,9 @@ export class Screen implements GameIO {
    * the NES did. A poisoned member is drawn all in green; a dead one, or
    * ashes, is not drawn. The other tile sets keep the Apple II's single figure.
    */
-  private drawParty(dx: number, dy: number, tile: number, style: 'grid' | 'line'): void {
+  private drawParty(dx: number, dy: number, tile: number, style: 'grid' | 'leader' | 'line'): void {
     const { world } = this;
-    if (style === 'line') {
+    if (style !== 'grid') {
       const leader = [0, 1, 2, 3].find((m) => world.party.memberSlot(m) >= 0 && world.memberAlive(m));
       if (leader !== undefined) this.drawMember(leader, dx, dy, tile);
       return;
@@ -2412,21 +2607,93 @@ export class Screen implements GameIO {
     }
   }
 
-  /** One member's class figure at (x, y), `size` pixels square: green if poisoned, nothing if dead or ashes. */
-  private drawMember(m: number, x: number, y: number, size: number): void {
+  /**
+   * One member's figure at (x, y), `size` pixels square: their class's, or in the Remastered tiles their look's
+   * (figures.ts); green if poisoned (but in a fight, where the original showed no such thing), nothing if dead or ashes.
+   */
+  private drawMember(m: number, x: number, y: number, size: number, inFight = false): void {
     const p = this.world.member(m);
     if (p.status === 'D' || p.status === 'A') return;
+    const look = this.lookFigure(this.world.party.memberSlot(m), p.classLetter, p.sex);
     const shape = memberShape(this.world, p.classLetter);
-    if (p.status === 'P') this.ctx.drawImage(this.greenFigure(shape, size), x, y);
+    const poisoned = p.status === 'P' && !inFight;
+    if (look) {
+      if (poisoned)
+        this.ctx.drawImage(
+          this.greenFigure(`look:${look.key}`, size, (ctx) => ctx.drawImage(look.canvas, 0, 0, size, size)),
+          x,
+          y,
+        );
+      else {
+        const smoothing = this.ctx.imageSmoothingEnabled;
+        this.ctx.imageSmoothingEnabled = false;
+        this.ctx.drawImage(look.canvas, x, y, size, size);
+        this.ctx.imageSmoothingEnabled = smoothing;
+      }
+    } else if (poisoned)
+      this.ctx.drawImage(
+        this.greenFigure(`${shape}`, size, (ctx) => this.gfx.drawShape(ctx, shape, 0, 0, size, { masked: true })),
+        x,
+        y,
+      );
     else this.gfx.drawShape(this.ctx, shape, x, y, size, { masked: true });
   }
 
-  /** Cache of member figures recoloured green (poison), keyed by shape and size. */
+  /** The game's capitals in sentence case, with the modern sets (textCase.ts); null with the others. */
+  private caser(): TextCaser | null {
+    if (!isModern(this.tileSetName)) return null;
+    this.textCaser ??= new TextCaser(this.world.resources.strings.Spells.map((spell) => TextCaser.titled(spell)));
+    // The characters' names stay as their players typed them, capitals and all.
+    let names = '';
+    for (let slot = 0; slot < ROSTER_SIZE; slot++) names += `${this.world.roster.get(slot).name} `;
+    if (names !== this.keptNames) {
+      this.keptNames = names;
+      this.textCaser.keep(names.split(/[^A-Za-z']+/));
+    }
+    return this.textCaser;
+  }
+  private textCaser: TextCaser | null = null;
+  private keptNames = '';
+  /** Whether the next text printed in the message area begins a sentence. */
+  private caseStart = true;
+
+  /** A message on a dungeon's wall, as the set in use cases it. */
+  private caseSecret(text: string | null): string | null {
+    return text === null ? null : this.caseLine(text);
+  }
+
+  /** `text`, drawn on its own, as the set in use cases it. */
+  private caseLine(text: string): string {
+    return this.caser()?.line(text) ?? text;
+  }
+
+  /** The painter of the characters' looks, with the Remastered tiles (figures.ts); null with any other. */
+  private figurePainter(): FigurePainter | null {
+    if (this.tileSetName !== 'Remastered') return null;
+    if (this.figures?.for !== this.gfx) this.figures = { for: this.gfx, painter: new FigurePainter(this.gfx.tiles) };
+    return this.figures.painter;
+  }
+  private figures: { for: GraphicsSet; painter: FigurePainter } | null = null;
+
+  /**
+   * Roster entry `slot`'s figure as its look has it, in the frame its figure's tile is showing, with the Remastered
+   * tiles: the look chosen, or its class's (appearance.ts defaultLook). Null with any other set.
+   */
+  private lookFigure(slot: number, classLetter: string, sex: string, frame?: 0 | 1): { canvas: HTMLCanvasElement; key: string } | null {
+    const painter = this.figurePainter();
+    if (!painter) return null;
+    const look = (slot >= 0 ? this.world.looks[slot] : null) ?? defaultLook(classLetter);
+    const shown = frame ?? this.gfx.frameOf(FIGURES[look.figure].frames[0].tile);
+    const canvas = painter.figure(look, shown, beardless(sex));
+    return canvas ? { canvas, key: `${JSON.stringify(look)}:${shown}:${sex}` } : null;
+  }
+
+  /** Cache of member figures recoloured green (poison), keyed by what is drawn and size. */
   private greenFigures = new Map<string, HTMLCanvasElement>();
 
-  /** A member figure with every pixel turned green, its shading kept as brightness. */
-  private greenFigure(shape: number, size: number): HTMLCanvasElement {
-    const key = `${shape}:${size}`;
+  /** A member figure (`draw` draws it at the origin) with every pixel turned green, its shading kept as brightness. */
+  private greenFigure(what: string, size: number, draw: (ctx: CanvasRenderingContext2D) => void): HTMLCanvasElement {
+    const key = `${what}:${size}`;
     const cached = this.greenFigures.get(key);
     if (cached) return cached;
     const off = document.createElement('canvas');
@@ -2434,7 +2701,7 @@ export class Screen implements GameIO {
     off.height = size;
     const octx = off.getContext('2d', { willReadFrequently: true })!;
     octx.imageSmoothingEnabled = false;
-    this.gfx.drawShape(octx, shape, 0, 0, size, { masked: true });
+    draw(octx);
     const image = octx.getImageData(0, 0, size, size);
     const d = image.data;
     for (let i = 0; i < d.length; i += 4) {
@@ -2488,7 +2755,7 @@ export class Screen implements GameIO {
   }
 
   async flashSpell(kind: SpellFlash, member: number, sound: string): Promise<void> {
-    const rect = this.tileSetName === 'Standard' && !this.viewCovered ? this.spellFlashRect(kind, member) : null;
+    const rect = isModern(this.tileSetName) && !this.viewCovered ? this.spellFlashRect(kind, member) : null;
     if (!rect) {
       await this.flashTiles();
       this.sound(sound);
@@ -2553,7 +2820,7 @@ export class Screen implements GameIO {
       this.paintViewport(time);
       this.drawPulse();
       this.viewDirty = false;
-      if (this.menu) drawMenu(this.ctx, this.gfx, this.cell, this.menu);
+      if (this.menu) drawMenu(this.ctx, this.gfx, this.cell, this.menu, (t) => this.caseLine(t));
       if (this.smoothMotion && this.glide.moving(time)) this.viewDirty = true; // the next frame, till all arrive
     }
     this.nextStep(time);
@@ -2831,7 +3098,7 @@ export class Screen implements GameIO {
         // a quarter and red under a tenth. Every other set does as the Apple
         // II did: the status letter at the end of the name row and no colour
         // at all, with an L of this port's own where a level is due.
-        const classic = this.tileSetName !== 'Standard';
+        const classic = !isModern(this.tileSetName);
         const nameColour = classic ? undefined : memberColour(p, due);
         this.drawText(p.name, 24, top, nameColour);
         if (classic) this.drawText(statusLetter(p), 38, top);

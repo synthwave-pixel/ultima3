@@ -23,6 +23,7 @@ export interface MoonStyle {
 }
 
 export const MOON_STYLES: Record<string, MoonStyle> = {
+  Remastered: { trammel: '#f0ece0', felucca: '#e0cc64', dark: '#56565c' }, // PC EGA's, toned as Remastered's tiles are
   Standard: { trammel: '#ffffff', felucca: '#ffff55', dark: '#555555' }, // as PC EGA: LairWare's shaded moons look too modern beside the tiles
   'Commodore 64': { trammel: '#8e8dff', felucca: '#f3eb5b', dark: '#3b3b3b' },
   'Apple II Color': { trammel: '#15cffd', felucca: '#ff6a3c', dark: '#303030' },

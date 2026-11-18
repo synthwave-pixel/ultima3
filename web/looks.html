@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex" />
+    <title>Looks side by side</title>
+    <link rel="icon" href="pwa-192.png" type="image/png" />
+    <!--
+      Development only (not built; linked from /debug): two tile sets side by side on the same places, each a live game
+      that saves nothing (?peek), started where the /debug page's links start one. For checking a set against another
+      on real maps: Sosaria, Ambrosia, every town, castle and dungeon, and fights on land and at sea.
+    -->
+    <style>
+      :root {
+        color-scheme: dark;
+      }
+      body {
+        margin: 0;
+        background: #111;
+        color: #ddd;
+        font:
+          14px/1.4 -apple-system,
+          'Segoe UI',
+          Helvetica,
+          Arial,
+          sans-serif;
+      }
+      header {
+        position: sticky;
+        top: 0;
+        z-index: 1;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px 18px;
+        align-items: center;
+        padding: 10px 16px;
+        background: #1c1c1c;
+        border-bottom: 1px solid #333;
+      }
+      h1 {
+        margin: 0;
+        font-size: 17px;
+      }
+      main {
+        padding: 8px 16px 40px;
+      }
+      section {
+        margin: 18px 0;
+      }
+      h2 {
+        margin: 0 0 6px;
+        font-size: 15px;
+        font-weight: 600;
+      }
+      .pair {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+      }
+      figure {
+        margin: 0;
+      }
+      figcaption {
+        font-size: 12px;
+        color: #999;
+        margin-bottom: 3px;
+      }
+      iframe {
+        border: 1px solid #333;
+        background: #000;
+        display: block;
+      }
+      a {
+        color: #8cf;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Looks side by side</h1>
+      <label
+        >Left
+        <select id="left"></select
+      ></label>
+      <label
+        >Right
+        <select id="right"></select
+      ></label>
+      <label
+        >Places
+        <select id="group"></select
+      ></label>
+      <label
+        >Width
+        <select id="width"></select
+      ></label>
+      <a href="debug.html">/debug</a>
+    </header>
+    <main id="rows"></main>
+    <script type="module">
+      import { TILE_SETS, tileSetLabel } from './src/ui/help.ts';
+      import { slug } from './src/game/devStarts.ts';
+      import { WALLS } from './src/ui/dungeonArt.ts';
+
+      const bundle = await (await fetch('data/resources.json')).json();
+      const placeNames = Object.entries(bundle.maps)
+        .filter(([id]) => Number(id) >= 400 && Number(id) <= 418)
+        .map(([, map]) => map.name.replace(/^Dungeon /, '').replace(/Õ/g, "'"));
+      const DUNGEONS = /pit|hell|perinian|doom|morinia|warrior|snake|time/i;
+      const GROUPS = {
+        world: [
+          ["Sosaria, by Lord British's castle", 'at=world:44,18'],
+          ['Ambrosia', 'at=ambrosia'],
+        ],
+        places: placeNames.filter((n) => !DUNGEONS.test(n)).map((n) => [n, `at=place:${slug(n)}`]),
+        dungeons: placeNames.filter((n) => DUNGEONS.test(n)).map((n) => [n, `at=place:${slug(n)}`]),
+        fights: [
+          'Orc',
+          'Thief',
+          'Skeleton',
+          'Fighter',
+          'Giant',
+          'Daemon',
+          'Pincher',
+          'Wizard',
+          'Dragon',
+          'Balron',
+          'Serpent',
+          'Man-O-War',
+          'Pirate',
+        ].map((n) => [n, `at=fight:${slug(n)}`]),
+      };
+      // Every wall the dungeons may have, in the left set, in one dungeon (?walls=, devStarts.ts).
+      GROUPS.walls = Object.keys(WALLS).map((n) => [n, `at=place:dardinspit&walls=${slug(n)}`]);
+      const LABELS = {
+        world: 'Sosaria and Ambrosia',
+        places: 'Towns and castles',
+        dungeons: 'Dungeons',
+        fights: 'Fights',
+        walls: 'Dungeon walls (left set)',
+      };
+
+      const params = new URLSearchParams(location.search);
+      const state = {
+        left: params.get('left') ?? 'Remastered',
+        right: params.get('right') ?? 'Standard',
+        group: params.get('group') ?? 'world',
+        width: Number(params.get('width') ?? 480),
+      };
+      const select = (id, options, value) => {
+        const el = document.getElementById(id);
+        el.replaceChildren(...options.map(([v, label]) => new Option(label, v, false, String(v) === String(value))));
+        el.addEventListener('change', () => {
+          state[id] = id === 'width' ? Number(el.value) : el.value;
+          const q = new URLSearchParams(Object.entries(state));
+          history.replaceState(null, '', `?${q}`);
+          draw();
+        });
+      };
+      const sets = TILE_SETS.map((s) => [s, tileSetLabel(s)]);
+      select('left', sets, state.left);
+      select('right', sets, state.right);
+      select('group', Object.entries(LABELS), state.group);
+      select(
+        'width',
+        [320, 480, 640, 800].map((w) => [w, `${w} px`]),
+        state.width,
+      );
+
+      const frame = (set, query) => {
+        const fig = document.createElement('figure');
+        const cap = document.createElement('figcaption');
+        const src = `./?${query}&peek&awake&lit&tiles=${slug(set)}`;
+        cap.innerHTML = `${tileSetLabel(set)} · <a href="${src}" target="_blank">open</a>`;
+        const f = document.createElement('iframe');
+        f.width = String(state.width);
+        f.height = String(Math.round((state.width * 3) / 4));
+        f.loading = 'lazy';
+        f.src = src;
+        fig.append(cap, f);
+        return fig;
+      };
+      const draw = () => {
+        const rows = document.getElementById('rows');
+        rows.replaceChildren(
+          ...GROUPS[state.group].map(([name, query]) => {
+            const section = document.createElement('section');
+            const h = document.createElement('h2');
+            h.textContent = name;
+            const pair = document.createElement('div');
+            pair.className = 'pair';
+            if (state.group === 'walls') pair.append(frame(state.left, query));
+            else pair.append(frame(state.left, query), frame(state.right, query));
+            section.append(h, pair);
+            return section;
+          }),
+        );
+      };
+      draw();
+    </script>
+  </body>
+</html>

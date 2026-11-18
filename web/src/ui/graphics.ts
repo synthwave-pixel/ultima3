@@ -21,9 +21,10 @@
  * `FullUpdate()` advanced every idle tick in the original.
  */
 
-import { DUNGEON_STYLES, paintDungeonSheet, type DungeonStyle } from './dungeonArt.ts';
+import { DUNGEON_STYLES, PLACE_DUNGEON_STYLES, paintDungeonSheet, WALLS, type DungeonStyle } from './dungeonArt.ts';
 import { MOON_STYLES, MOON_CELL, paintMoons } from './moonArt.ts';
 import { displayOf, type DisplayStyle } from './display.ts';
+import { TONED_BORDER_SETS, toneImage, toneKey, type BorderTone } from './borderTone.ts';
 import { MapValue, Shape, CLASS_COUNT, CLASS_FALLBACK_TILE, FIRST_CLASS_TILE, classFallbackTile, isClassTile } from '../game/tiles.ts';
 
 export const TILE_COLUMNS = 12;
@@ -111,6 +112,13 @@ export async function loadImages(baseUrl = 'images/'): Promise<ImageMap> {
  * the pixels.
  */
 const CLASS_FIGURE_SETS = new Set(['Standard']);
+
+/**
+ * The sets that show Standard's full-window pictures (the fountain, the rod, the shrine, the Time Lord, the title's
+ * logo) where they have none of their own: Remastered, the Ultima V port's look, which had none of Ultima III's to
+ * draw on. Every other set has its own, or shows the original's black.
+ */
+const SCENES_BORROWED = new Set(['Remastered']);
 
 /** The files in the graphics folder, from index.json; null when there is no index (then every candidate is tried). */
 async function loadIndex(baseUrl: string): Promise<Set<string> | null> {
@@ -208,6 +216,10 @@ export class GraphicsSet {
     readonly hasClassFigures = false,
     /** How the set's machine showed its picture (display.ts): a monochrome colour, a light ground. */
     readonly display: DisplayStyle = {},
+    /** Whether the frame takes the colour of where the party is (borderTone.ts). */
+    readonly tonesBorder = false,
+    /** Each dungeon's own walls, by map id, in a set that gives them their own (dungeonArt.ts PLACE_DUNGEON_STYLES). */
+    private readonly placeDungeonStyles: Record<number, DungeonStyle> | null = null,
   ) {
     this.tileSize = tiles.width / TILE_COLUMNS;
     this.opaqueTiles = document.createElement('canvas');
@@ -258,7 +270,8 @@ export class GraphicsSet {
       ownShapes ?? (style && dungeonMasks ? paintDungeonSheet(style, dungeonMasks) : await tryLoad('DungeonShapes', ['png', 'jpg']));
     const scenes = new Map<string, HTMLImageElement>();
     for (const scene of SCENE_NAMES) {
-      const own = await tryLoad(scene, ['png', 'jpg', 'gif'], false);
+      // A set that borrows its pictures (SCENES_BORROWED) takes Standard's where it has none of its own.
+      const own = await tryLoad(scene, ['png', 'jpg', 'gif'], SCENES_BORROWED.has(name));
       if (own) scenes.set(scene, own);
     }
     const moonStyle = MOON_STYLES[name];
@@ -275,6 +288,8 @@ export class GraphicsSet {
       moons,
       CLASS_FIGURE_SETS.has(name),
       displayOf(name),
+      TONED_BORDER_SETS.has(name),
+      PLACE_DUNGEON_STYLES[name] ?? null,
     );
   }
 
@@ -345,10 +360,61 @@ export class GraphicsSet {
     else this.drawUiPiece(ctx, column, 2, dx, dy, size);
   }
 
+  /** Which frame tile `index` shows now (0 or 1): what the animation has swapped it to. */
+  frameOf(index: number): 0 | 1 {
+    return this.swapped[index] === 1 ? 1 : 0;
+  }
+
+  /** Dungeon sheets painted for one dungeon's own walls, by style. */
+  private readonly placeSheets = new Map<DungeonStyle, HTMLCanvasElement>();
+
+  /**
+   * The dungeon art for the dungeon of map `mapId`, where it has walls of its own in this set, or `walls` (a name in
+   * dungeonArt.ts WALLS) asks for others: its sheet, painted once, and its style. Null for the set's own.
+   */
+  dungeonArtFor(mapId: number, walls: string | null = null): { shapes: HTMLCanvasElement; style: DungeonStyle } | null {
+    const style = (walls !== null ? WALLS[walls] : undefined) ?? this.placeDungeonStyles?.[mapId];
+    if (!style || !this.dungeonMasks) return null;
+    let shapes = this.placeSheets.get(style);
+    if (!shapes) {
+      shapes = paintDungeonSheet(style, this.dungeonMasks);
+      this.placeSheets.set(style, shapes);
+    }
+    return { shapes, style };
+  }
+
+  /** The frame's tone now, and the UI sheet's frame and pieces in it (null: as drawn). */
+  private borderTone: BorderTone | null = null;
+  private tonedUi: HTMLCanvasElement | null = null;
+
+  /**
+   * Tone the frame for where the party is (borderTone.ts), in a set that does; true if that changed it, when the
+   * frame wants drawing again.
+   */
+  setBorderTone(tone: BorderTone | null): boolean {
+    if (!this.tonesBorder || toneKey(tone) === toneKey(this.borderTone)) return false;
+    this.borderTone = tone;
+    this.tonedUi = null;
+    if (tone) {
+      // The frame's rows, not the moons'.
+      const canvas = document.createElement('canvas');
+      canvas.width = this.ui.width;
+      canvas.height = this.uiSize * 2;
+      const ctx = canvas.getContext('2d')!;
+      ctx.drawImage(this.ui, 0, 0);
+      const image = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      toneImage(image.data, tone);
+      ctx.putImageData(image, 0, 0);
+      this.tonedUi = canvas;
+    }
+    return true;
+  }
+
   /** Draw piece (column, row) of the UI sheet. */
   drawUiPiece(ctx: CanvasRenderingContext2D, column: number, row: number, dx: number, dy: number, size: number): void {
     const s = this.uiSize;
-    ctx.drawImage(this.ui, column * s, row * s, s, s, dx, dy, size, size);
+    const sheet = this.tonedUi && row < 2 ? this.tonedUi : this.ui;
+    ctx.drawImage(sheet, column * s, row * s, s, s, dx, dy, size, size);
   }
 
   /**

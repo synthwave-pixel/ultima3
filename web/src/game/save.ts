@@ -12,8 +12,10 @@
 
 import { World, blockExodusApproach } from './world.ts';
 import { Location } from './party.ts';
+import { ROSTER_SIZE } from './player.ts';
 import { MapId } from '../data/resources.ts';
 import { type JournalState, JOURNAL_FLAGS, emptyJournal, upgradeJournal } from './journal.ts';
+import { type Appearance, validAppearance } from './appearance.ts';
 
 /**
  * Version 2 pools gold and food in the party record, version 3 weapons and
@@ -48,6 +50,8 @@ export interface SaveData {
    * with the game, keeps the map the browser kept apart (localSave.read).
    */
   automap?: string;
+  /** Each roster entry's look in the Remastered tiles, by slot (appearance.ts); a save without it has none chosen. */
+  looks?: (Appearance | null)[];
 }
 
 /** Where the map was kept, apart from the save, before it went into it: read once into a save without one. */
@@ -103,6 +107,7 @@ export function serialize(world: World): SaveData {
     moongates: [...world.gatesKnown],
     tipsNudged: world.tipsNudged,
     automap: world.autoMap.toText(),
+    looks: [...world.looks],
   };
 }
 
@@ -143,6 +148,7 @@ export function restore(world: World, data: SaveData): boolean {
       : [];
     world.tipsNudged = data.tipsNudged !== false;
     if (typeof data.automap === 'string') world.autoMap.fromText(data.automap);
+    world.looks = Array.from({ length: ROSTER_SIZE }, (_, slot) => (Array.isArray(data.looks) ? validAppearance(data.looks[slot]) : null));
     return true;
   } catch {
     return false;

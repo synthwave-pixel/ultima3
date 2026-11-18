@@ -328,6 +328,7 @@ export class Attract {
 
 /** How each set draws the cave's roof, where the picture would not fit it: its ice's colour on its machine. */
 const ROOF_COLOURS: Record<string, string> = {
+  Remastered: '#5e74d0',
   Standard: '#657287',
   'Apple II Color': '#14cffd',
   'Commodore 64': '#7abfc7',

@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url';
 import { resourcesFromBundle, type Bundle, type GameResources } from '../src/data/resources.ts';
 import { serialize, type SaveData } from '../src/game/save.ts';
 import { World } from '../src/game/world.ts';
-import { Key, type GameIO, type MenuOption, type CommandScope } from '../src/game/io.ts';
+import { Key, type AdjustRow, type GameIO, type MenuOption, type CommandScope } from '../src/game/io.ts';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 
@@ -139,6 +139,18 @@ export class FakeIO implements GameIO {
     if (values.length !== labels.length) throw new Error(`FakeIO: expected ${labels.length} values`);
     return values;
   }
+  /** Rows adjusted are left as they start; a test that wants a look chosen sets `adjusted`. */
+  adjusted: number[] | null = null;
+  async adjustRows(_rows: AdjustRow[], start: number[]): Promise<number[] | null> {
+    return this.adjusted ?? start;
+  }
+  showSheet(): void {}
+  /** Whether looks are drawn: a test of the Remastered tiles' customiser sets it. */
+  looksDrawn = false;
+  customisable(): boolean {
+    return this.looksDrawn;
+  }
+  drawCharacter(): void {}
   /** The words the last inputText offered a controller (Other's, those learnt). */
   wordsOffered: string[] | undefined;
   async inputText(_max?: number, _numbersOnly?: boolean, words?: string[]): Promise<string> {

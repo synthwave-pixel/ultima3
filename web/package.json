@@ -18,7 +18,8 @@
     "font-sheet": "node tools/font-sheet.ts",
     "sfx": "node tools/chip-sfx.ts",
     "saves": "node --import ./tools/node-ts.mjs tools/saves/showcase.ts",
-    "fuzz": "node --import ./tools/node-ts.mjs tools/sim/fuzz.ts"
+    "fuzz": "node --import ./tools/node-ts.mjs tools/sim/fuzz.ts",
+    "remastered": "node tools/remastered.ts"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

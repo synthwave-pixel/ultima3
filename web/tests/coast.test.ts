@@ -9,8 +9,10 @@ import {
   coastMask,
   coastPattern,
   coastPixels,
+  shoreBy,
   surfAt,
 } from '../src/ui/coast.ts';
+import { Shape } from '../src/game/tiles.ts';
 
 const at = (pixels: (string | null)[], x: number, y: number) => pixels[y * 16 + x];
 const surfIn = (pixels: (string | null)[], cells: [number, number][]) => cells.filter(([x, y]) => at(pixels, x, y) !== null).length;
@@ -67,5 +69,15 @@ describe('coastlines', () => {
     expect(surfAt(style, 0, 0.9)).toBe('#3cbcfc');
     expect(surfAt(style, 2, 0.9)).toBeNull();
     expect(surfAt(style, 3, 0)).toBeNull();
+  });
+
+  it('runs along the land itself in Remastered, along all but the water elsewhere', () => {
+    expect(shoreBy('Remastered', Shape.Grass)).toBe(true);
+    expect(shoreBy('Remastered', Shape.Castle)).toBe(true);
+    expect(shoreBy('Remastered', Shape.Floor)).toBe(false); // a moat's paving
+    expect(shoreBy('Remastered', Shape.Wall)).toBe(false);
+    expect(shoreBy('Standard', Shape.Floor)).toBe(true);
+    expect(shoreBy('Standard', Shape.Water)).toBe(false);
+    expect(shoreBy('Nintendo', Shape.Void)).toBe(false);
   });
 });

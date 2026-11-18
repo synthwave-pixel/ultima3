@@ -17,18 +17,24 @@
  * tile, and their bricks halve with each cell of distance.
  */
 
+import { paintWallTexture, TEXELS_X, TEXELS_Y, type WallTexture } from './wallTextures.ts';
 import { DUNGEON_SHEET_HEIGHT, DUNGEON_SHEET_WIDTH, sheetRegions, type SheetRegion } from './dungeonView.ts';
 
 export interface DungeonStyle {
-  /** Wireframe (lines on a plain ground) or brick (filled walls with mortar lines). */
-  kind: 'wire' | 'brick';
+  /**
+   * Wireframe (lines on a plain ground), brick (filled walls with mortar lines), or texture: pixel art laid on the
+   * walls in perspective (wallTextures.ts `texture`, in the ramp of `face`).
+   */
+  kind: 'wire' | 'brick' | 'texture';
+  /** Texture: which. */
+  texture?: WallTexture;
   /** The ground: the corridor with nothing in it, and the inside of wire walls unless `fill` says otherwise. */
   bg: string;
   /** Wire: the line colour. Brick: the mortar. */
   line: string;
   /** Wire only: fill walls with this instead of `bg` (CGA's magenta). */
   fill?: string;
-  /** Brick: the facing wall colour. */
+  /** Brick: the facing wall colour. Texture: the colour its ramp is made from. */
   face?: string;
   /** Brick: the side wall colour (a shade darker). */
   side?: string;
@@ -59,12 +65,86 @@ const VGA: DungeonStyle = {
   wood: '#9a6a3a',
 };
 
+/** PC Ultima V's dungeon: its grey-blue stone, which Remastered shares. */
+const PC_ULTIMA_V: DungeonStyle = {
+  kind: 'brick',
+  bg: '#0a0c10',
+  line: '#1a2028',
+  face: '#5c6c7c',
+  side: '#44505c',
+  variation: 0.2,
+  floor: '#2c3038',
+  floorLine: '#3c4048',
+  ceiling: '#101418',
+  wood: '#8a5a2a',
+};
+
+/** A textured dungeon (wallTextures.ts): its walls `texture` in the ramp of `face`, its floor and roof in the same hue, darker. */
+function textured(texture: WallTexture, face: string): DungeonStyle {
+  const n = parseInt(face.slice(1), 16);
+  const tone = (f: number) =>
+    '#' +
+    [(n >> 16) & 255, (n >> 8) & 255, n & 255]
+      .map((v) =>
+        Math.round(v * f)
+          .toString(16)
+          .padStart(2, '0'),
+      )
+      .join('');
+  return {
+    kind: 'texture',
+    texture,
+    face,
+    bg: '#060608',
+    line: tone(0.3),
+    floor: tone(0.34),
+    floorLine: tone(0.24),
+    ceiling: tone(0.16),
+    wood: '#8a5a2a',
+  };
+}
+
+/**
+ * The walls a dungeon may have in a set that gives each its own, by name (`?walls=` tries one, devStarts.ts): the
+ * Ultima V port's three - DNG1's earth, DNG2's red rock, DNG3's grey stone - in their toned colours, and others in
+ * the light that port lays on its dungeons (its DUNGEON_TINTS).
+ */
+export const WALLS: Record<string, DungeonStyle> = {
+  earth: textured('earth', '#7d5f3d'),
+  'red rock': textured('rock', '#8c3a2a'),
+  'grey rock': textured('rock', '#7a746a'),
+  'grey blocks': textured('blocks', '#9a9488'),
+  'slate blocks': textured('blocks', '#5c6c7c'),
+  'violet blocks': textured('blocks', '#7d5f9e'),
+  'red bricks': textured('bricks', '#8a4a3e'),
+  'grey bricks': textured('bricks', '#8a8478'),
+  'green fieldstone': textured('fieldstone', '#66805a'),
+  'grey fieldstone': textured('fieldstone', '#8a8478'),
+};
+
+/**
+ * The sets whose dungeons each have their own walls, by the dungeon's map id (412-418); a dungeon not listed has the
+ * set's own (DUNGEON_STYLES).
+ */
+export const PLACE_DUNGEON_STYLES: Record<string, Record<number, DungeonStyle>> = {
+  Remastered: {
+    412: WALLS['red bricks'], // Doom
+    413: WALLS['red rock'], // Fires of Hell
+    414: WALLS['violet blocks'], // Time Awaits
+    415: WALLS['green fieldstone'], // Clues
+    416: WALLS['slate blocks'], // Perinian Depths
+    417: WALLS['grey rock'], // Mines of Morinia
+    418: WALLS['earth'], // Dardin's Pit
+  },
+};
+
 /**
  * A style for every tile set but Lairware, which keeps the Mac's
  * photographic sheet. Standard (the Mac tiles) takes the VGA dungeon.
  */
 export const DUNGEON_STYLES: Record<string, DungeonStyle> = {
   Standard: VGA,
+  Remastered: PC_ULTIMA_V,
   'PC VGA': VGA,
   // Mono draws in its monitor's green phosphor, as its tiles do (display.ts).
   'Apple II Mono': {
@@ -121,18 +201,7 @@ export const DUNGEON_STYLES: Record<string, DungeonStyle> = {
     ceiling: '#202020',
     wood: '#b07a3a',
   },
-  'PC Ultima V': {
-    kind: 'brick',
-    bg: '#0a0c10',
-    line: '#1a2028',
-    face: '#5c6c7c',
-    side: '#44505c',
-    variation: 0.2,
-    floor: '#2c3038',
-    floorLine: '#3c4048',
-    ceiling: '#101418',
-    wood: '#8a5a2a',
-  },
+  'PC Ultima V': PC_ULTIMA_V,
 };
 
 const VP_X = 300;
@@ -211,7 +280,11 @@ export function paintDungeonSheet(style: DungeonStyle, mask: HTMLImageElement): 
   mctx.drawImage(mask, 0, 0);
   const maskData = mctx.getImageData(0, 0, mask.width, mask.height);
 
-  const painter = new SheetPainter(ctx, style);
+  const painter = new SheetPainter(
+    ctx,
+    style,
+    style.kind === 'texture' ? paintWallTexture(style.texture ?? 'blocks', style.face ?? '#808080') : null,
+  );
   for (const r of sheetRegions()) {
     if (r.name === 'corridor background') painter.corridor(r);
     else if (r.name === 'chest') painter.chest(r);
@@ -224,10 +297,17 @@ export function paintDungeonSheet(style: DungeonStyle, mask: HTMLImageElement): 
   return sheet;
 }
 
+/** How light a wall `z` cells off is, in a textured style: the nearest whole, the farthest dimmed towards the dark. */
+const lightAt = (z: number): number => 0.42 + 0.58 / Math.max(1, z);
+/** A side wall's light beside a facing wall's at the same depth. */
+const SIDE_LIGHT = 0.82;
+
 class SheetPainter {
   constructor(
     private readonly ctx: CanvasRenderingContext2D,
     private readonly style: DungeonStyle,
+    /** A textured style's texture (wallTextures.ts). */
+    private readonly texture: HTMLCanvasElement | null = null,
   ) {}
 
   fillRegion(r: SheetRegion, colour: string): void {
@@ -312,6 +392,10 @@ class SheetPainter {
       this.stroke(() => ctx.rect(r.sx + 1, r.sy + 1, r.w - 2, r.h - 2));
       return;
     }
+    if (this.texture) {
+      this.texturedFacing(r);
+      return;
+    }
     // Bricks in screen space, halving with distance, so a band's pieces tile.
     const bh = Math.max(4, r.h / COURSES);
     const bw = bh * 2;
@@ -340,6 +424,50 @@ class SheetPainter {
       }
     }
     ctx.restore();
+  }
+
+  /** A facing wall, textured: a texture a cell, the cells in line with the corridor's, dimmed with distance. */
+  private texturedFacing(r: SheetRegion): void {
+    const ctx = this.ctx;
+    const tex = this.texture!;
+    const dx = r.dx ?? 0;
+    const cellW = (r.h * 600) / 512;
+    const left = VP_X - cellW / 2; // a cell's edge, in the view
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(r.sx, r.sy, r.w, r.h);
+    ctx.clip();
+    ctx.imageSmoothingEnabled = false;
+    for (let k = Math.floor((dx - left) / cellW); left + k * cellW < dx + r.w; k++)
+      ctx.drawImage(tex, 0, 0, TEXELS_X, TEXELS_Y, r.sx + left + k * cellW - dx, r.sy, cellW, r.h);
+    ctx.fillStyle = `rgba(0,0,0,${1 - lightAt(512 / r.h)})`;
+    ctx.fillRect(r.sx, r.sy, r.w, r.h);
+    ctx.restore();
+  }
+
+  /** A side wall, textured: each column of it the texture's column at its depth along the wall, dimmed with depth. */
+  private texturedSide(
+    r: SheetRegion,
+    s: Silhouette,
+    nearX: number,
+    z0: number,
+    topAt: (x: number) => number,
+    bottomAt: (x: number) => number,
+  ): void {
+    const ctx = this.ctx;
+    const tex = this.texture!;
+    const dx = r.dx ?? 0;
+    ctx.imageSmoothingEnabled = false;
+    for (let x = s.first; x <= s.last; x++) {
+      if (s.top[x] < 0) continue;
+      const X = dx + x + 0.5 - VP_X;
+      const t = Math.max(0, Math.min(0.999, (z0 * nearX) / X - z0));
+      const column = Math.floor(t * TEXELS_X);
+      const [y0, y1] = [topAt(x), bottomAt(x)];
+      ctx.drawImage(tex, column, 0, 1, TEXELS_Y, r.sx + x, y0, 1, y1 - y0);
+      ctx.fillStyle = `rgba(0,0,0,${1 - lightAt(z0 + t) * SIDE_LIGHT})`;
+      ctx.fillRect(r.sx + x, y0, 1, y1 - y0);
+    }
   }
 
   // -- Panels A and B: side walls, traced from the mask ---------------------
@@ -376,6 +504,13 @@ class SheetPainter {
       return;
     }
 
+    if (this.texture) {
+      const nearX0 = dx + near - VP_X;
+      const farX0 = dx + far - VP_X;
+      this.texturedSide(r, s, nearX0, Math.abs(farX0) / Math.max(1, Math.abs(nearX0) - Math.abs(farX0)), topAt, bottomAt);
+      ctx.restore();
+      return;
+    }
     // Brick: the face, dithered if the style shades that way, then courses and joints in perspective.
     for (let x = s.first; x <= s.last; x++) {
       if (s.top[x] < 0) continue;

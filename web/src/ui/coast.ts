@@ -1,7 +1,7 @@
 /**
  * coast.ts
  *
- * Coastlines, for the Standard and Nintendo tile sets: a water square
+ * Coastlines, for the Remastered, Standard and Nintendo tile sets: a water square
  * shows surf along whatever land is beside it, the way the NES game's
  * shores did, where the other sets keep the Apple II's plain water. The map
  * is unchanged; this only draws over the water.
@@ -16,6 +16,8 @@
  * so neighbouring shores do not repeat.
  */
 
+import { Shape } from '../game/tiles.ts';
+
 /**
  * A set's surf, in bands out from the land, a pixel wide each: in each, the speckle's noise (0 to 1) picks the first
  * colour whose share it is under, counted up through the list, and past the last the water shows.
@@ -24,6 +26,19 @@ export type CoastStyle = [colour: string, upTo: number][][];
 
 /** The sets with coastlines, and their surf. */
 export const COAST_STYLES: Record<string, CoastStyle> = {
+  // The Ultima V port's Remastered shore: a fringe of sand at the waterline (its SHORE_SAND), then its shallows' lighter blue.
+  Remastered: [
+    [
+      ['#9c8452', 0.3],
+      ['#8a7448', 0.6],
+      ['#7a6640', 0.9],
+    ],
+    [
+      ['#7a6640', 0.2],
+      ['#34416f', 0.85],
+    ],
+    [['#34416f', 0.45]],
+  ],
   // White foam, thinning into pale blues over our water.
   Standard: [[['#e4f6ff', 0.85]], [['#bfe9ff', 0.55]], [['#9fdcff', 0.22]]],
   // The NES palette's white and light blue, as Ultima: Exodus drew its surf.
@@ -44,6 +59,21 @@ export const COAST_STYLES: Record<string, CoastStyle> = {
 export function surfAt(style: CoastStyle, d: number, noise: number): string | null {
   const band = style[Math.floor(d)];
   return band?.find(([, upTo]) => noise < upTo)?.[0] ?? null;
+}
+
+/**
+ * The sets whose shore runs only along the land itself, by the shapes that are (game/tiles.ts Shape): Remastered's,
+ * as the Ultima V port draws its shore only by soft ground - not along a castle's moat, where the water meets paving
+ * and walls. In every other set with coastlines all that is not water is land.
+ */
+const NATURAL_SHORES: Record<string, ReadonlySet<number>> = {
+  Remastered: new Set([Shape.Grass, Shape.Brush, Shape.Forest, Shape.Mountains, Shape.Dungeon, Shape.Town, Shape.Castle]),
+};
+
+/** Whether a square of `shape` beside the water has a shore drawn along it in `setName` (water and the void never). */
+export function shoreBy(setName: string, shape: number): boolean {
+  if (shape === Shape.Water || shape === Shape.Void) return false;
+  return NATURAL_SHORES[setName]?.has(shape) ?? true;
 }
 
 /** The neighbours as bits of a mask, clockwise from north. */

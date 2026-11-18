@@ -76,9 +76,10 @@
     <h2>Pages</h2>
     <ul>
       <li><a href="tiles.html">tile sets</a></li>
+      <li><a href="looks.html">looks side by side</a>: two sets on the same places</li>
     </ul>
     <script type="module">
-      import { TILE_SETS } from './src/ui/help.ts';
+      import { TILE_SETS, tileSetLabel } from './src/ui/help.ts';
       import { SPAWN_TYPES } from './src/game/monsters.ts';
       import { slug } from './src/game/devStarts.ts';
 
@@ -89,7 +90,7 @@
         .map(([, map]) => map.name);
       const fights = [...new Set(SPAWN_TYPES.map((shape) => names[shape]))];
       const tiles = document.getElementById('tiles');
-      for (const set of TILE_SETS) tiles.append(new Option(set, slug(set)));
+      for (const set of TILE_SETS) tiles.append(new Option(tileSetLabel(set), slug(set)));
 
       // Every link carries the page's choices: peek and the tile set.
       const href = (query) => {

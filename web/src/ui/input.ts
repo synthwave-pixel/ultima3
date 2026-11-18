@@ -103,6 +103,8 @@ export class Keyboard {
   holdBreaks = 0;
   /** Keys held down and repeating, by what holds them: a keyboard's key code, or the touch pad. */
   private keysHeld = new Map<string, Hold>();
+  /** Whether losing the focus pauses the game; not for a game shown beside another (looks.html, ?awake). */
+  followsFocus = true;
 
   constructor(
     target: EventTarget = window,
@@ -111,9 +113,12 @@ export class Keyboard {
     target.addEventListener('keydown', (e) => this.onKeyDown(e as KeyboardEvent));
     target.addEventListener('keyup', (e) => this.letGo(`key:${(e as KeyboardEvent).code}`));
     if (typeof window !== 'undefined') {
-      window.addEventListener('blur', () => this.pause('focus'));
+      window.addEventListener('blur', () => this.followsFocus && this.pause('focus'));
       window.addEventListener('focus', () => this.resume('focus'));
-      document.addEventListener('visibilitychange', () => (document.hidden ? this.pause('focus') : this.resume('focus')));
+      document.addEventListener(
+        'visibilitychange',
+        () => this.followsFocus && (document.hidden ? this.pause('focus') : this.resume('focus')),
+      );
     }
   }
 
