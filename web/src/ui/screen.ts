@@ -47,6 +47,7 @@ import { ROSTER_SIZE } from '../game/player.ts';
 import { borderToneAt } from './borderTone.ts';
 import { FigurePainter } from './figures.ts';
 import { TextCaser } from './textCase.ts';
+import { FONT_LABELS, fontSheet, isSmoothFont, nextFont, type FontChoice } from './lettering.ts';
 import { type Appearance, beardless, defaultLook, FIGURES } from '../game/appearance.ts';
 import { buildViewport, VIEW_SIZE, VIEW_CENTRE, type Viewport } from '../game/viewport.ts';
 import { Shape } from '../game/tiles.ts';
@@ -197,6 +198,30 @@ export class Screen implements GameIO {
   private wideFor: Viewport | null = null;
   /** Smooth motion (Visuals): the top-down views glide from square to square (glide.ts). Off: they jump, as ever. */
   smoothMotion = false;
+  /** Font (Visuals, lettering.ts): the letters in the look's own font, or one chosen whatever the look. */
+  private fontChoice: FontChoice = 'look';
+  /** The chosen font's sheet, once loaded (null for the look's own). */
+  private fontImage: HTMLImageElement | null = null;
+
+  get font(): FontChoice {
+    return this.fontChoice;
+  }
+
+  /** Letter everything in `font` from now on: its sheet loaded, then the screen drawn again in it (`redraw`). */
+  async setFont(font: FontChoice, redraw = true): Promise<void> {
+    this.fontChoice = font;
+    const image = await fontSheet(font);
+    if (this.fontChoice !== font) return; // another chosen while this one loaded
+    this.fontImage = image;
+    this.letter(this.gfx);
+    if (redraw) this.redrawAll();
+  }
+
+  /** Hand `gfx` the font chosen. */
+  private letter(gfx: GraphicsSet): void {
+    gfx.lettering = this.fontImage;
+    gfx.letteringSmooth = isSmoothFont(this.fontChoice);
+  }
   private readonly glide = new Glide();
   /** The coastlines' pieces (coast.ts). */
   private readonly coast = new CoastPainter();
@@ -570,6 +595,7 @@ export class Screen implements GameIO {
    */
   setGraphics(gfx: GraphicsSet): void {
     this.gfx = gfx;
+    this.letter(gfx);
     this.greenFigures.clear();
     this.secretDoorPiece = null;
     this.chromeColours = null;
@@ -1159,7 +1185,7 @@ export class Screen implements GameIO {
     }
   }
 
-  /** Visuals: the tile set (its own list of sets), the scanlines and Smooth motion. */
+  /** Visuals: the tile set (its own list of sets), the scanlines, Smooth motion and the font. */
   private async visualsMenu(): Promise<void> {
     await this.settingsList(
       'Visuals',
@@ -1167,9 +1193,11 @@ export class Screen implements GameIO {
         { key: 'T', label: `Tiles: ${tileSetLabel(this.tileSetName)}` },
         { key: 'L', label: `Scanlines: ${onOff(this.scanlines)}` },
         { key: 'M', label: `Smooth motion: ${onOff(this.smoothMotion)}` },
+        { key: 'F', label: `Font: ${FONT_LABELS[this.fontChoice]}` },
       ],
       async (key) => {
         if (key === 'T') await this.chooseTiles();
+        else if (key === 'F') await this.setFont(nextFont(this.fontChoice));
         else if (key === 'L') this.scanlines = !this.scanlines;
         else if (key === 'M') this.smoothMotion = !this.smoothMotion;
       },

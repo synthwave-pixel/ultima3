@@ -34,6 +34,7 @@ import { AutoMap, MAP_MODES, type MapMode } from './game/automap.ts';
 import { chooseRules, mainMenu } from './game/menu.ts';
 import { Attract } from './ui/attract.ts';
 import { GraphicsSet, loadImages } from './ui/graphics.ts';
+import { validFont, type FontChoice } from './ui/lettering.ts';
 import { INPUT_PACE_NAMES, Keyboard, type InputPace } from './ui/input.ts';
 import { LEVELS, SoundPlayer, SOUND_SETS, validLevel, type SoundSet } from './ui/sound.ts';
 import { TouchPad } from './ui/touch.ts';
@@ -54,6 +55,8 @@ interface Prefs {
   scanlines: boolean;
   /** The top-down views glide from square to square (glide.ts); on unless turned off, for players new and old. */
   smoothMotion: boolean;
+  /** The letters' font (Visuals, lettering.ts): the look's own unless another is chosen. */
+  font: FontChoice;
   autoCombat: boolean;
   poisonKills: boolean;
   starvation: Starvation;
@@ -82,6 +85,7 @@ const DEFAULT_PREFS: Prefs = {
   tiles: 'Remastered',
   scanlines: false,
   smoothMotion: true,
+  font: 'look',
   autoCombat: false,
   poisonKills: false,
   starvation: 'mild',
@@ -112,6 +116,7 @@ function loadPrefs(): Prefs {
     if (!TILE_SETS.includes(prefs.tiles)) prefs.tiles = DEFAULT_PREFS.tiles;
     if (typeof prefs.scanlines !== 'boolean') prefs.scanlines = DEFAULT_PREFS.scanlines;
     if (typeof prefs.smoothMotion !== 'boolean') prefs.smoothMotion = DEFAULT_PREFS.smoothMotion;
+    prefs.font = validFont(prefs.font);
     if (typeof prefs.batterySaver !== 'boolean') prefs.batterySaver = DEFAULT_PREFS.batterySaver;
     if (!INPUT_PACE_NAMES.includes(prefs.maxInput)) prefs.maxInput = DEFAULT_PREFS.maxInput;
     if (prefs.inputMode !== 'keyboard') prefs.inputMode = DEFAULT_PREFS.inputMode;
@@ -294,6 +299,7 @@ async function start(): Promise<void> {
   if (wallsParam) screen.wallsAsked = Object.keys(WALLS).find((name) => dev!.slug(name) === dev!.slug(wallsParam)) ?? null;
   screen.scanlines = prefs.scanlines;
   screen.smoothMotion = prefs.smoothMotion;
+  await screen.setFont(prefs.font, false); // before anything is drawn
   screen.batterySaver = prefs.batterySaver;
   screen.maxInput = prefs.maxInput;
   canvas.focus();
@@ -313,6 +319,7 @@ async function start(): Promise<void> {
       tiles: screen.tileSetName === tilesAsked ? prefs.tiles : screen.tileSetName,
       scanlines: screen.scanlines,
       smoothMotion: screen.smoothMotion,
+      font: screen.font,
       autoCombat: world.autoCombat,
       poisonKills: world.poisonKills,
       starvation: world.starvation,

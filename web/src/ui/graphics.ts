@@ -24,6 +24,7 @@
 import { DUNGEON_STYLES, PLACE_DUNGEON_STYLES, paintDungeonSheet, WALLS, type DungeonStyle } from './dungeonArt.ts';
 import { MOON_STYLES, MOON_CELL, paintMoons } from './moonArt.ts';
 import { displayOf, type DisplayStyle } from './display.ts';
+import { LETTERED } from './lettering.ts';
 import { TONED_BORDER_SETS, toneImage, toneKey, type BorderTone } from './borderTone.ts';
 import { MapValue, Shape, CLASS_COUNT, CLASS_FALLBACK_TILE, FIRST_CLASS_TILE, classFallbackTile, isClassTile } from '../game/tiles.ts';
 
@@ -164,6 +165,10 @@ export class GraphicsSet {
   readonly fontHeight: number;
   /** Pixel size of one UI piece. */
   readonly uiSize: number;
+  /** The letters of the Font setting (lettering.ts), drawn in place of the set's own for LETTERED glyphs; null for the set's. */
+  lettering: HTMLImageElement | null = null;
+  /** Whether `lettering` is a smooth face (Legible, Dyslexic), scaled with smoothing; a pixel font is not. */
+  letteringSmooth = false;
 
   /** Which tiles are currently showing their alternate frame. (`gShapeSwapped`) */
   private swapped = new Uint8Array(TILE_COLUMNS * TILE_ROWS);
@@ -349,6 +354,16 @@ export class GraphicsSet {
   drawGlyph(ctx: CanvasRenderingContext2D, ch: string, dx: number, dy: number, size: number): void {
     let code = ch.charCodeAt(0) - 0x20;
     if (code < 0 || code >= FONT_GLYPHS) code = 0;
+    const lettering = this.lettering;
+    if (lettering && LETTERED.test(ch)) {
+      const side = lettering.width / FONT_GLYPHS;
+      const smoothing = ctx.imageSmoothingEnabled;
+      ctx.imageSmoothingEnabled = this.letteringSmooth;
+      if (this.letteringSmooth) ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(lettering, code * side, 0, side, lettering.height, dx, dy, size, size);
+      ctx.imageSmoothingEnabled = smoothing;
+      return;
+    }
     // The whole glyph, however tall, fits the square cell.
     ctx.drawImage(this.font, code * this.fontSize, 0, this.fontSize, this.fontHeight, dx, dy, size, size);
   }

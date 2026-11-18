@@ -12,3 +12,12 @@ letters (The Sixtyfour Project Authors), under the SIL Open Font License
 it. Here it is baked into `public/graphics/Standard-Font.png`, the
 Standard tile set's letters (`tools/font-sheet.ts`); the game loads that
 sheet, not the font.
+
+`AtkinsonHyperlegibleMono.ttf`: Atkinson Hyperlegible Mono, the Braille
+Institute of America's, under the SIL Open Font License 1.1
+(`OFL-atkinsonhyperlegiblemono.txt`). `OpenDyslexicMono-Regular.otf`:
+OpenDyslexic Mono, Abbie Gonzalez's (`LICENSE-opendyslexicmono.txt`). They
+are the Font setting's Legible and Dyslexic, as in the Ultima V port, baked
+into `public/fonts/Legible.png` and `public/fonts/Dyslexic.png`
+(`tools/reading-fonts.ts`, `npm run reading-fonts`); the game loads those
+sheets, not the fonts.

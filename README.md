@@ -259,7 +259,8 @@ menu, which stays up until you close it, so nothing runs on while you are
 away.
 
 The menu holds the settings: auto combat, Visuals (the tile set,
-scanlines and Smooth motion), Gameplay (the input mode, poison kills,
+scanlines, Smooth motion and the font: the look's own, Sixtyfour,
+Legible, Dyslexic or DOS), Gameplay (the input mode, poison kills,
 starvation, balanced XP, the turn timer, Max input and Battery saver), Audio (Sound FX, Standard,
 Lairware or Off, and the FX level, music and the Music level), Tips (how
 the game works, for a new player, without the quest's answers), Help,
