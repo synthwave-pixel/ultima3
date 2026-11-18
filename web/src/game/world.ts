@@ -130,6 +130,8 @@ export interface CombatState {
   snapShown?: number;
   /** What the mark is for: a snap attack, or a bolt spell being aimed (spells.ts aimBolt), drawn in a spell's colours. */
   snapKind?: 'attack' | 'spell';
+  /** A blow or shot just missed: the turn's outline shows a dim grey a moment (combat.ts, the Ultima V port's). */
+  missFlash?: boolean;
   /** Whether this fight's tip has been given (snap.ts combatTip: one a fight). */
   tipGiven?: boolean;
 }

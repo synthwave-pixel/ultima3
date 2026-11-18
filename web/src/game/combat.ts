@@ -437,6 +437,9 @@ async function victory(world: World, io: GameIO, previousMusic: number): Promise
  * the turn timer (TURN_TIMEOUT_MS under Fast) the turn is passed, as on
  * the Apple II; with the timer off the wait has no end.
  */
+/** How long the turn's outline shows dim as a blow or shot misses (the Ultima V port's). */
+const MISS_FLASH_MS = 140;
+
 async function waitForCombatKey(world: World, io: GameIO, member: number): Promise<string> {
   const c = world.combat!;
   c.markedMember = member;
@@ -690,8 +693,14 @@ async function combatAttack(world: World, io: GameIO, member: number, preset?: {
   if (dir.dx === 0 && dir.dy === 0) return;
   io.sound(Sound.Swish[member]);
 
-  const missed = () => {
+  const missed = async () => {
     io.printMessage(Msg.Missed);
+    // The Ultima V port's: the turn's outline round the one who missed flashes a dim grey, the blow seen to be made.
+    const c = world.combat;
+    if (c) c.missFlash = true;
+    io.redrawMap();
+    await io.pause(MISS_FLASH_MS);
+    if (c) c.missFlash = false;
     io.redrawMap();
   };
 

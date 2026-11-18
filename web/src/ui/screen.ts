@@ -130,6 +130,9 @@ const TEXT_BOTTOM = 24; // exclusive
 
 const ANIMATION_INTERVAL_MS = 1000 / 12;
 
+/** The turn's outline as a blow or shot misses, in the modern looks: the Ultima V port's dim white. */
+const MISSED_RGB: [number, number, number] = [188, 188, 180];
+
 /** A mark drawn round a square (Screen.markSquare): its pixels, and the pixels round them that the modern looks darken. */
 interface Mark {
   on: [number, number][];
@@ -2570,7 +2573,10 @@ export class Screen implements GameIO {
     const elapsed = c.markedFor > 0 ? (now - c.markedAt) / c.markedFor : 0;
     // White fading to half on the dark sets, black fading up on the Macintosh set's white ground, and in a monochrome
     // monitor's colour where there is one, so the outline matches the figures it frames.
-    const colour = `rgb(${markerColour(this.gfx.display, elapsed).join(',')})`;
+    // A miss (combat.ts): a dim grey a moment - the Ultima V port's dim white in the modern looks, half the outline's
+    // brightness in the others.
+    const missed = c.missFlash ? (isModern(this.tileSetName) ? MISSED_RGB : markerColour(this.gfx.display, 1)) : null;
+    const colour = `rgb(${(missed ?? markerColour(this.gfx.display, elapsed)).join(',')})`;
     ctx.save();
     ctx.beginPath();
     ctx.rect(cell, cell, 22 * cell, 22 * cell); // never paint over the border

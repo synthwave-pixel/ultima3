@@ -172,4 +172,19 @@ describe('snap targets (#29)', () => {
     expect(await cast(world, io, 0)).toBe(true);
     expect(seen).toEqual([]);
   });
+
+  it("flash the turn's outline dim a moment as a blow misses (the Ultima V port's)", async () => {
+    const { world, c } = arena();
+    weapon(world, 4);
+    const io = new FakeIO(world.resources);
+    const during: (boolean | undefined)[] = [];
+    io.pause = async () => {
+      during.push(c.missFlash);
+    };
+    io.keys = ['A', Key.Up]; // nobody to the north
+    await memberTurnForTest(world, io, 0);
+    expect(io.output).toMatch(/Missed/i);
+    expect(during).toContain(true);
+    expect(c.missFlash).toBe(false);
+  });
 });
