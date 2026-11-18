@@ -25,6 +25,7 @@ import { journalCheck } from './journal.ts';
 import { runDungeon } from './dungeon.ts';
 import { checkAllDead } from './death.ts';
 import { MapId } from '../data/resources.ts';
+import { inPlayNotice, wrapWords, type UpdateHook } from './updateOffer.ts';
 
 /** How long the game waits for a key before passing the turn automatically (the original: ~5 seconds). */
 export const IDLE_PASS_MS = 5000;
@@ -47,6 +48,8 @@ export interface GameOptions {
   save?: (world: World) => boolean;
   /** Restore the last save into the world; true if there was one. Offered after a party wipe. */
   load?: (world: World) => boolean;
+  /** A newer version (updateOffer.ts): one come down while playing is said in the message area, once. */
+  update?: UpdateHook;
 }
 
 export class Game {
@@ -109,6 +112,14 @@ export class Game {
       if (!world.tipsNudged) {
         io.print(TIPS_NUDGE);
         world.tipsNudged = true;
+      }
+      // A newer version come down while playing (the desktop app's, installed or to be on quitting): said before the
+      // turn, once, in the message area's sixteen columns; the game goes on, and the Pause menu keeps an Update line.
+      const update = this.options.update;
+      const said = inPlayNotice(update?.offer() ?? null);
+      if (update && said) {
+        update.told();
+        io.print(`\n${wrapWords(said, 16).join('\n')}\n`);
       }
       io.prompt();
 

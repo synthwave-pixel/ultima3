@@ -9,12 +9,12 @@
 # anything reaches a player. (pages.yml only redeploys the latest release.)
 # A run started by hand (Actions > Desktop and Android builds > Run
 # workflow) does what "kind" says: dev-builds (the default) keeps the
-# builds as workflow artifacts, to try a change, with nothing published;
-# prerelease publishes a GitHub pre-release, for testers (the update offer
-# looks only at the latest full release, so nothing is offered it, and the
-# site is not deployed); release is a release, as a push to the release
-# branch is. With "android_only" on, only the APK is built, and there is
-# no release.
+# builds as workflow artifacts, to try a change, with nothing published
+# (and a signed Mac app not notarized); prerelease publishes a GitHub
+# pre-release, for testers (the updater and the update notice look only at
+# the latest full release, so nothing updates to it, and the site is not
+# deployed); release is a release, as a push to the release branch is.
+# With "android_only" on, only the APK is built, and there is no release.
 # The version is the major.minor from desktop/package.json with this
 # workflow's run number as the patch (1.0.37, say), decided by
 # desktop/version.cjs. A push to main no longer runs it, so a release's
@@ -23,11 +23,17 @@
 # another would count from 1. A release's notes are the root README's
 # changelog section headed with its version ("### v1.0.37, <date>"),
 # through desktop/release-notes.cjs, above GitHub's generated compare
-# link. Desktop builds are unsigned: see the README's Desktop section for
-# what that means on each platform. The APK is signed with the committed
-# sideload key unless the ANDROID_KEYSTORE_* secrets provide a release
-# key. Linux gets a Flatpak bundle as well as an AppImage; the Linux job
-# installs (and caches) the runtimes it needs.
+# link. A release carries what the desktop apps' updater reads beside the
+# builds (latest*.yml, the blockmaps, the Mac .zip; desktop/updates.cjs).
+# The Mac app is signed with the Developer ID certificate, and a published
+# one notarized, where the repository has the MACOS_* and APPLE_* secrets
+# (desktop/macSigning.cjs); without them it is signed ad hoc, and only
+# tells of a newer release rather than installing it. The Windows builds
+# are unsigned: see the README's Desktop section for what that means on
+# each platform. The APK is signed with the committed sideload key unless
+# the ANDROID_KEYSTORE_* secrets provide a release key. Linux gets a
+# Flatpak bundle as well as an AppImage; the Linux job installs (and
+# caches) the runtimes it needs.
 name: Desktop and Android builds
 
 run-name: ${{ github.event_name == 'push' && 'Release' || inputs.android_only && 'Android dev build' || inputs.kind == 'dev-builds' && 'Dev builds' || inputs.kind == 'prerelease' && 'Pre-release' || 'Release' }} from ${{ github.ref_name }}
@@ -50,6 +56,10 @@ on:
 
 permissions:
   contents: write
+
+# Whether this run publishes (a release or a pre-release): its Mac app is then notarized and checked.
+env:
+  PUBLISH: ${{ github.event_name == 'push' || inputs.kind == 'release' || inputs.kind == 'prerelease' }}
 
 jobs:
   # The checks main gets (ci.yml), first: nothing is built from a commit that fails them.
@@ -114,8 +124,28 @@ jobs:
       - run: npm run dist -- ${{ matrix.args }}
         working-directory: desktop
         env:
-          # Unsigned macOS builds: skip the notarisation step electron-builder would otherwise attempt.
+          # No identity looked for in the runner's keychain: the Mac build names its own (desktop/macSigning.cjs).
           CSC_IDENTITY_AUTO_DISCOVERY: false
+          # The Mac build signed with the Developer ID certificate, from the repository's secrets; without them it is
+          # signed ad hoc, as before. Given to the Mac build alone: electron-builder would take a CSC_LINK for Windows
+          # signing too.
+          CSC_LINK: ${{ matrix.target == 'mac' && secrets.MACOS_CERTIFICATE_BASE64 || '' }}
+          CSC_KEY_PASSWORD: ${{ matrix.target == 'mac' && secrets.MACOS_CERTIFICATE_PASSWORD || '' }}
+          MACOS_SIGNING_IDENTITY: ${{ matrix.target == 'mac' && secrets.MACOS_SIGNING_IDENTITY || '' }}
+          # Notarized only when published, which is what players and testers download: a few minutes more a build.
+          APPLE_ID: ${{ matrix.target == 'mac' && env.PUBLISH == 'true' && secrets.APPLE_ID || '' }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ matrix.target == 'mac' && env.PUBLISH == 'true' && secrets.APPLE_APP_PASSWORD || '' }}
+          APPLE_TEAM_ID: ${{ matrix.target == 'mac' && env.PUBLISH == 'true' && secrets.APPLE_TEAM_ID || '' }}
+      # A published Mac app must be notarized: electron-builder only warns when it cannot notarize (an Apple secret
+      # missing), and Gatekeeper would then refuse the download. Builds without the certificate (signed ad hoc, as this
+      # repository's are until the secrets are added) are not checked.
+      - if: matrix.target == 'mac' && env.PUBLISH == 'true'
+        run: |
+          if [ "$SIGNED" != true ]; then echo 'Not signed: no certificate.'; exit 0; fi
+          for app in dist/mac*/*.app; do spctl --assess --type execute -vv "$app"; done
+        working-directory: desktop
+        env:
+          SIGNED: ${{ secrets.MACOS_CERTIFICATE_BASE64 != '' }}
       # The app as packaged, launched: it must start and run the game (smoke-built.cjs), or nothing is published.
       - if: matrix.target == 'linux'
         run: xvfb-run -a node smoke-built.cjs
@@ -140,6 +170,9 @@ jobs:
             desktop/dist/*.flatpak
             desktop/dist/*.exe
             desktop/dist/*.dmg
+            desktop/dist/*.zip
+            desktop/dist/latest*.yml
+            desktop/dist/*.blockmap
           if-no-files-found: error
 
   android:

@@ -3,3 +3,5 @@ app/
 dist/
 smoke.png
 build-meta/
+# The Mac build's settings, written and removed by dist.cjs (macSigning.cjs).
+.mac-build.json

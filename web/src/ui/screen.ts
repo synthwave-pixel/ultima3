@@ -42,6 +42,7 @@ import { TILE_SETS, helpPages, isModern, PAGE_ROWS, PAGE_WIDTH, tileSetLabel } f
 import { journalCard, journalSnapshot, journalTop, wordCard, type JournalLine } from '../game/journal.ts';
 import { TIPS, tipPages, type Tip } from '../game/tips.ts';
 import { CHEATS } from '../game/cheats.ts';
+import { inPlayWay, updateLabel, type UpdateHook } from '../game/updateOffer.ts';
 import { Location } from '../game/party.ts';
 import { ROSTER_SIZE } from '../game/player.ts';
 import { borderToneAt } from './borderTone.ts';
@@ -329,6 +330,8 @@ export class Screen implements GameIO {
   private overlay: ((time: number) => void) | null = null;
   /** Called when anything in the Settings menu changes, so the page can remember it. */
   onSettingsChange: (() => void) | null = null;
+  /** A newer version (ui/updates.ts), for the Pause menu's Update line: said there, never restarted into in play. */
+  update: UpdateHook | null = null;
   /** Name of the tile set in use (see help.ts TILE_SETS). */
   tileSetName = 'Standard';
   /** CRT lines laid over the whole game when the Scanlines setting is on (scanlines.ts). */
@@ -1106,6 +1109,9 @@ export class Screen implements GameIO {
     const cheats: MenuOption[] = title === 'Paused' ? [{ key: 'C', label: 'Cheats' }] : [];
     let cursor = 0;
     for (;;) {
+      // A newer version, in play: its line says the way to it (updateOffer.ts inPlayWay), or opens a release's page.
+      const offer = title === 'Paused' ? this.update?.offer() : null;
+      const update: MenuOption[] = offer?.version ? [{ key: 'N', label: updateLabel(offer) }] : [];
       const options: MenuOption[] = [
         ...resume,
         { key: 'A', label: `Auto combat: ${onOff(w.autoCombat)}` },
@@ -1115,6 +1121,7 @@ export class Screen implements GameIO {
         { key: 'G', label: 'Tips' },
         { key: 'H', label: 'Help' },
         ...cheats,
+        ...update,
         ...quit,
         { key: 'B', label: 'Back' },
       ];
@@ -1145,6 +1152,12 @@ export class Screen implements GameIO {
         case 'H':
           await this.showHelp();
           break;
+        case 'N': {
+          const way = offer && inPlayWay(offer);
+          if (way) await this.showText('Update', [way]);
+          else this.update?.apply();
+          break;
+        }
         case 'C': {
           const done = await this.cheatMenu();
           if (done) {
@@ -1539,6 +1552,30 @@ export class Screen implements GameIO {
       if (key === Key.A || key === Key.Enter || key === Key.Right) index++;
     }
     return true;
+  }
+
+  /**
+   * Text a page at a time (GameIO.showText: What's new), over the view as Tips' pages are: A (Enter, Right, any key)
+   * turns the page, and from the last closes; B (Backspace, Left) turns back; Escape closes.
+   */
+  async showText(title: string, text: string[]): Promise<void> {
+    const rows = text.flatMap((line) => (line.trim() === '' ? [''] : wrapText(this.caseLine(line), PAGE_WIDTH, Infinity)));
+    const pages: string[][] = [];
+    for (let i = 0; i < rows.length || pages.length === 0; i += PAGE_ROWS) pages.push(rows.slice(i, i + PAGE_ROWS));
+    const footer = this.inputMode === 'controller' ? ['A next  B back'] : ['Any key next  Esc'];
+    const wasCovered = this.openPage();
+    try {
+      for (let index = 0; index < pages.length; ) {
+        this.drawPage(title, pages[index], footer, pages.length > 1 ? `Page ${index + 1} of ${pages.length}` : '');
+        const key = await this.readKey();
+        if (key === null || (key === Key.Pause && this.readFocusPause)) continue; // a window losing focus turns no page
+        if (key === Key.Escape) break;
+        if (key === Key.B || key === Key.Backspace || key === Key.Left) index = Math.max(0, index - 1);
+        else index++;
+      }
+    } finally {
+      this.closePage(wasCovered);
+    }
   }
 
   /** Print a sentence to the message area, wrapped to its sixteen columns (journal hints, cheat confirmations). */

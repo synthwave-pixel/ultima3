@@ -1,30 +1,28 @@
 /**
  * updates.ts
  *
- * Release updates for the apps, said in the game: where a newer release is
- * out, the title menu offers "Update (x.y.z)", which opens its page to read
- * what changed and download it. The desktop app's main process asks GitHub
- * (desktop/updates.cjs) and hands the answer over (preload.cjs); the Android
- * app's page asks GitHub itself, its version built in (VITE_APP_VERSION,
- * mobile/bundle.cjs), and opens the page by going to it, which Capacitor
- * sends to the system browser. The web version has its service worker's own
- * update ("Update: restart"), and the Flatpak its repository's.
+ * A newer version of the game, as the page learns of it, for the title (game/menu.ts: a box of its own once a
+ * version, then its menu's Update line) and for play (game/game.ts: a line in the message area; the Pause menu's
+ * Update line), in the words of game/updateOffer.ts. Where it comes from depends on where the game runs (as in the
+ * Ultima V port):
+ *   - the web: the service worker has fetched the new build, which a restart takes up ('restart', the version unsaid);
+ *   - the desktop app: its main process (desktop/updates.cjs) - a build electron-updater has downloaded, installed by
+ *     a restart or as the game quits ('restart'), or, where it cannot replace the copy (a Mac app not signed for it,
+ *     the portable .exe), a newer release out ('release'), whose page is opened for the player to read and download
+ *     from; the Flatpak's, installed already by Flatpak's update portal, a restart playing it (under Steam's Game Mode
+ *     only a quit, the player starting it again), or where the portal fails a release told of - under Game Mode with
+ *     no page, only the way to it;
+ *   - the Android app: a newer release on GitHub than the APK's own version (VITE_APP_VERSION, mobile/bundle.cjs)
+ *     ('release'), its page opened by going to it, which Capacitor sends to the system browser.
+ * The releases page, never the file itself: what changed is read there first, and the download is the player's.
  */
+
+import type { UpdateHook, UpdateNews, UpdateOffer } from '../game/updateOffer.ts';
+
+export type { UpdateHook, UpdateNews, UpdateOffer };
 
 export const RELEASES_PAGE = 'https://github.com/synthwave-pixel/ultima3/releases/latest';
 const LATEST_API = 'https://api.github.com/repos/synthwave-pixel/ultima3/releases/latest';
-
-/** A newer release to offer: its version and its page. */
-export interface ReleaseOffer {
-  version: string;
-  url: string;
-}
-
-/** What the desktop app's preload (desktop/preload.cjs) lets the page ask. */
-export interface NativeUpdates {
-  updateOffer(): Promise<ReleaseOffer | null>;
-  openRelease(): Promise<void>;
-}
 
 /** A released version's numbers (1.0.39, v1.0.39), or null for anything else (a development build's). */
 function parts(version: string): number[] | null {
@@ -45,7 +43,13 @@ export function isRelease(version: string | undefined): version is string {
   return version !== undefined && parts(version) !== null;
 }
 
-/** Ask GitHub for the newest release: an offer where it is newer than `current`, else null (failures too). */
+/** A newer release found on GitHub: its version and its page. */
+export interface ReleaseOffer {
+  version: string;
+  url: string;
+}
+
+/** Ask GitHub for the newest release (never a pre-release): an offer where newer than `current`, else null (failures too). */
 export async function newerRelease(current: string, get: typeof fetch = fetch): Promise<ReleaseOffer | null> {
   try {
     const res = await get(LATEST_API, { headers: { Accept: 'application/vnd.github+json' } });
@@ -60,7 +64,78 @@ export async function newerRelease(current: string, get: typeof fetch = fetch): 
   }
 }
 
-/** `promise`'s answer, or `fallback` after `ms`: the title is not held up for long by a slow network. */
-export function within<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T> {
-  return Promise.race([promise, new Promise<T>((resolve) => setTimeout(() => resolve(fallback), ms))]);
+/** The desktop app's bridge (desktop/preload.cjs u3native.updates). */
+export interface DesktopUpdates {
+  offer: () => Promise<UpdateOffer | null>;
+  apply: () => Promise<unknown>;
+  told: () => Promise<unknown>;
+  onChange: (listener: (offer: UpdateOffer | null) => void) => void;
+  news?: () => Promise<UpdateNews | null>;
+  newsSeen?: () => Promise<unknown>;
+  notes?: (version: string) => Promise<string | null>;
+}
+
+/** The desktop app's offer, kept as its main process tells it. */
+export function desktopUpdates(bridge: DesktopUpdates): UpdateHook {
+  let offer: UpdateOffer | null = null;
+  let news: UpdateNews | null = null;
+  bridge.onChange((o) => (offer = o));
+  void bridge
+    .offer()
+    .then((o) => (offer ??= o))
+    .catch(() => undefined);
+  void bridge
+    .news?.()
+    .then((n) => (news = n))
+    .catch(() => undefined);
+  return {
+    offer: () => offer,
+    apply: () => void bridge.apply().catch(() => undefined),
+    told: () => {
+      if (offer) offer = { ...offer, told: true };
+      void bridge.told().catch(() => undefined);
+    },
+    news: () => news,
+    newsSeen: () => {
+      news = null;
+      void bridge.newsSeen?.().catch(() => undefined);
+    },
+    notes: (version) => bridge.notes?.(version).catch(() => null) ?? Promise.resolve(null),
+  };
+}
+
+/** What the Android app gives: GitHub's answer, a page opened outside it, and the version last told of. */
+export interface AndroidUpdates {
+  release: Promise<ReleaseOffer | null>;
+  open: (url: string) => void;
+  /** The version last told of, kept by the page (localStorage). */
+  told: { get: () => string | null; set: (version: string) => void };
+}
+
+/** The Android app's offer: GitHub's newest release, where newer than the APK, told of once a version. */
+export function androidUpdates(app: AndroidUpdates): UpdateHook {
+  let offer: UpdateOffer | null = null;
+  let url = RELEASES_PAGE;
+  void app.release
+    .then((r) => {
+      if (!r) return;
+      url = r.url;
+      const was = app.told.get();
+      offer = { kind: 'release', version: r.version, told: was !== null && !isNewer(r.version, was) };
+    })
+    .catch(() => undefined);
+  return {
+    offer: () => offer,
+    apply: () => app.open(url),
+    told: () => {
+      if (!offer) return;
+      offer = { ...offer, told: true };
+      if (offer.version) app.told.set(offer.version);
+    },
+  };
+}
+
+/** The web's: the service worker's new build, which a restart takes up. Said in the menu alone: no box for it. */
+export function webUpdates(ready: () => boolean, restart: () => void): UpdateHook {
+  return { offer: () => (ready() ? { kind: 'restart', told: true } : null), apply: restart, told: () => undefined };
 }

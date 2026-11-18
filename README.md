@@ -80,12 +80,15 @@ bottom of this page.
      [install Ultima III](https://synthwave-pixel.github.io/ultima3/flatpak/ultima3.flatpakref).
      The browser saves a small file; open it from the browser's downloads
      and Discover shows Ultima III with an Install button, and asks for
-     the password that first time. Install once: later updates arrive in
-     Discover with every other Flatpak's, with no prompt.
-  4. Open Steam, still in Desktop Mode. Click Add a Game at the bottom
+     the password that first time. Install once: the game keeps itself up
+     to date from then on, in Game Mode too.
+  4. Start the game once here in Desktop Mode. It asks "Update Ultima
+     III?" the first time; choose Update, which lets it update itself
+     later where it can't ask, in Game Mode. Then quit it.
+  5. Open Steam, still in Desktop Mode. Click Add a Game at the bottom
      left, then Add a Non-Steam Game, tick Ultima III in the list, and
      click Add Selected Programs.
-  5. Return to Game Mode with the icon on the desktop, or restart. The
+  6. Return to Game Mode with the icon on the desktop, or restart. The
      game is in your library under Non-Steam. If the controls do not
      respond, open the shortcut's controller settings and pick a Gamepad
      template. The first time you play it from there, the game puts the
@@ -100,7 +103,8 @@ bottom of this page.
   [Releases page](https://github.com/synthwave-pixel/ultima3/releases/latest),
   a Windows installer or portable `.exe` and an Apple Silicon `.dmg`
   (macOS 13 or later). They are unsigned; see the Desktop app section
-  below for the one-time step each system asks for.
+  below for the one-time step each system asks for, and how each keeps
+  up to date.
 - **Android**: the APK on the Releases page, or
   [Obtainium](https://github.com/ImranR98/Obtainium) to keep it updated;
   see Android handhelds below.
@@ -145,17 +149,34 @@ green button) switches. Its title menu has
 a Quit, for a full screen or Steam's Game Mode where the window has no
 close button, and only one copy runs at a time: launching it again brings
 the open one forward, so two copies never write over each other's save.
-When a newer release is out, the title says so once, in a box of its own,
-and its menu offers "Update (x.y.z)" from then on; either opens the
-release's page to download it. The Flatpak is kept
-up to date by Discover or `flatpak update` instead, and nothing is offered
-under Steam's Game Mode, where a browser would open over the game.
+
+The desktop app looks for a newer release each time it starts, the game
+playing on meanwhile, and keeps itself up to date where it can (as the
+Ultima V port does). The Windows installer's copy, the AppImage and the Flatpak update
+themselves: the new version comes down in the background and is
+installed when you quit, or at once with Restart now. The portable `.exe`
+and the Mac app can't be replaced that way, so they say a newer release
+is out and offer its page to download it from. Either way the title says
+so once, in a box of its own, and its menu offers "Update (x.y.z)" from
+then on; one that comes while you play is said in the message area, and
+the Pause menu says how to get to it, but a game is never restarted out
+from under you. The first start after an update says "Updated to Ultima
+III x.y.z", with What's new: the release's notes, as the game's own
+pages. Pre-releases, for testers, are never updated to. Under Steam's
+Game Mode no page is offered, since a browser would open over the game,
+and a copy Steam launched never restarts itself: the update is installed
+as the game quits, and the next launch from Steam plays it. Start the app
+with `--no-auto-update` to be told of a newer release and offered its
+page but have nothing downloaded or installed, or `--no-update-check` to
+not be told at all (in Steam, put either in the shortcut's launch
+options).
 
 - **Windows**: an installer and a portable `.exe`. Both are unsigned, so
   SmartScreen asks once; choose More info, then Run anyway. The portable
   `.exe` keeps its saves and settings in an `Ultima III Data` folder
   beside it, so they go wherever it is carried; the installed game keeps
-  them in `%APPDATA%\Ultima III`.
+  them in `%APPDATA%\Ultima III`. The installed game updates itself; the
+  portable `.exe` says when a newer release is out.
 - **macOS**: an Apple Silicon `.dmg`, for macOS 13 (Ventura) or later
   (Intel Macs: use the web version). Signed by no Apple developer, so the
   first launch is refused. Try to open the app once, then open System
@@ -164,14 +185,25 @@ under Steam's Game Mode, where a browser would open over the game.
   Terminal, once: `xattr -dr com.apple.quarantine "/Applications/Ultima III.app"`.
   If macOS later asks to let Ultima III use the microphone (it can when
   the sound plays through a USB microphone or a headset), choose Don't
-  Allow: the game never uses it, and the sound plays on.
+  Allow: the game never uses it, and the sound plays on. macOS lets an
+  app replace itself only when an Apple developer signed it, so the Mac
+  app says when a newer release is out and offers its page; download
+  the new `.dmg` and drag it over the old one.
 
   <img src="docs/macos-open-anyway.png" alt="System Settings, Privacy &amp; Security: under Security, &quot;Ultima III&quot; was blocked to protect your Mac, with the Open Anyway button beside it" width="600">
 
 - **Linux and SteamOS**: the Flatpak repository, installed as under
   Installation above, is the way on a Steam Deck and on any Linux with
-  Flatpak: one click or one line, and updates arrive with every other
-  Flatpak's. Add the game to Steam from the Non-Steam Game list, and in
+  Flatpak: one click or one line. The game updates itself through
+  Flatpak's own update portal, in Game Mode too, once it has been allowed
+  to: the first start at the desktop asks "Update Ultima III?", once.
+  Should Game Mode be where it first needs to ask, it can't, and says to
+  start the game once in Desktop Mode; turned down, it says to allow it
+  with `flatpak permission-set flatpak updates com.synthwavepixel.ultima3
+  yes` in Konsole, or to update from Discover, which keeps updating it
+  with every other Flatpak as well. Quitting while an update comes down
+  waits for it ("Finishing the update"), a minute at most. Add the game
+  to Steam from the Non-Steam Game list, and in
   the shortcut's controller settings pick a Gamepad template. The app
   sees the controller as a gamepad and switches to controller mode on the
   first press, and starts full screen when Steam launches it. In Game
@@ -179,7 +211,10 @@ under Steam's Game Mode, where a browser would open over the game.
   have hung other Electron apps under gamescope. The `.flatpak` bundle on
   the Releases page is the same build for an offline install
   (`flatpak install --user <file>`, which then never updates), and the
-  `AppImage` suits a Linux without Flatpak: make it executable and run it.
+  `AppImage` (`ultima3-sp-x86_64.AppImage`) suits a Linux without
+  Flatpak: make it executable and run it. Its name stays the same from
+  release to release, so its updates replace it in place and a Steam
+  shortcut to it keeps working.
 
 ### Android handhelds
 
@@ -643,8 +678,9 @@ same as the link under Installation, in one line:
 
     flatpak install --user https://synthwave-pixel.github.io/ultima3/flatpak/ultima3.flatpakref
 
-It registers the game's repository, so `flatpak update` then updates the
-game with everything else. To remove the game and its saved data:
+It registers the game's repository, from which the game updates itself
+(and `flatpak update` updates it with everything else). To remove the
+game and its saved data:
 
     flatpak uninstall --user --delete-data com.synthwavepixel.ultima3
 

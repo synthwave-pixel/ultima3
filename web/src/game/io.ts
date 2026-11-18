@@ -185,6 +185,12 @@ export interface GameIO {
   /** The map of what the party has seen (worldMap.ts), over the whole screen until closed. No turn passes. */
   showMap(): Promise<void>;
   /**
+   * Text over the view a page at a time, `title` on the page's top border, until the last page is turned or it is
+   * closed (a release's notes, What's new: menu.ts). Each line of `text` is wrapped to the page; an empty one is a
+   * blank line.
+   */
+  showText(title: string, text: string[]): Promise<void>;
+  /**
    * Pick from a list shown as a menu in every input mode (the title and
    * party screens, where there is no Apple II key to press). Resolves with
    * the option's key, or '' when cancelled.

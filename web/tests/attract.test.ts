@@ -275,7 +275,7 @@ describe('the title menu', () => {
       await mainMenu(world, io, async () => {}, options).catch(() => {});
       return { at, lines, copyright: io.output.includes('Lord British') };
     };
-    const update = { ready: () => true, apply: () => {}, label: () => 'Update (1.0.45)' };
+    const update = { offer: () => ({ kind: 'release' as const, version: '1.0.45', told: true }), apply: () => {}, told: () => {} };
     const transfer = {
       export: () => null,
       import: () => null,

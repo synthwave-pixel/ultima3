@@ -8,13 +8,28 @@
 // (windowState.cjs). Under gamescope,
 // Steam's Game Mode compositor, GPU acceleration and the Chromium sandbox
 // are turned off: see below. Only one copy runs; a second launch brings the
-// first window forward.
-const { app, BrowserWindow, protocol, net, shell, session, ipcMain, screen } = require('electron');
+// first window forward. Newer releases are looked for as it starts, and
+// installed or told of as the copy allows (updates.cjs).
+const electron = require('electron');
+const { app, BrowserWindow, protocol, net, session, ipcMain, screen } = electron;
 const { join, normalize } = require('node:path');
 const { pathToFileURL } = require('node:url');
 const { writeFileSync, existsSync } = require('node:fs');
 const { placeOnScreen, readState, startsFullScreen, writeState } = require('./windowState.cjs');
-const updates = require('./updates.cjs');
+const {
+  applyUpdate,
+  checkForUpdates,
+  closeUpdates,
+  currentNews,
+  currentOffer,
+  lookForNews,
+  newsSeen,
+  onOffer,
+  releaseNotes,
+  steamLaunch,
+  toldOfUpdate,
+  updating,
+} = require('./updates.cjs');
 const { installSteamArt } = require('./steamArt.cjs');
 const { portableData } = require('./portable.cjs');
 const { homedir } = require('node:os');
@@ -37,6 +52,10 @@ if (inGamescope) {
 const APP_DIR = join(__dirname, 'app');
 const SCHEME = 'app';
 const HOST = 'ultima3';
+/** How long a quit waits for the Flatpak's update to finish coming down (holdForUpdate). */
+const UPDATE_HOLD_MS = 60_000;
+/** Whether Steam launched this copy (updates.cjs steamLaunch): it never restarts itself into an update. */
+const steamMode = steamLaunch(process.env);
 
 protocol.registerSchemesAsPrivileged([
   { scheme: SCHEME, privileges: { standard: true, secure: true, supportFetchAPI: true, corsEnabled: true, stream: true } },
@@ -97,7 +116,7 @@ function createWindow() {
   });
   // Links out of the game (there are none today) open in the system browser, never in the app.
   win.webContents.setWindowOpenHandler(({ url }) => {
-    if (/^https?:/.test(url)) void shell.openExternal(url);
+    if (/^https?:/.test(url)) void electron.shell.openExternal(url);
     return { action: 'deny' };
   });
   // A page whose renderer died (a crash, the GPU driver, the system out of memory) leaves a black window that answers
@@ -137,18 +156,9 @@ app.on('second-instance', () => {
   win.focus();
 });
 
-// A newer release, asked for as the app starts, for the title menu's "Update (x.y.z)" (updates.cjs): the page asks for
-// it (preload.cjs) and, chosen, has its page opened in the system browser.
-const releaseOffer = updates.shouldCheck({
-  packaged: app.isPackaged,
-  env: process.env,
-  argv: process.argv,
-  version: app.getVersion(),
-  gamescope: inGamescope,
-})
-  ? updates.newerRelease(app.getVersion())
-  : Promise.resolve(null);
-ipcMain.handle('update-offer', () => releaseOffer);
+/** Whether an IPC message comes from the game's own page (the app:// scheme): nothing else may ask. */
+const fromGame = (event) => String(event.senderFrame?.url ?? '').startsWith(`${SCHEME}://`);
+
 // The touch pad's full-screen button (preload.cjs): whether the window is full screen, set first if `on` is given.
 // Only the game's own page may ask.
 ipcMain.handle('full-screen', (event, on) => {
@@ -156,10 +166,6 @@ ipcMain.handle('full-screen', (event, on) => {
   if (!win || !String(event.senderFrame?.url ?? '').startsWith(`${SCHEME}://`)) return false;
   if (typeof on === 'boolean' && on !== win.isFullScreen()) win.setFullScreen(on);
   return win.isFullScreen();
-});
-ipcMain.handle('open-release', async () => {
-  const offer = await releaseOffer;
-  if (offer) await shell.openExternal(offer.url);
 });
 
 /** How long the smoke test waits for the game to start, and then for it to draw before the screenshot. */
@@ -202,7 +208,51 @@ app.whenReady().then(() => {
   });
   // Nothing in the game needs a permission prompt; deny them all rather than show a dialog.
   session.defaultSession.setPermissionRequestHandler((_wc, permission, callback) => callback(permission === 'clipboard-read' || permission === 'clipboard-sanitized-write'));
+  // A newer version (updates.cjs), for the game to say in its own way (preload.cjs u3native.updates): the offer, taking
+  // it up, the player told of it. Only the game's own page may ask.
+  const updatesFile = join(app.getPath('userData'), 'updates.json');
+  ipcMain.handle('update-offer', (event) => (fromGame(event) ? currentOffer() : null));
+  ipcMain.handle('update-apply', (event) => fromGame(event) && applyUpdate({ electron, steam: steamMode }));
+  ipcMain.handle('update-told', (event) => void (fromGame(event) && toldOfUpdate({ file: updatesFile })));
+  // The first start of a newer version, for the title to say once, and that release's notes for its What's new.
+  lookForNews({ app, file: updatesFile });
+  ipcMain.handle('update-news', (event) => (fromGame(event) ? currentNews() : null));
+  ipcMain.handle('update-news-seen', (event) => void (fromGame(event) && newsSeen()));
+  ipcMain.handle('update-notes', (event, version) =>
+    fromGame(event) && typeof version === 'string' && /^\d+\.\d+\.\d+$/.test(version) ? releaseNotes({ net, version }) : null,
+  );
   const win = createWindow();
+  onOffer((o) => {
+    if (!win.isDestroyed()) win.webContents.send('update-offer-changed', o);
+  });
+  // Quitting while the Flatpak's update is coming down (updates.cjs updating): the portal would give it up with the
+  // game, so the window stays, saying so (preload.cjs), until it is done - a minute at most - and then the game goes.
+  let leaving = false;
+  const holdForUpdate = (event) => {
+    const pending = updating();
+    if (leaving || !pending) return;
+    event.preventDefault();
+    leaving = true;
+    if (!win.isDestroyed()) win.webContents.send('update-finishing');
+    void Promise.race([pending, new Promise((r) => setTimeout(r, UPDATE_HOLD_MS))]).then(() => app.quit());
+  };
+  win.on('close', holdForUpdate);
+  app.on('before-quit', holdForUpdate);
+  // The Flatpak's update monitor let go as the game goes (the portal's own tidying, said rather than left to it): a
+  // moment at most, and nothing more if it is not answered.
+  let closed = false;
+  app.on('will-quit', (event) => {
+    // Going: the one-copy lock let go now, so that a launch while this copy finishes quitting - or should it never
+    // finish - starts a copy of its own, rather than being handed to this one and quitting unseen.
+    app.releaseSingleInstanceLock();
+    if (closed) return;
+    closed = true;
+    event.preventDefault();
+    void Promise.race([closeUpdates(), new Promise((r) => setTimeout(r, 500))]).then(() => app.quit());
+  });
+  // Newer releases looked for at once (updates.cjs), the game playing on while one comes down; no page offered under
+  // Game Mode, and no restart in a Steam launch. Never in a smoke test.
+  if (!process.env.ULTIMA3_SMOKE) void checkForUpdates({ electron, quiet: inGamescope, file: updatesFile, steam: steamMode });
   // Launched from a non-Steam shortcut, the first time: Steam's library artwork put in place (steamArt.cjs), a moment
   // after the window is up, apart from everything else. It never throws, and what it did is only logged.
   setTimeout(() => {

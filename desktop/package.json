@@ -34,11 +34,20 @@
       "main.cjs",
       "preload.cjs",
       "updates.cjs",
+      "flatpakUpdates.cjs",
       "steamArt.cjs",
       "windowState.cjs",
       "portable.cjs",
       "build/steam/*.png",
       "app/**/*"
+    ],
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "synthwave-pixel",
+        "repo": "ultima3",
+        "releaseType": "release"
+      }
     ],
     "asar": true,
     "electronFuses": {
@@ -54,6 +63,12 @@
       "target": [
         {
           "target": "dmg",
+          "arch": [
+            "arm64"
+          ]
+        },
+        {
+          "target": "zip",
           "arch": [
             "arm64"
           ]
@@ -109,7 +124,7 @@
       }
     },
     "appImage": {
-      "artifactName": "Ultima-III-${version}-${arch}.${ext}"
+      "artifactName": "ultima3-sp-${arch}.${ext}"
     },
     "flatpak": {
       "files": [
@@ -127,6 +142,7 @@
         "--device=all",
         "--filesystem=/run/udev:ro",
         "--socket=pulseaudio",
+        "--share=network",
         "--filesystem=home"
       ]
     }
@@ -134,5 +150,9 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/synthwave-pixel/ultima3.git"
+  },
+  "dependencies": {
+    "@particle/dbus-next": "0.11.4",
+    "electron-updater": "6.8.9"
   }
 }

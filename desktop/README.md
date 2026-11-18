@@ -31,8 +31,18 @@ timestamped pre-release (`1.0.0-dev.20260915.2214`) for a build made
 anywhere else; `BUILD_VERSION` overrides both. `npm run dist` passes it
 to electron-builder as metadata, so `package.json` is never edited.
 macOS builds are Apple Silicon only, for macOS 13 or later (Electron 44's
-minimum), and signed ad-hoc (`identity: "-"`), which Apple Silicon needs
-once the fuses below have changed the Electron binary.
+minimum), a `.dmg` and the `.zip` an update installs. `dist.cjs` hands
+electron-builder the Mac settings from `macSigning.cjs`: given the
+Developer ID certificate (`CSC_LINK`, the `.p12` in base64, with
+`CSC_KEY_PASSWORD` and `MACOS_SIGNING_IDENTITY`), the app is signed with
+it under the hardened runtime and `build/entitlements.mac.plist`, the
+build fails rather than fall back to ad hoc, and the packaged
+`package.json` is marked `selfUpdate`; with `APPLE_ID`,
+`APPLE_APP_SPECIFIC_PASSWORD` and `APPLE_TEAM_ID` as well it is
+notarized. Without the certificate (a local build, and the release
+builds until the repository has the secrets) it is signed ad hoc
+(`identity: "-"`), which Apple Silicon needs once the fuses below have
+changed the Electron binary, and it cannot update itself.
 
 The packaged app checks its own code as it loads. electron-builder sets
 Electron's fuses (`electronFuses` in `package.json`): the app is loaded
@@ -62,16 +72,49 @@ Chromium keeps the lock's socket, at a directory the instances share. The
 game offers Quit on its title menu when it sees the `app:` scheme the
 window loads it from, and quits by closing that window.
 
-As it starts, the app asks GitHub for the newest release (`updates.cjs`);
-where that is newer than its own version, the page learns of it through
-`preload.cjs` (the one thing the page may ask of the app, with opening the
-release's page) and the title says so, once a version in a box of its own
-and in its menu's "Update (x.y.z)" line, either opening the page in the
-system browser. Nothing is downloaded or installed. It does not
-ask in the Flatpak (flatpak updates it from the site's repository), under
-gamescope (Steam's Game Mode, where a browser would cover the game), in a
-copy run unpackaged or built locally, or with `--no-update-check`.
-`ULTIMA3_RELEASES_API` points the question elsewhere, for testing.
+Updates follow the Ultima V port's (`updates.cjs`). As the app starts it
+looks for a newer release, each copy as it can be updated:
+
+- **auto**: the Windows installer's copy, the AppImage, and a Mac app
+  signed with the Developer ID (`selfUpdate`) and run from Applications.
+  electron-updater downloads the release in the background, from the
+  `latest*.yml`, blockmaps and Mac `.zip` the release carries (the
+  `publish` block in `package.json` has electron-builder write them, even
+  with `--publish never`), and installs it as the game quits, or at once
+  on Restart now. The AppImage is always `ultima3-sp-x86_64.AppImage`, so
+  an update replaces it in place. A restart lets go of the one-copy lock
+  first, or the new copy, started before this one has gone, would take
+  itself for a second launch. Should it fail (a Mac refusing the new
+  app), the release is told of instead.
+- **notice**: the Windows portable `.exe`, and a Mac app signed ad hoc or
+  run outside Applications (macOS runs a downloaded app from a read-only
+  copy). The newer release, from GitHub's API, is told of, and its page
+  offered.
+- **flatpak**: through Flatpak's update portal (`flatpakUpdates.cjs`, in
+  process over D-Bus with `@particle/dbus-next`), from the site's signed
+  repository; see [`../docs/flatpak-updates.md`](../docs/flatpak-updates.md).
+  The once-only approval is asked at the desktop; where the portal
+  can't be had or the update fails, a notice says how to update. A quit
+  while it comes down waits for it, a minute at most. The Flatpak has
+  `--share=network` for GitHub's API and the release notes.
+- **none**: a copy run unpackaged or built locally (a `-dev` version), or
+  started with `--no-update-check`. With `--no-auto-update` any copy is a
+  notice only.
+
+What there is goes to the page through `preload.cjs` (`u3native.updates`:
+the offer, taking it up, the player told of it, and What's new), and the
+game says it (`../web/src/game/updateOffer.ts`): a box over the title
+once a version and its menu's "Update (x.y.z)" line, a line in the
+message area in play with an Update line on the Pause menu, and on the
+first start after an update "Updated to Ultima III x.y.z" with What's
+new, the release's notes as the game's own pages. `updates.json` in the
+app's data keeps the release last told of, the version last run, the
+Flatpak's approval and its last failure. Under gamescope (Steam's Game
+Mode) no page is offered; a copy Steam launched (`SteamGameId`) never
+restarts itself, and its update installs as it quits. Pre-releases are
+never updated to: electron-updater is told so, and GitHub's latest
+release is never one. `ULTIMA3_RELEASES_API` points the GitHub questions
+elsewhere, for testing; a smoke test asks nothing.
 
 Added to Steam as a non-Steam game (the Flatpak on a Steam Deck, say), the
 game has no artwork in Steam's library: Steam takes it only from
@@ -95,9 +138,10 @@ machine: `flatpak install flathub org.freedesktop.Platform//25.08
 org.freedesktop.Sdk//25.08 org.electronjs.Electron2.BaseApp//25.08`), so
 `npm run dist:linux` elsewhere builds the AppImage alone and the workflow
 asks for both (`--linux AppImage flatpak`). Its permissions are the
-`flatpak` block in `package.json`: display, sound, the home folder for
-Export and Import, every device, and read access to udev's device
-database, which Chromium needs before it lists a gamepad. Under gamescope
+`flatpak` block in `package.json`: display, sound, the network (for the
+update check and release notes), the home folder for Export and Import,
+every device, and read access to udev's device database, which Chromium
+needs before it lists a gamepad. Under gamescope
 (Steam's Game Mode) `main.cjs` turns off GPU acceleration and the
 Chromium sandbox, which have hung other Electron apps there.
 

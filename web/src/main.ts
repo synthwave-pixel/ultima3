@@ -14,12 +14,12 @@ import { World, STARVATION_MODES, TIMER_MODES, type Starvation, type Timer } fro
 import { Game } from './game/game.ts';
 import { localSave, exportGame, parseExport, restoreExported, SAVE_KEY } from './game/save.ts';
 import { registerSW } from 'virtual:pwa-register';
-import type { Transfer, Update, UpdateNews } from './game/menu.ts';
+import type { Transfer } from './game/menu.ts';
 import { appQuit, launchWarning, warningDue, type NativeQuit } from './ui/platform.ts';
-import { isNewer, isRelease, newerRelease, within, type NativeUpdates, type ReleaseOffer } from './ui/updates.ts';
+import { androidUpdates, desktopUpdates, isRelease, newerRelease, webUpdates, type DesktopUpdates, type UpdateHook } from './ui/updates.ts';
 
 const WARNED_KEY = 'ultima3.warned';
-/** The newest release the player has been told of (menu.ts updateBox), so each is told of once. */
+/** The newest release the Android app's player has been told of (menu.ts updateBox), so each is told of once. */
 const UPDATE_TOLD_KEY = 'ultima3.updateTold';
 /** When the storage warning was last shown, or null. */
 function readWarnedAt(): number | null {
@@ -182,7 +182,10 @@ const applyUpdate =
         },
       })
     : () => Promise.resolve();
-const update: Update = { ready: () => updateReady, apply: () => void applyUpdate(true) };
+const swUpdate = webUpdates(
+  () => updateReady,
+  () => void applyUpdate(true),
+);
 
 /** A download of the text as a JSON file named by the moment. */
 async function saveFile(text: string): Promise<void> {
@@ -240,16 +243,11 @@ async function start(): Promise<void> {
   if (peek) localSave.off = true;
   const tilesAsked = dev?.tileSetAsked(params.get('tiles'), TILE_SETS) ?? null;
   const tiles = tilesAsked ?? prefs.tiles;
-  // A newer release for the apps (updates.ts), asked for now so the answer is in by the title: the desktop app's main
-  // process asks GitHub; the Android app (its Quit plugin is how it is known) asks from here, its version built in.
-  const native = (window as { u3native?: NativeUpdates }).u3native;
+  // A newer version (ui/updates.ts), looked for now, the game going on meanwhile: the desktop app's main process looks
+  // and downloads (desktop/updates.cjs); the Android app (its Quit plugin is how it is known) asks GitHub from here, its
+  // version built in; the web has its service worker's.
   const plugins = (window as { Capacitor?: { Plugins?: { Quit?: NativeQuit } } }).Capacitor?.Plugins;
-  const appVersion = import.meta.env.VITE_APP_VERSION as string | undefined;
-  const releaseOffer: Promise<ReleaseOffer | null> = native
-    ? native.updateOffer()
-    : plugins?.Quit && isRelease(appVersion)
-      ? newerRelease(appVersion)
-      : Promise.resolve(null);
+  const update = updateHook(plugins);
 
   const [resources, gfx, images] = await Promise.all([loadResources(), GraphicsSet.load(tiles), loadImages()]);
 
@@ -386,7 +384,8 @@ async function start(): Promise<void> {
     }
   }
 
-  const game = new Game(world, screen, { save: (w) => localSave.write(w), load: (w) => localSave.read(w) });
+  const game = new Game(world, screen, { save: (w) => localSave.write(w), load: (w) => localSave.read(w), update });
+  screen.update = update; // the Pause menu's Update line
   // Debug hook: lets the console (and the browser tests) inspect and poke the game.
   (window as unknown as { u3: unknown }).u3 = { world, screen, game, keyboard, update };
   // Export and import: the save, with the map in it, as text, through the clipboard or a file.
@@ -409,22 +408,8 @@ async function start(): Promise<void> {
   // The desktop app closes its window to quit (its last window closing quits it), and the Android app asks its
   // Quit plugin; a browser tab gets no Quit.
   const quit = appQuit(location.protocol, () => window.close(), plugins?.Quit);
-  // An app's newer release, waited for a moment at most: the title offers it, and choosing it opens its page (in the
-  // system browser, from the desktop app's main process or, on Android, by Capacitor for a page of another site).
-  const offer = await within(
-    releaseOffer.catch(() => null),
-    2000,
-    null,
-  );
-  const appUpdate: Update | null = offer && {
-    ready: () => true,
-    label: () => `Update (${offer.version})`,
-    apply: () => (native ? void native.openRelease() : location.assign(offer.url)),
-    news: releaseNews(offer.version),
-  };
-  // The title (or the game) comes next: the boot screen, kept up while the release was waited for (a black canvas
-  // otherwise, for as long as GitHub takes to answer the apps) and then held until it has been up 3 seconds or a
-  // press skips it, gives way to it. A development start goes straight on.
+  // The title (or the game) comes next: the boot screen, held until it has been up 3 seconds or a press skips it, gives
+  // way to it. A development start goes straight on.
   await holdBootScreen(keyboard, !(dev && (params.has('play') || params.has('at'))));
   bootDone();
   // The attract sequence before the title, and the demo from its menu. A development start, or ?noattract, skips it.
@@ -449,32 +434,42 @@ async function start(): Promise<void> {
   await mainMenu(world, screen, () => game.run(), {
     save: (w) => localSave.write(w),
     transfer,
-    update: appUpdate ?? update,
+    update,
     quit,
     attract,
   });
 }
 
-/** A newer release's news, told of once (menu.ts updateBox): due until this version, or a later one, has been told of. */
-function releaseNews(version: string): UpdateNews {
-  let told: string | null = null;
-  try {
-    told = localStorage.getItem(UPDATE_TOLD_KEY);
-  } catch {
-    /* storage unavailable: told of each time the app starts */
-  }
-  return {
-    version,
-    due: () => told === null || isNewer(version, told),
-    told: () => {
-      told = version;
-      try {
-        localStorage.setItem(UPDATE_TOLD_KEY, version);
-      } catch {
-        /* as above */
-      }
+/**
+ * Where a newer version is learnt of (ui/updates.ts): the desktop app's main process (preload.cjs u3native.updates),
+ * the Android app's look at GitHub (its page opened by going to it, which Capacitor sends to the system browser), or
+ * the web's service worker.
+ */
+function updateHook(plugins: { Quit?: NativeQuit } | undefined): UpdateHook {
+  const desktop = (window as { u3native?: { updates?: DesktopUpdates } }).u3native?.updates;
+  if (desktop) return desktopUpdates(desktop);
+  const appVersion = import.meta.env.VITE_APP_VERSION as string | undefined;
+  if (!plugins?.Quit) return swUpdate;
+  return androidUpdates({
+    release: isRelease(appVersion) ? newerRelease(appVersion) : Promise.resolve(null),
+    open: (url) => location.assign(url),
+    told: {
+      get: () => {
+        try {
+          return localStorage.getItem(UPDATE_TOLD_KEY);
+        } catch {
+          return null; // storage unavailable: told of each time the app starts
+        }
+      },
+      set: (version) => {
+        try {
+          localStorage.setItem(UPDATE_TOLD_KEY, version);
+        } catch {
+          /* as above */
+        }
+      },
     },
-  };
+  });
 }
 
 start().catch((err) => {

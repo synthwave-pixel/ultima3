@@ -31,8 +31,16 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: web/package-lock.json
+          cache-dependency-path: |
+            web/package-lock.json
+            desktop/package-lock.json
       - run: npm ci
+      # The desktop app's packages too: the tests load its modules (desktopUpdates.test.ts needs electron-updater).
+      # Electron itself is never run here, so its binary is not downloaded.
+      - run: npm ci
+        working-directory: desktop
+        env:
+          ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
       - run: npm run format:check
       - run: npm run lint
       - run: npm test

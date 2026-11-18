@@ -126,6 +126,10 @@ export class FakeIO implements GameIO {
   }
   async showJournal(): Promise<void> {}
   async showMap(): Promise<void> {}
+  /** Pages of text (What's new): recorded with the output, title first. */
+  async showText(title: string, text: string[]): Promise<void> {
+    this.output += `[${title}]\n${text.join('\n')}\n`;
+  }
   /** Answered from the key queue like chooseOption. */
   async chooseFromList(options: MenuOption[]): Promise<string> {
     return this.chooseOption(options, 'none');

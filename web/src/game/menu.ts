@@ -20,6 +20,7 @@ import { Music, type GameIO, type MenuOption } from './io.ts';
 import { randomName } from './names.ts';
 import { emptyJournal } from './journal.ts';
 import { statLimit } from './interact.ts';
+import { updateBoxText, updateLabel, wrapWords, type UpdateHook, type UpdateNews, type UpdateOffer } from './updateOffer.ts';
 import { type Appearance, defaultLook, FIGURES, HAIR, HUE_NAMES, randomAppearance, SKIN_NAMES } from './appearance.ts';
 import { gearName } from './cards.ts';
 
@@ -83,24 +84,6 @@ export interface Transfer {
   file: { save(text: string): Promise<void>; load(): Promise<string> };
 }
 
-/** A new version of the app, downloaded and waiting (the installed app). */
-export interface Update {
-  ready(): boolean;
-  /** The web version's switches to it (the page reloads); an app's opens the new release's page. */
-  apply(): void;
-  /** The title menu's line for it: "Update: restart" unless said otherwise (an app's "Update (1.0.45)"). */
-  label?(): string;
-  /** An app's newer release, said once a version in a box of its own before the title's menu (updateBox). */
-  news?: UpdateNews;
-}
-
-/** A newer release to be told of once: its version, whether it is still to be told of, and that it now has been. */
-export interface UpdateNews {
-  version: string;
-  due(): boolean;
-  told(): void;
-}
-
 /** The attract sequence (ui/attract.ts): the opening and demo before the title, and the demo again from its menu. */
 export interface Attract {
   run(): Promise<void>;
@@ -111,7 +94,11 @@ export interface MenuOptions {
   /** Called after the roster or party changes in the Organize menu, so it can be saved. */
   save?: (world: World) => void;
   transfer?: Transfer;
-  update?: Update;
+  /**
+   * A newer version (updateOffer.ts): told of once a version in a box of its own before the title's menu (updateBox),
+   * then on the menu's Update line; and the first start after an update said once, with What's new (newsBox).
+   */
+  update?: UpdateHook;
   attract?: Attract;
   /**
    * Leave the game, where it runs as an app that can (the desktop app, where
@@ -130,9 +117,15 @@ export async function mainMenu(world: World, io: GameIO, play: () => Promise<voi
   await options.attract?.run();
   for (;;) {
     io.fadeMusic(Music.Sosaria); // the title's, whatever it comes back from: the demo, or the game
-    const news = options.update?.news;
-    if (options.update && news?.due()) {
-      await updateBox(world, io, options.update, news);
+    const update = options.update;
+    const news = update?.news?.();
+    if (update && news) {
+      await newsBox(world, io, update, news);
+      continue;
+    }
+    const offer = update?.offer() ?? null;
+    if (update && offer && !offer.told) {
+      await updateBox(world, io, update, offer);
       continue;
     }
     io.showTitle();
@@ -148,7 +141,7 @@ export async function mainMenu(world: World, io: GameIO, play: () => Promise<voi
       if (world.party.formed) entries.push({ key: 'E', label: 'Export game' });
       entries.push({ key: 'I', label: 'Import game' });
     }
-    if (options.update?.ready()) entries.push({ key: 'U', label: options.update.label?.() ?? 'Update: restart' });
+    if (offer) entries.push({ key: 'U', label: updateLabel(offer) });
     if (options.attract) entries.push({ key: 'R', label: 'Return to the view' });
     entries.push({ key: 'S', label: 'Settings' });
     if (options.quit) entries.push({ key: 'Q', label: 'Quit' });
@@ -166,8 +159,11 @@ export async function mainMenu(world: World, io: GameIO, play: () => Promise<voi
       await exportGameTo(io, options.transfer);
     } else if (key === 'I' && options.transfer) {
       await importGameFrom(io, options.transfer);
-    } else if (key === 'U') {
-      options.update?.apply();
+    } else if (key === 'U' && update && offer) {
+      // Nothing to take up (a release with no page to offer, a Steam launch's build that installs on quitting): its
+      // box again, saying the way to it.
+      if (updateBoxText(offer).go === null) await updateBox(world, io, update, offer);
+      else update.apply();
     } else if (key === 'R') {
       await options.attract?.demo();
     } else if (key === 'J') {
@@ -184,27 +180,70 @@ export async function mainMenu(world: World, io: GameIO, play: () => Promise<voi
   }
 }
 
+/** The title's lines for `text`, from row 11 under the picture: at most six, 38 letters wide. How many there are. */
+function boxLines(io: GameIO, text: string): number {
+  const lines = wrapWords(text, 38).slice(0, 6);
+  lines.forEach((line, i) => io.centreText(11 + i, line));
+  return lines.length;
+}
+
+/** The row a box's menu of `entries` lines starts on, under `lines` of its text, its window above the copyright. */
+function boxMenuRow(lines: number, entries: number): number {
+  return Math.min(TITLE_MENU_LAST_ROW - entries - 1, Math.max(15, 12 + lines));
+}
+
 /**
- * An app's newer release, told of once a version before the title's menu (as the Ultima V port does): what it is, and
- * its page, to read what changed and download it there, or Later, which leaves it on the menu's Update line.
+ * A newer version not yet told of (updateOffer.ts), in a box of its own before the title's menu, once a version (as
+ * the Ultima V port does): what it is, and the way to it - the restart into a build come down, or its release's page,
+ * to read what changed and download it there; or, where there is nothing to take up, only the way to it said. Later
+ * leaves it on the menu's Update line, which shows the box again where there is nothing to take up.
  */
-async function updateBox(world: World, io: GameIO, update: Update, news: UpdateNews): Promise<void> {
-  news.told();
+async function updateBox(world: World, io: GameIO, update: UpdateHook, offer: UpdateOffer): Promise<void> {
+  if (!offer.told) update.told();
   // A key pressed before the box came (the boot screen skipped with it) is let go: none may answer it unseen.
   io.flushKeys();
   io.showTitle();
   io.clearBottom();
-  io.centreText(11, `Ultima III ${news.version} is out`);
-  io.centreText(12, 'Your saved game carries over');
+  const box = updateBoxText(offer);
+  const lines = boxLines(io, box.text);
+  const choices = box.go
+    ? [
+        { key: 'O', label: box.go },
+        { key: 'L', label: 'Later', hint: 'Update stays in the title menu' },
+      ]
+    : [{ key: 'L', label: 'OK' }];
+  const row = boxMenuRow(lines, choices.length);
+  // The copyright where the window and its hint leave room for it.
+  if (row + choices.length + 1 + (box.go ? 2 : 0) <= TITLE_MENU_LAST_ROW + 1) io.centreText(22, mm(world, MM.Copyright));
+  const key = await io.chooseFromList(choices, { row, title: box.title });
+  if (key === 'O') update.apply();
+}
+
+/**
+ * The first start of a newer version (the desktop app's), said once in a box of its own before the title's menu:
+ * updated to what, from what, and What's new - the release's notes, fetched from GitHub, as the game's own text pages
+ * (which work under Steam's Game Mode, where a browser would not).
+ */
+async function newsBox(world: World, io: GameIO, update: UpdateHook, news: UpdateNews): Promise<void> {
+  update.newsSeen?.();
+  io.flushKeys();
+  io.showTitle();
+  io.clearBottom();
+  const lines = boxLines(io, `Updated to Ultima III ${news.version}, from ${news.from}. Your saved game carries over.`);
   io.centreText(22, mm(world, MM.Copyright));
   const key = await io.chooseFromList(
     [
-      { key: 'O', label: 'Open release page', hint: 'What is new, and the download' },
-      { key: 'L', label: 'Later', hint: 'Update stays in the title menu' },
+      { key: 'W', label: "What's new", hint: "This release's notes" },
+      { key: 'L', label: 'OK' },
     ],
-    { row: 15, title: 'Update available' },
+    { row: boxMenuRow(lines, 2), title: 'Updated' },
   );
-  if (key === 'O') update.apply();
+  if (key !== 'W') return;
+  const notes = await update.notes?.(news.version);
+  await io.showText(
+    `What's new in ${news.version}`,
+    notes ? notes.split('\n') : ["The release's notes could not be fetched here. They are on the game's Releases page."],
+  );
 }
 
 /** Export: the game as text, to the clipboard or a file. */
