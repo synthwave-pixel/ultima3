@@ -532,8 +532,15 @@ async function spellEffect(world: World, io: GameIO, member: number, spell: numb
       // Fal Divi: cast any cleric spell
       await flashriek(io, spell, member);
       const chosen = await chooseCleric(world, io, member);
-      if (chosen < 0) return;
-      return processMagic(world, io, member, chosen);
+      // Backed out of the cleric's spells: Fal Divi's own mana back, the turn not spent, as at any spell's prompt.
+      if (chosen < 0) return refund(world, io, member, spell);
+      await processMagic(world, io, member, chosen);
+      // The cleric's spell backed out of at its own prompt (its mana given back): Fal Divi's comes back with it.
+      if (world.commandCancelled) {
+        p.mana += spellCost(spell);
+        io.updateStats();
+      }
+      return;
     }
     case 10: // Noxum
       return bigDeath(world, io, member, spell, 75);
@@ -587,11 +594,14 @@ async function spellEffect(world: World, io: GameIO, member: number, spell: numb
       return;
     case 26: // Sanctu Mani
       return heal(world, io, member, spell, world.rng.range(0, 80) + 20);
-    case 27: // Vieda: show the map
+    case 27: {
+      // Vieda: show the map - in a dungeon, or a fight in one, the level's; elsewhere Sosaria's.
       await flashriek(io, spell, member);
-      if (world.party.location === Location.Dungeon) await io.showMiniDungeon();
+      const inDungeon = world.party.location === Location.Dungeon || (inCombat && c?.previousLocation === Location.Dungeon);
+      if (inDungeon) await io.showMiniDungeon();
       else await io.showMiniMap();
       return;
+    }
     case 29: {
       // Surmandum: resurrect
       if (inCombat) return failed(io);
@@ -626,8 +636,9 @@ async function spellEffect(world: World, io: GameIO, member: number, spell: numb
       return;
     }
     case 32: {
-      // Terraform: place any tile (or creature) on an adjacent square
-      if (inCombat) return failed(io);
+      // Terraform: place any tile (or creature) on an adjacent square. Not in a dungeon, whose map is no map of tiles:
+      // the tile went into the dungeon's own cells (this port).
+      if (inCombat || world.party.location === Location.Dungeon) return failed(io);
       io.printMessage(Msg.Direction);
       const dir = await getDirection(world, io);
       if (!dir) return refund(world, io, member, spell);
@@ -651,8 +662,8 @@ async function spellEffect(world: World, io: GameIO, member: number, spell: numb
       return;
     }
     case 33: {
-      // Armageddon: every creature on the map becomes a chest
-      if (inCombat) return failed(io);
+      // Armageddon: every creature on the map becomes a chest (none to change in a dungeon)
+      if (inCombat || world.party.location === Location.Dungeon) return failed(io);
       await flashriek(io, spell, member);
       const m = world.monsters;
       for (let i = 0; i < 32; i++) {
@@ -665,8 +676,9 @@ async function spellEffect(world: World, io: GameIO, member: number, spell: numb
       return;
     }
     case 34: {
-      // Flotellum: conjure a frigate on the nearest water
-      if (inCombat) return failed(io);
+      // Flotellum: conjure a frigate on the nearest water. Not in a dungeon, whose cells it read as water and wrote a
+      // frigate into (this port).
+      if (inCombat || world.party.location === Location.Dungeon) return failed(io);
       let best = 99;
       let destX = -1;
       let destY = -1;

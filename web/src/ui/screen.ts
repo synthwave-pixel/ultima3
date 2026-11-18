@@ -91,6 +91,7 @@ import {
   type MenuWindow,
   HINT_ROWS,
   wrapText,
+  foldedLabel,
 } from './menus.ts';
 import { DungeonCell } from '../game/world.ts';
 import { LetterLayer } from './letterLayer.ts';
@@ -875,7 +876,7 @@ export class Screen implements GameIO {
   }
 
   private countLabel(text: string, count: number): string {
-    return count > 1 && text.trim() ? `${text} (x${count})` : text;
+    return foldedLabel(text, count, TEXT_RIGHT - TEXT_LEFT);
   }
 
   /**

@@ -520,3 +520,13 @@ export class GamepadReader {
     return pads.length > 0;
   }
 }
+
+/**
+ * A repeated line with its count, within the message area's `width`: " (x2)" where it fits, else " x2" or "x2", else
+ * the line cut short for " x2" - never past the edge, where the count was lost.
+ */
+export function foldedLabel(text: string, count: number, width: number): string {
+  if (count <= 1 || !text.trim()) return text;
+  for (const tag of [` (x${count})`, ` x${count}`, `x${count}`]) if (text.length + tag.length <= width) return text + tag;
+  return text.trimEnd().slice(0, width - ` x${count}`.length) + ` x${count}`;
+}
