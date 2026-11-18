@@ -16,7 +16,10 @@
  *                        has it, any case, spaces left out; a start of it
  *                        does: yew, lcb, perinian)
  *   ?at=fight:NAME       a monster of that kind just east of the party on
- *                        Sosaria, and a step into it: the fight begins
+ *                        Sosaria, and a step into it: the fight begins (the
+ *                        party on foot on the nearest grass with the
+ *                        monster's own terrain east of it, water for a sea
+ *                        monster; a Pirate's crew are Thieves, as always)
  *   ?peek                nothing this page does is saved: not the game, the
  *                        auto-map, nor the settings
  *   ?tiles=NAME          this page's tile set, not saved
@@ -35,6 +38,7 @@ import { Key } from './io.ts';
 import { placeMoongates } from './turn.ts';
 import { MapId } from '../data/resources.ts';
 import { SPAWN_TERRAIN, SPAWN_TYPES } from './monsters.ts';
+import { MONSTER_SLOTS } from './monsterTable.ts';
 
 /** A name as the starts match it: lower case, letters and digits only. */
 export function slug(name: string): string {
@@ -79,6 +83,40 @@ function roamers(world: World): Map<string, { value: number; terrain: number }> 
   const out = new Map<string, { value: number; terrain: number }>();
   SPAWN_TYPES.forEach((shape, i) => out.set(names[shape], { value: shape * 4, terrain: SPAWN_TERRAIN[i] ?? MapValue.Grass }));
   return out;
+}
+
+/**
+ * The square nearest (x, y) for a fight start: grass for the party, with the
+ * monster's own terrain (grass, or water for a sea monster) just east, and no
+ * monster on either. So the monster stands where it could have spawned, and
+ * nothing else on the map is written over.
+ */
+function fightSpot(world: World, x: number, y: number, terrain: number): { x: number; y: number } | null {
+  const free = (xs: number, ys: number, value: number) => world.getXYVal(xs, ys) === value && world.monsters.at(xs, ys) < 0;
+  const size = world.current.size;
+  for (let d = 0; d < size / 2; d++) {
+    for (let dy = -d; dy <= d; dy++) {
+      for (let dx = -d; dx <= d; dx++) {
+        if (Math.max(Math.abs(dx), Math.abs(dy)) !== d) continue;
+        const xs = world.constrain(x + dx);
+        const ys = world.constrain(y + dy);
+        if (free(xs, ys, MapValue.Grass) && free(world.constrain(xs + 1), ys, terrain)) return { x: xs, y: ys };
+      }
+    }
+  }
+  return null;
+}
+
+/** The occupied slot farthest from (x, y). */
+function farthestMonster(world: World, x: number, y: number): number {
+  const m = world.monsters;
+  let best = 0;
+  let bestDistance = -1;
+  for (let i = 0; i < MONSTER_SLOTS; i++) {
+    const distance = Math.abs(m.x(i) - x) + Math.abs(m.y(i) - y);
+    if (m.type(i) !== 0 && distance > bestDistance) [best, bestDistance] = [i, distance];
+  }
+  return best;
 }
 
 /** The names ?at=place: and ?at=fight: take, for the /debug page and the console. */
@@ -136,18 +174,28 @@ export function startAt(world: World, at: AtStart): { key: string | null } | str
       const all = roamers(world);
       const name = pickName([...all.keys()], at.name);
       if (!name) return `no monster "${at.name}": ${[...all.keys()].join(', ')}`;
+      const onSosaria = world.party.location === Location.Sosaria;
       toSosaria();
       const { value, terrain } = all.get(name)!;
+      const spot = fightSpot(world, onSosaria ? world.x : world.party.surfaceX, onSosaria ? world.y : world.party.surfaceY, terrain);
+      if (!spot) return `no grass beside ${terrain === MapValue.Water ? 'water' : 'grass'} for a ${name}`;
       const m = world.monsters;
-      const slot = m.freeSlot();
-      if (slot < 0) return 'no room for a monster';
-      const x = world.constrain(world.x + 1);
+      // A long-played Sosaria has every slot taken; the farthest roamer makes room.
+      const slot = m.freeSlot() >= 0 ? m.freeSlot() : farthestMonster(world, spot.x, spot.y);
+      if (m.type(slot) !== 0) {
+        world.putXYVal(m.tileUnder(slot), m.x(slot), m.y(slot));
+        m.clear(slot);
+      }
+      world.x = world.party.surfaceX = spot.x;
+      world.y = world.party.surfaceY = spot.y;
+      world.party.shape = 0x7e; // on foot: a ship's wind could refuse the step
+      const x = world.constrain(spot.x + 1);
       m.setType(slot, value);
       m.setTileUnder(slot, terrain);
-      m.setPosition(slot, x, world.y);
+      m.setPosition(slot, x, spot.y);
       m.setHp(slot, 0xc0);
       m.setVariant(slot, 0);
-      world.putXYVal(value, x, world.y);
+      world.putXYVal(value, x, spot.y);
       return { key: Key.Right };
     }
   }
