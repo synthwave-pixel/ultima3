@@ -265,7 +265,12 @@ to them, or with a sling, a bow or a spare dagger to throw, the first in
 line. It is the foe they last struck or chose while it can still be
 reached, else the nearest. X strikes it, LB and RB mark another, and in
 keyboard mode Enter strikes it and [ and ] mark another. These are the
-Ultima V port's fight buttons, and its tips, one a fight, say so. On a
+Ultima V port's fight buttons, and its tips, one a fight, say so. A bolt
+spell (Magic bolt, Fireball, Mind bolt, Death bolt) is aimed the same way:
+the foe it would hit is marked in a spell's colours, LB and RB mark
+another, A or X casts it, a direction sends it that way, and B backs out
+with the mana given back. Whenever a direction is asked, arrows point out
+from whoever is asked it. On a
 touch screen the pause button is at the top of the virtual pad.
 
 ### Keyboard mode

@@ -15,7 +15,8 @@ import { Location } from './party.ts';
 import { MapValue, Shape } from './tiles.ts';
 import { type Card, type GameIO, Sound, inputNumber, type MenuOption, type SpellFlash } from './io.ts';
 import { cardRow, cardWrap } from './cards.ts';
-import { getDirection, cancelled } from './commands.ts';
+import { getDirection, cancelled, moveDelta, moveForKey, stepMessage } from './commands.ts';
+import { noteSnapTarget, snapTarget, stepSnapTarget } from './snap.ts';
 import { shoot, showBall, damageMonster } from './combat.ts';
 import { getChest, incapacitated, chestHere } from './actions.ts';
 import { mostHurt, poisoned, fallen, ashes, bestCaster } from './whom.ts';
@@ -691,12 +692,53 @@ async function spellEffect(world: World, io: GameIO, member: number, spell: numb
   }
 }
 
+/**
+ * A bolt's way. With Snap targets on and a foe on a line from the caster, the foe a bolt would hit is marked in a
+ * spell's colours, as a snap attack's is (snap.ts, the melee mark put away meanwhile): A or X (Enter) sends it there,
+ * LB and RB ([ and ]) mark another such foe, a direction sends it that way, and B (Escape) backs out, the foe the member
+ * had marked before marked again. With none, or Snap targets off, the direction is asked as ever.
+ */
+async function aimBolt(world: World, io: GameIO, member: number): Promise<{ dx: number; dy: number } | null> {
+  const c = world.combat!;
+  let target = world.snapTargets ? snapTarget(world, member, true) : null;
+  if (!target) return getDirection(world, io);
+  const before = c.snapChosen?.[member] ?? -1;
+  c.snapKind = 'spell';
+  try {
+    for (;;) {
+      c.snapShown = target.monster;
+      io.redrawMap();
+      const answer = await io.aimSnap();
+      if (world.done) return null;
+      if (answer === 'cancel') {
+        noteSnapTarget(world, member, before);
+        return null;
+      }
+      if (answer === 'prev' || answer === 'next') {
+        target = stepSnapTarget(world, member, answer === 'next' ? 1 : -1, true) ?? target;
+        continue;
+      }
+      const name = answer === 'cast' ? null : moveForKey(answer, world.diagonalMoves);
+      const way = answer === 'cast' ? target : name ? moveDelta(name) : null;
+      if (!way) continue;
+      if (answer === 'cast') noteSnapTarget(world, member, target.monster);
+      const message = stepMessage(way.dx, way.dy);
+      if (message !== undefined) io.printMessage(message);
+      return { dx: way.dx, dy: way.dy };
+    }
+  } finally {
+    c.snapShown = -1;
+    c.snapKind = undefined;
+    io.redrawMap();
+  }
+}
+
 /** Mirrors `Projectile()`: a bolt in a chosen direction that damages the first monster hit. */
 async function projectile(world: World, io: GameIO, member: number, spell: number, damage: number): Promise<void> {
   const c = world.combat;
   if (!c) return failed(io);
   io.printMessage(Msg.Direction);
-  const dir = await getDirection(world, io);
+  const dir = await aimBolt(world, io, member);
   if (!dir) return refund(world, io, member, spell);
   await flashriek(io, spell, member);
   const me = c.members[member];

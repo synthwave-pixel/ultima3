@@ -48,14 +48,17 @@ function monsterOn(world: World, x: number, y: number): number {
   return -1;
 }
 
-/** The foes `member` can strike from where they stand, nearest first, the weaker of two as near, then reading order. */
-export function snapCandidates(world: World, member: number): SnapCandidate[] {
+/**
+ * The foes `member` can strike from where they stand, nearest first, the weaker of two as near, then reading order;
+ * with `spell`, those a bolt spell would hit (spells.ts projectile): the first foe along each line, however far.
+ */
+export function snapCandidates(world: World, member: number, spell = false): SnapCandidate[] {
   const c = world.combat;
   if (!c) return [];
   const me = c.members[member];
   if (!me || me.x > 10 || me.y > 10) return [];
   const weapon = world.member(member).bytes[48];
-  const reaches = RANGED.includes(weapon) || (weapon === DAGGER && world.party.weapons(DAGGER) > 0);
+  const reaches = spell || RANGED.includes(weapon) || (weapon === DAGGER && world.party.weapons(DAGGER) > 0);
   const out: SnapCandidate[] = [];
   for (const [dx, dy] of directions(world)) {
     for (let step = 1, x = me.x + dx, y = me.y + dy; x >= 0 && x <= 10 && y >= 0 && y <= 10; step++, x += dx, y += dy) {
@@ -72,17 +75,17 @@ export function snapCandidates(world: World, member: number): SnapCandidate[] {
 }
 
 /** The snap target of `member`'s turn: the foe last struck or chosen if it can still be struck, else the first. */
-export function snapTarget(world: World, member: number): SnapCandidate | null {
-  const candidates = snapCandidates(world, member);
+export function snapTarget(world: World, member: number, spell = false): SnapCandidate | null {
+  const candidates = snapCandidates(world, member, spell);
   const chosen = world.combat?.snapChosen?.[member] ?? -1;
   return candidates.find((s) => s.monster === chosen) ?? candidates[0] ?? null;
 }
 
 /** Mark the foe `step` (1 the next, -1 the one before) from `member`'s snap target, round; it is theirs from now on. */
-export function stepSnapTarget(world: World, member: number, step: -1 | 1): SnapCandidate | null {
-  const candidates = snapCandidates(world, member);
+export function stepSnapTarget(world: World, member: number, step: -1 | 1, spell = false): SnapCandidate | null {
+  const candidates = snapCandidates(world, member, spell);
   if (candidates.length === 0) return null;
-  const now = snapTarget(world, member);
+  const now = snapTarget(world, member, spell);
   const at = now ? candidates.findIndex((s) => s.monster === now.monster) : -1;
   const next = candidates[(at + step + candidates.length) % candidates.length];
   noteSnapTarget(world, member, next.monster);

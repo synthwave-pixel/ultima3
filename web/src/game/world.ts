@@ -128,6 +128,8 @@ export interface CombatState {
   snapChosen?: number[];
   /** The foe marked as the snap target of the turn being asked for, or -1 (the UI draws its mark). */
   snapShown?: number;
+  /** What the mark is for: a snap attack, or a bolt spell being aimed (spells.ts aimBolt), drawn in a spell's colours. */
+  snapKind?: 'attack' | 'spell';
   /** Whether this fight's tip has been given (snap.ts combatTip: one a fight). */
   tipGiven?: boolean;
 }

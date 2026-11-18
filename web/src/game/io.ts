@@ -160,6 +160,11 @@ export interface GameIO {
    */
   chooseDirection(allowNone: boolean, allowDiagonal: boolean): Promise<string | null>;
   /**
+   * A bolt spell's aim (spells.ts aimBolt), the foe marked (CombatState.snapShown): 'cast' (A or X, Enter), 'cancel'
+   * (B, Escape), 'prev' or 'next' (LB and RB, [ and ]), or a direction key, the bolt sent that way instead.
+   */
+  aimSnap(): Promise<string>;
+  /**
    * Pick one option. Resolves with the option's key, or '' when cancelled.
    * `echo` says whether to print the chosen key ('none'), the key ('key'),
    * or the key and a newline ('line'), matching what the original printed.

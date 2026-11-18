@@ -7,6 +7,8 @@ import { BASERES } from '../src/data/resources.ts';
 import { World, type CombatState } from '../src/game/world.ts';
 import { combatTip, SNAP_KEY, snapCandidates, snapTarget, stepSnapTarget } from '../src/game/snap.ts';
 import { BUTTON_SHORTCUTS, GamepadReader } from '../src/ui/menus.ts';
+import { cast } from '../src/game/spells.ts';
+import { PlayerOffset } from '../src/game/player.ts';
 
 /** A flat grass arena with member 0 at (5, 5), no monsters yet, diagonals as `diagonals`. */
 function arena(diagonals = true): { world: World; c: CombatState } {
@@ -120,5 +122,54 @@ describe('snap targets (#29)', () => {
     world.tipsShown.clear();
     world.snapTargets = false;
     expect(combatTip(world, true, 'gamepad')).toBeNull();
+  });
+
+  it("aim a bolt spell at the foe it would hit, in a spell's mark: A/X casts, LB/RB step, B backs out", async () => {
+    const { world, c } = arena(false);
+    weapon(world, 4); // a sword: no foe in its reach, so the melee snap target is none
+    world.member(0).bytes[PlayerOffset.Class] = 'W'.charCodeAt(0);
+    monster(c, 0, 5, 2, 200); // north, three away, weaker
+    monster(c, 1, 9, 5, 250); // east, four away
+    expect(snapTarget(world, 0)).toBeNull();
+    expect(snapTarget(world, 0, true)?.monster).toBe(0);
+    const io = new FakeIO(world.resources);
+    const seen: (number | undefined)[] = [];
+    const aim = io.aimSnap.bind(io);
+    io.aimSnap = async () => {
+      seen.push(c.snapKind === 'spell' ? c.snapShown : -9);
+      return aim();
+    };
+
+    // Enter (A or X on a pad) casts at the marked foe, which stays the member's target.
+    world.member(0).mana = 50;
+    io.keys = ['B', Key.Enter]; // Magic bolt
+    expect(await cast(world, io, 0)).toBe(true);
+    expect(c.monsters[0].hp).toBeLessThan(200);
+    expect(c.monsters[1].hp).toBe(250);
+    expect(c.snapChosen?.[0]).toBe(0);
+    expect(c.snapShown).toBe(-1);
+    expect(c.snapKind).toBeUndefined();
+
+    // ] (RB) marks the next foe on a line, and the bolt goes there.
+    io.keys = ['B', ']', Key.Enter];
+    seen.length = 0;
+    expect(await cast(world, io, 0)).toBe(true);
+    expect(seen).toEqual([0, 1]);
+    expect(c.monsters[1].hp).toBeLessThan(250);
+
+    // Escape (B) backs out: the mana given back, the foe marked before marked again, the turn not spent.
+    const mana = world.member(0).mana;
+    io.keys = ['B', '[', Key.Escape];
+    expect(await cast(world, io, 0)).toBe(false);
+    expect(world.member(0).mana).toBe(mana);
+    expect(c.snapChosen?.[0]).toBe(1);
+    expect(world.takeCancelled()).toBe(true);
+
+    // Snap targets off: the direction is asked, as ever.
+    world.snapTargets = false;
+    io.keys = ['B', Key.Up];
+    seen.length = 0;
+    expect(await cast(world, io, 0)).toBe(true);
+    expect(seen).toEqual([]);
   });
 });

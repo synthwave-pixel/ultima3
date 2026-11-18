@@ -130,36 +130,58 @@ const TEXT_BOTTOM = 24; // exclusive
 
 const ANIMATION_INTERVAL_MS = 1000 / 12;
 
+/** A mark drawn round a square (Screen.markSquare): its pixels, and the pixels round them that the modern looks darken. */
+interface Mark {
+  on: [number, number][];
+  rim: [number, number][];
+}
+
 /**
- * The snap target's mark (markSnapTarget), as the Ultima V port draws it: in game pixels from its square's top left
- * corner, a triangle at each side four pixels wide at its foot, three outside the square, and two deep, pointing in.
+ * Four triangles round a square, as the Ultima V port draws its marks: in game pixels from the square's top left
+ * corner, each `base` pixels wide at its foot and `depth` deep, pointing in with the foot `inset` pixels outside the
+ * square, or pointing out with the foot three outside (clear of the turn's outline) and the point furthest off.
  */
-const SNAP_MARK: [number, number][] = [
-  ...[6, 7, 8, 9].flatMap((i): [number, number][] => [
-    [i, -3],
-    [i, 18],
-    [-3, i],
-    [18, i],
-  ]),
-  ...[7, 8].flatMap((i): [number, number][] => [
-    [i, -2],
-    [i, 17],
-    [-2, i],
-    [17, i],
-  ]),
-];
-/** The pixels round it, half darkened in the modern looks (its Standard look's rim). */
-const SNAP_MARK_RIM: [number, number][] = (() => {
-  const on = new Set(SNAP_MARK.map(([x, y]) => `${x},${y}`));
+function triangles(base: number, depth: number, inset: number, out = false): Mark {
+  const on = new Map<string, [number, number]>();
+  const add = (x: number, y: number) => on.set(`${x},${y}`, [x, y]);
+  for (let d = 0; d < depth; d++) {
+    const half = Math.round(((depth - d) / depth) * (base / 2));
+    for (let k = -half; k < half; k++) {
+      const mid = 8 + k;
+      const near = out ? -3 - d : -inset + d;
+      const far = 15 - near;
+      add(mid, near);
+      add(mid, far);
+      add(near, mid);
+      add(far, mid);
+    }
+  }
   const rim = new Map<string, [number, number]>();
-  for (const [x, y] of SNAP_MARK)
+  for (const [x, y] of on.values())
     for (let dy = -1; dy <= 1; dy++)
       for (let dx = -1; dx <= 1; dx++) if (!on.has(`${x + dx},${y + dy}`)) rim.set(`${x + dx},${y + dy}`, [x + dx, y + dy]);
-  return [...rim.values()];
-})();
-/** Its colours in the modern looks, fading one to the other and back each second (the Ultima V port's aim). */
-const SNAP_MARK_FROM = [236, 32, 28];
-const SNAP_MARK_TO = [190, 78, 8];
+  return { on: [...on.values()], rim: [...rim.values()] };
+}
+
+/** A snap target's mark (markSnapTarget): small triangles pointing in, four pixels at the foot, two deep, three out. */
+const SNAP_MARK = triangles(4, 2, 3);
+/** A direction asked (markDirecting): triangles pointing out from whoever is asked, five pixels at the foot, three deep. */
+const DIRECTION_MARK = triangles(5, 3, 0, true);
+/** The marks' colours in the modern looks, the first fading to the second and back each second (the Ultima V port's). */
+const MARK_COLOURS: Record<'attack' | 'spell' | 'direction', [number[], number[]]> = {
+  attack: [
+    [236, 32, 28],
+    [190, 78, 8],
+  ],
+  spell: [
+    [138, 52, 196],
+    [44, 58, 178],
+  ],
+  direction: [
+    [255, 255, 255],
+    [255, 255, 255],
+  ],
+};
 /** How long the figure on a character's sheet shows each of its frames. */
 const SHEET_FIGURE_MS = 450;
 /** How long after the press that ends the attract sequence its echoes are let go (`Screen.attractStage`). */
@@ -261,6 +283,8 @@ export class Screen implements GameIO {
   private glided: Viewport | null = null;
   /** Where the last view stood, and in what scene (`noteScene`). */
   private lastStand: { scene: unknown[]; x: number; y: number } | null = null;
+  /** A direction is being asked (chooseDirection): whoever is asked is marked (markDirecting). */
+  private directing = false;
   /** The viewport wants painting; marking it so asks for a frame (`wake`). */
   private dirty = true;
   private get viewDirty(): boolean {
@@ -2225,12 +2249,35 @@ export class Screen implements GameIO {
   async chooseDirection(allowNone: boolean, allowDiagonal: boolean): Promise<string | null> {
     const accepted = allowDiagonal ? [...DIRECTION_KEYS, '1', '2', '3', '4', '6', '7', '8', '9'] : [...DIRECTION_KEYS, '2', '4', '6', '8'];
     this.borderPrompt(this.promptMode === 'controller' ? 'Direction? B: Cancel' : 'Direction? Esc Cancel');
+    // Whoever is asked is marked with arrows pointing out (markDirecting), as the Ultima V port marks them.
+    this.directing = true;
+    this.viewDirty = true;
     try {
       for (;;) {
         const key = await this.waitKey();
         if (accepted.includes(key)) return key;
         if (allowNone && (key === Key.Space || key === Key.A)) return Key.Space;
         if (key === Key.B || key === Key.Escape) return null;
+      }
+    } finally {
+      this.directing = false;
+      this.viewDirty = true;
+      this.restoreBorder();
+    }
+  }
+
+  async aimSnap(): Promise<string> {
+    const diagonals = this.world.diagonalMoves ? ['1', '3', '7', '9'] : [];
+    const directions = [...DIRECTION_KEYS, '2', '4', '6', '8', ...diagonals];
+    this.borderPrompt(this.promptMode === 'controller' ? 'X: Cast  B: Cancel' : 'Enter Cast Esc Cancel');
+    try {
+      for (;;) {
+        const key = await this.waitKey();
+        if (key === Key.A || key === Key.X || key === Key.Enter) return 'cast';
+        if (key === Key.B || key === Key.Escape) return 'cancel';
+        if (key === Key.LB || key === '[') return 'prev';
+        if (key === Key.RB || key === ']') return 'next';
+        if (directions.includes(key)) return key;
       }
     } finally {
       this.restoreBorder();
@@ -2523,21 +2570,46 @@ export class Screen implements GameIO {
   }
 
   /**
-   * Snap targets (snap.ts): the foe a snap attack would strike, marked as the Ultima V port marks it - four small
-   * triangles just outside its square's sides, pointing in (SNAP_MARK). In the modern looks they are its Standard look's
-   * snap mark: red fading to dark orange and back each second, with a half-black rim; in the others, its EGA look's
-   * arrows, in the turn outline's colour (white, black on the Macintosh's white ground, a monitor's own colour).
+   * Snap targets (snap.ts): the foe a snap attack would strike, or a bolt spell being aimed would hit, marked as the
+   * Ultima V port marks it - four small triangles just outside its square's sides, pointing in (SNAP_MARK). In the
+   * modern looks they are its Standard look's snap mark, with a half-black rim: red fading to dark orange and back each
+   * second for an attack, purple to dark blue for a spell; in the others, its EGA look's arrows, in the turn outline's
+   * colour (white, black on the Macintosh's white ground, a monitor's own colour).
    */
-  private markSnapTarget(monster: number, lag: Point, time: number): void {
-    const c = this.world.combat;
-    const m = c?.monsters[monster];
+  private markSnapTarget(monster: number, lag: Point, time: number, kind: 'attack' | 'spell'): void {
+    const m = this.world.combat?.monsters[monster];
     if (!m || m.hp <= 0 || m.x > 10 || m.y > 10) return;
+    this.markSquare(m.x, m.y, lag, SNAP_MARK, MARK_COLOURS[kind], time);
+  }
+
+  /**
+   * A direction being asked (chooseDirection): whoever is asked marked with four triangles pointing out from their
+   * square's sides, clear of the turn's outline (DIRECTION_MARK) - the member whose turn it is in a fight, else the
+   * party - as the Ultima V port marks them: white, with a half-black rim in the modern looks.
+   */
+  private markDirecting(view: Viewport, lag: (id: string | undefined) => Point): void {
+    const c = this.world.combat;
+    if (c) {
+      const me = c.markedMember >= 0 ? c.members[c.markedMember] : undefined;
+      if (me && me.x <= 10 && me.y <= 10) this.markSquare(me.x, me.y, lag(`p${c.markedMember}`), DIRECTION_MARK, MARK_COLOURS.direction, 0);
+      return;
+    }
+    const at = view.cells.findIndex((cell) => cell.party);
+    if (at >= 0) this.markSquare(at % view.size, Math.floor(at / view.size), lag(undefined), DIRECTION_MARK, MARK_COLOURS.direction, 0);
+  }
+
+  /**
+   * `cells` (game pixels from the top left of the view's square (x, y)) filled: in the modern looks a half-black rim
+   * round them and then `colours`, the first fading to the second and back each second; in the others the turn
+   * outline's colour, without a rim.
+   */
+  private markSquare(x: number, y: number, lag: Point, cells: Mark, colours: [number[], number[]], time: number): void {
     const { ctx, cell } = this;
     const tile = 2 * cell;
     const px = tile / 16; // a game pixel
-    const left = (1 + 2 * m.x) * cell + Math.round(lag.x * tile);
-    const top = (1 + 2 * m.y) * cell + Math.round(lag.y * tile);
-    const fill = (gx: number, gy: number): void => {
+    const left = (1 + 2 * x) * cell + Math.round(lag.x * tile);
+    const top = (1 + 2 * y) * cell + Math.round(lag.y * tile);
+    const fill = ([gx, gy]: [number, number]): void => {
       const x0 = Math.round(left + gx * px);
       const y0 = Math.round(top + gy * px);
       ctx.fillRect(x0, y0, Math.round(left + (gx + 1) * px) - x0, Math.round(top + (gy + 1) * px) - y0);
@@ -2548,11 +2620,12 @@ export class Screen implements GameIO {
     ctx.clip();
     if (isModern(this.tileSetName)) {
       ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
-      for (const [gx, gy] of SNAP_MARK_RIM) fill(gx, gy);
+      cells.rim.forEach(fill);
+      const [from, to] = colours;
       const k = (1 - Math.cos((2 * Math.PI * (time % 1000)) / 1000)) / 2;
-      ctx.fillStyle = `rgb(${SNAP_MARK_FROM.map((v, i) => Math.round(v + (SNAP_MARK_TO[i] - v) * k)).join(',')})`;
+      ctx.fillStyle = `rgb(${from.map((v, i) => Math.round(v + (to[i] - v) * k)).join(',')})`;
     } else ctx.fillStyle = `rgb(${markerColour(this.gfx.display, 0).join(',')})`;
-    for (const [gx, gy] of SNAP_MARK) fill(gx, gy);
+    cells.on.forEach(fill);
     ctx.restore();
   }
 
@@ -2699,7 +2772,8 @@ export class Screen implements GameIO {
     ctx.restore();
     const c = world.combat;
     this.markActiveMember(c && c.markedMember >= 0 ? lag(`p${c.markedMember}`) : still);
-    if (c && (c.snapShown ?? -1) >= 0) this.markSnapTarget(c.snapShown!, lag(`c${c.snapShown}`), time);
+    if (c && (c.snapShown ?? -1) >= 0) this.markSnapTarget(c.snapShown!, lag(`c${c.snapShown}`), time, c.snapKind ?? 'attack');
+    if (this.directing) this.markDirecting(view, lag);
   }
 
   /**
