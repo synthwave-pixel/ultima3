@@ -16,7 +16,7 @@ const rows = (ch: string): [number, number] => {
 describe("the Standard tile set's letters (Standard-Font.png, tools/font-sheet.ts)", () => {
   it('is what the tool bakes from Sixtyfour (run node tools/font-sheet.ts after changing it)', () => {
     expect(decode(bakeFontSheet(), 'png', WIDTH, CELL)).toEqual(sheet);
-  });
+  }, 30_000); // baking the sheet takes seconds, more on a busy runner
 
   it('stands the capitals 2 px clear of the cell above, as the old font did, and keeps the tails', () => {
     for (const ch of 'HMTW0(!') expect(rows(ch)).toEqual([2, 29]);

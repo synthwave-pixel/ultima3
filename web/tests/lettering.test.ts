@@ -30,5 +30,5 @@ describe('the Font setting (#28)', () => {
       const file = join(import.meta.dirname, '..', 'public', 'fonts', `${face.name}.png`);
       const width = GLYPHS * CELL;
       expect(decode(bakeReadingSheet(face), 'png', width, CELL)).toEqual(decode(readFileSync(file), 'png', width, CELL));
-    });
+    }, 30_000); // baking a sheet takes seconds, more on a busy runner
 });
