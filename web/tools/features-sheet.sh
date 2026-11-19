@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
-# The features sheet after the README's banner (promo/features.jpg): twelve shots of the Standard experience, three
-# across, each with its caption. The shots are the game's canvas (1280 x 768) captured from a development build
-# through the window.u3 hook and saved to screenshots/ by tools/pilot/shots.mjs (DEVELOPMENT.md); this lays them out.
+# The features sheet after the README's banner (promo/features.jpg): twelve shots of the Remastered look, three
+# across, each with its caption. The shots are the game's canvas (1280 x 768) with its letters, captured from a
+# development build by web/tools/promo/shots.js (promo.shot) and saved to screenshots/ by tools/pilot/shots.mjs
+# (DEVELOPMENT.md); this lays them out.
 # Needs ImageMagick 7 and macOS's Arial. Run from anywhere: bash web/tools/features-sheet.sh
 set -euo pipefail
 root="$(cd "$(dirname "$0")/../.." && pwd)"
@@ -10,18 +11,18 @@ out="$root/promo/features.jpg"
 
 # name|caption, in reading order.
 panels=(
-  "f01-town|Towns: the leader walks with the party in line"
-  "f02-combat|Combat with the new figures, in menus or by keyboard"
-  "f03-controller|Controller mode: gamepad, touch or keyboard"
-  "f04-first-person|Dungeons in first person"
-  "f05-small-map|1st person + map: a map beside the view"
-  "f06-top-down|Top down: the level round the party"
-  "f07-dungeon-map|View map in a dungeon: the whole level"
+  "f01-overworld|Remastered: Sosaria framed in blue, its coasts in sand and surf"
+  "f02-town|Towns framed in copper, their talk in sentence case"
+  "f03-snap|Snap attacks: the foe X will strike, marked"
+  "f04-spell-aim|Bolt spells aimed the same way, LB/RB for another"
+  "f05-sheet|A character's sheet, and a look of their own"
+  "f06-dungeon|Each dungeon walled in its own stone"
+  "f07-top-down|Top down: the level round the party"
   "f08-sosaria|View map: Sosaria as the party has seen it"
   "f09-journal|A quest journal with just enough hints"
-  "f10-tips|Tips for a new player, not the quest's answers"
-  "f11-shop|Shops weigh each ware against your gear"
-  "f12-pause|The Pause menu: visuals, gameplay, audio, help"
+  "f10-spells|On a controller, spells with no use here are greyed"
+  "f11-visuals|Fonts for reading: Legible, Dyslexic, Sixtyfour, DOS"
+  "f12-ambrosia|Ambrosia in gold: each place has its own frame"
 )
 
 margin=18 gap=12 w=500 h=300 top=50 caption=36 cols=3
@@ -32,7 +33,7 @@ regular=/System/Library/Fonts/Supplemental/Arial.ttf
 bold="/System/Library/Fonts/Supplemental/Arial Bold.ttf"
 
 args=(-size "${width}x${height}" xc:'#111111'
-  -font "$bold" -fill white -pointsize 22 -annotate +18+38 'Ultima III: Exodus, the Standard experience')
+  -font "$bold" -fill white -pointsize 22 -annotate +18+38 'Ultima III: Exodus, Remastered')
 for i in "${!panels[@]}"; do
   name="${panels[$i]%%|*}"
   text="${panels[$i]#*|}"

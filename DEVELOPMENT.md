@@ -36,15 +36,16 @@ The READMEs open with the banner, `promo/banner.jpg`: the wide capsule at
 twice its size. It, the logo (`promo/logo.png`), the Steam artwork and the
 boot screen are made by `web/tools/key-art.mjs` from the box (see
 [its README](web/art/box/README.md)). The two sheets after the banner are
-in [`promo/`](promo/): twelve screenshots of the Standard experience, and
-each of the twelve tile sets at the opening, in one fight and in one
-dungeon corridor. The shots are the game canvas captured through the
-debug hook `window.u3` in a development build. For the tile sets each
-scene is set up once and redrawn in every set, so a row compares the same
-moment; that sheet was laid out on a browser canvas. The features sheet's
-shots are saved to `screenshots/` by `web/tools/pilot/shots.mjs` and laid
-out by `web/tools/features-sheet.sh` (ImageMagick 7), which names each
-shot and its caption. Both are JPEG.
+in [`promo/`](promo/): twelve screenshots of the Remastered look, and each
+of the thirteen tile sets at the opening, in one fight and in one dungeon
+corridor. The shots are taken in a development build by
+`web/tools/promo/shots.js`, pasted into the console as the pilot is: a shot
+is the game canvas with the letters layer drawn in (`promo.shot(name)`),
+and `promo.tileSets()` sets each scene up once and redraws it in every
+set, so a row compares the same moment. `web/tools/pilot/shots.mjs` saves
+them to `screenshots/`, and `web/tools/features-sheet.sh` and
+`web/tools/tile-sets-sheet.sh` (ImageMagick 7) lay them out, naming each
+shot. Both are JPEG.
 
 Inside the app, F11 or Alt+Enter toggles full screen, as do the system's
 own controls (macOS's green button) and the touch pad's full-screen switch

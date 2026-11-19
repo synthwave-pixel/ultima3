@@ -22,14 +22,14 @@ changes:
    EGA, MCGA and VGA, the Ultima V look and the Macintosh black on
    white.
 3. Includes two updated looks, Remastered (the default, after the Ultima V
-   port's) and U3 2026 (called Standard before v1.0.87), with controller
+   port's) and U3 2026 (called Standard before v1.0.88), with controller
    play, new art and sound, and tweakable settings.
 
-![The Standard experience: a town, combat, controller mode, a dungeon in first person, with a map beside the view and top down, a dungeon's View map, the map of Sosaria as the party has seen it, the quest journal, Tips, a shop weighing its wares and the Pause menu](promo/features.jpg)
+![The Remastered look: Sosaria in its blue frame, a town in copper with its talk in sentence case, a fight with the snap target marked, a bolt spell being aimed, a character's sheet with the appearance editor, a dungeon in first person with the map beside it and top down, the map of Sosaria as the party has seen it, the quest journal, a controller's spell list with the spells of no use greyed, the Visuals menu in the Legible font, and Ambrosia in its gold frame](promo/features.jpg)
 
-![Twelve tile sets, each at the opening, in combat and in a dungeon](promo/tile-sets.jpg)
+![Thirteen tile sets, Remastered and U3 2026 first, each at the opening, in combat and in a dungeon](promo/tile-sets.jpg)
 
-The following were design principles for the updated Standard experience:
+The following were design principles for the updated looks:
 
 1. No changes to the core data files - it's Ultima III.
 2. Changes are all made with the spirit and look of the original, with
@@ -480,7 +480,7 @@ These apply whatever tile set and sound set are chosen.
 #### Sound
 
 - Two sets of effects, chosen in Settings: Standard, new and described
-  under the Standard changes below, and Lairware, the Macintosh port's
+  under the U3 2026 changes below, and Lairware, the Macintosh port's
   sampled set with a per-effect gain table that evens out its levels. Off
   silences them.
 - The same effect is not restarted within a few dozen milliseconds, a long
@@ -567,7 +567,7 @@ press. With Battery saver on, the demo runs a minute from the last press
 and then gives way to the title.
 LairWare's large "Ultima III" picture under the logo is left out, and its
 fight, five pictures in one look, is drawn from each tile set's own party,
-dragon, fire and lava. Standard's party meets PC Ultima V's dragon and
+dragon, fire and lava. U3 2026's party meets PC Ultima V's dragon and
 fire there, under a slate roof in its own grain.
 
 ### Changes to the historic modes
@@ -577,7 +577,7 @@ than the Mac version did.
 
 - The NES set's water has surf along its coasts, white and light blue
   speckle as Ultima: Exodus drew it, where LairWare's sheet had plain
-  water square against land. Standard has the same, in white foam over
+  water square against land. U3 2026 has the same, in white foam over
   its water. Only coasts in sight have it, on the map, in towns, in
   fights and in the opening's demo; the other sets keep the Apple II's
   plain water.
@@ -620,7 +620,7 @@ signs and messages, with shouts and abbreviations kept in capitals.
 
 ### U3 2026-specific changes
 
-U3 2026, called Standard before v1.0.87, is the port's own theme. It is meant to evoke the memory of a
+U3 2026, called Standard before v1.0.88, is the port's own theme. It is meant to evoke the memory of a
 classic PC VGA look, with a modern sensibility about color and design:
 how you vaguely remember the game through nostalgia glasses, rather than
 how any specific machine drew it. As I mentioned earlier - I played on the
@@ -672,7 +672,7 @@ those builds and a modern developer sensibility.
   and over the whole view for spells that change all of it, the light
   spells included. The other tile sets keep the original flash.
 - Seams in the scrolling water, lava and moongate tiles and the fringe
-  around creatures are repaired in the Standard sheet, and the Ranger has
+  around creatures are repaired in the U3 2026 sheet, and the Ranger has
   a second animation frame, so he no longer stands still.
 - The lettering is Sixtyfour, after the Commodore 64's letters, as in
   the Ultima V port's Standard look, with a true lowercase where
