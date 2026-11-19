@@ -579,6 +579,11 @@ fire there, under a slate roof in its own grain.
 Changes that make each of the older tile sets look more like its machine
 than the Mac version did.
 
+- The PC VGA set is in its real colours. LairWare's sheet held only eight
+  colours, each channel full on or off, so its greens, browns and greys
+  came out lime, yellow and white; it is now drawn from the Ultima III
+  Upgrade's own VGA tiles and palette, and its monster variants are
+  recolours of those monsters.
 - The NES set's water has surf along its coasts, white and light blue
   speckle as Ultima: Exodus drew it, where LairWare's sheet had plain
   water square against land. U3 2026 has the same, in white foam over
@@ -1231,6 +1236,9 @@ owners'; its years are set in IM FELL
 English by Igino Marini, under the SIL Open Font License (`web/art/fonts/`).
 The Standard lettering is made from Sixtyfour by The Sixtyfour Project
 Authors, also under the SIL Open Font License (`web/art/fonts/`).
+The PC VGA tile set is the VGA tile set of the Ultima III Upgrade by
+Voyager Dragon (The Exodus Project), read from its `SHAPES.VGA` and
+`U3VGA.PAL` (`web/tools/pc-vga-sheet.ts`, `web/art/pc-vga/`).
 
 ---
 
