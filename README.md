@@ -733,6 +733,16 @@ Every release, with the desktop and Android downloads, is on the
 web version is updated with each release, so it runs the same game as the
 apps.
 
+### v1.0.90, November 19, 2026
+
+- View map in a dungeon turns between its levels: up and down on the
+  d-pad (or the arrows) go to the levels above and below that the party
+  has been on, if only for a moment, passing over any it fell past; Y
+  (Space) comes back to the party's level.
+- Auto combat's clerics heal only someone in real danger, with Sanctu
+  Mani for a big wound. A strong party's cleric no longer spends its
+  fights casting Sanctu on comrades with hundreds of hit points left.
+
 ### v1.0.89, November 18, 2026
 
 - The PC VGA tile set is in its real colours. LairWare's sheet held only
