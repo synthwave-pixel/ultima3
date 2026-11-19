@@ -57,6 +57,21 @@ export function mapPages(world: World): MapPage[] {
   return pages;
 }
 
+/** A dungeon's eight levels. */
+const LEVELS = 8;
+
+/**
+ * The dungeon page a level up (`step` -1) or down (+1) from `page`: the nearest the party has been on that way, if only
+ * for a moment, passing over any it has not (a fall through two); null where there is none, or on any other page.
+ */
+export function levelPage(world: World, page: MapPage, step: -1 | 1): MapPage | null {
+  if (page.kind !== 'dungeon') return null;
+  for (let level = page.level + step; level >= 0 && level < LEVELS; level += step) {
+    if (world.autoMap.levelVisited(page.id, level)) return { kind: 'dungeon', id: page.id, level };
+  }
+  return null;
+}
+
 /** The town beside Lord British's castle, "LCB Towne" in the game's files: Britain, as the Tips and journal call it. */
 const BRITAIN = 402;
 
@@ -111,7 +126,7 @@ export function marksOn(world: World, page: MapPage): MapMark[] {
   const marks: MapMark[] = [];
   const seen = (x: number, y: number) => world.autoMap.squareSeen(page.id, x, y);
   const inDungeon = world.party.location === Location.Dungeon;
-  if (page.kind === 'dungeon' || (!inDungeon && world.current.id === page.id)) {
+  if ((page.kind === 'dungeon' && page.level === world.dungeon.level) || (!inDungeon && world.current.id === page.id)) {
     marks.push({ kind: 'party', x: world.x, y: world.y, label: 'The party', detail: 'You are here' });
   }
   // Inside a town, castle or dungeon, on Sosaria the party is that place's mark (below), shown seen or not.

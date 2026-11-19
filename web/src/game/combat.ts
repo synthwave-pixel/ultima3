@@ -902,14 +902,28 @@ async function monsterAttack(world: World, io: GameIO, i: number, target: number
   await damageMember(world, io, target, ballShape);
 }
 
+/**
+ * The most one blow of this fight's monsters can take from a member, a fight in a town or castle's extra included
+ * (damageMember's roll): for auto-combat, to tell a wound worth healing.
+ */
+export function heaviestBlow(world: World, target: number): number {
+  const c = world.combat!;
+  return monsterRoll(world, target) + 1 + (c.previousLocation & 3) * 16;
+}
+
+/** The top of a monster's damage roll against a member: its kind's strength, and a hundredth of their maximum. */
+function monsterRoll(world: World, target: number): number {
+  const c = world.combat!;
+  const max = Math.floor(world.member(target).maxHitPoints / 100);
+  return ((MONSTER_HP[(c.monsterShape >> 1) & 0x0f] >> 3) + max) | 1;
+}
+
 /** The damage roll and its consequences. (`c8777`) */
 async function damageMember(world: World, io: GameIO, target: number, ballShape: number): Promise<void> {
   const c = world.combat!;
   const p = world.member(target);
   const me = c.members[target];
-  let max = Math.floor(p.maxHitPoints / 100);
-  max = ((MONSTER_HP[(c.monsterShape >> 1) & 0x0f] >> 3) + max) | 1;
-  const damage = world.rng.range(0, max) + 1;
+  const damage = world.rng.range(0, monsterRoll(world, target)) + 1;
   let died = p.subtractHitPoints(damage);
   // Fights in towns and castles hurt more (a quirk of the original: location & 3, times 16).
   died = p.subtractHitPoints((c.previousLocation & 3) * 16) || died;

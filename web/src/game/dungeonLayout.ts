@@ -51,9 +51,9 @@ export interface LevelShape {
   loops: boolean;
 }
 
-/** The current level's 256 cells. */
-function levelCells(world: World): Uint8Array {
-  const from = world.dungeon.level * SIDE * SIDE;
+/** A level's 256 cells: the current one's, or `level`'s. */
+function levelCells(world: World, level = world.dungeon.level): Uint8Array {
+  const from = level * SIDE * SIDE;
   return world.dungeon.tiles.subarray(from, from + SIDE * SIDE);
 }
 
@@ -165,20 +165,21 @@ export interface WholeLevel {
   /** Cells across and down: 17 along a seam's way (its wall at both ends), else the level's 16. */
   cols: number;
   rows: number;
-  /** Where the party is on it. */
-  party: [number, number];
+  /** Where the party is on it; null on a level it is not on. */
+  party: [number, number] | null;
   /** The cell (y * 16 + x) to draw at (col, row), or -1 for none. */
   at(col: number, row: number): number;
 }
 
 /**
  * The whole level, still, for the View map: cut at its seams, each seam's wall drawn at both ends where it bounds a
- * passage shown beside it there; as it is kept along an edge its passages cross (a looping level's all round).
+ * passage shown beside it there; as it is kept along an edge its passages cross (a looping level's all round). The
+ * party's level, or another of the dungeon's it has been on (`level`), where it is not.
  */
-export function wholeLevel(world: World): WholeLevel {
-  const cells = levelCells(world);
+export function wholeLevel(world: World, level = world.dungeon.level): WholeLevel {
+  const cells = levelCells(world, level);
   const shape = levelShape(cells);
-  const shown = (c: number): boolean => cellVisible(world, c & 15, c >> 4);
+  const shown = (c: number): boolean => cellVisible(world, c & 15, c >> 4, level);
   const axis = (seam: number | null) => {
     const cut = seam !== null && !shape.loops;
     return {
@@ -194,7 +195,7 @@ export function wholeLevel(world: World): WholeLevel {
   return {
     cols: x.size,
     rows: y.size,
-    party: [x.place(world.x), y.place(world.y)],
+    party: level === world.dungeon.level ? [x.place(world.x), y.place(world.y)] : null,
     at(col, row) {
       const c = at16(x.grid(col), y.grid(row));
       if (!shown(c)) return -1;

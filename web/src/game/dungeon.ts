@@ -185,6 +185,7 @@ export async function runDungeon(world: World, io: GameIO): Promise<void> {
     if (world.resurrecting) return;
     io.showMoons();
     io.showWind();
+    world.autoMap.visitLevel(world.current.id, d.level); // a level the View map can turn to, lit or not
     if (d.torch === 0) {
       io.printMessage(Msg.Dark);
       io.clearTiles();

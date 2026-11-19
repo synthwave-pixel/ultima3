@@ -82,7 +82,7 @@ describe('the map round the party', () => {
           if (!open(c)) continue;
           standOn(c);
           const [at, whole] = [aroundParty(world), wholeLevel(world)];
-          const [px, py] = whole.party;
+          const [px, py] = whole.party!;
           for (let j = -12; j <= 12; j++) {
             for (let i = -12; i <= 12; i++) {
               const [col, row] = [px + i, py + j];

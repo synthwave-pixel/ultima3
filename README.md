@@ -431,7 +431,9 @@ These apply whatever tile set and sound set are chosen.
   whichever edge it stands, never on the far side, and run a passage on
   across an edge it crosses; a level that loops right round goes on past
   its edges. View map shows the whole level, still, as a page with the
-  rest of the map.
+  rest of the map; up and down on the d-pad (or the arrows) turn to the
+  levels above and below that the party has been on, if only for a
+  moment, and Y (Space) comes back to the party's.
 
 #### Party and inventory
 
@@ -479,7 +481,9 @@ These apply whatever tile set and sound set are chosen.
   or a moongate stops a held direction until it is pressed again.
 - Auto combat, LairWare's addition, kept, with a smarter planner: members
   path round comrades and walls to the nearest square they can strike
-  from.
+  from, and a cleric heals only someone in real danger (a few of the
+  monsters' heaviest blows from death), with Sanctu Mani for a big wound,
+  rather than spending a strong party's fights on Sanctu.
 
 #### Sound
 

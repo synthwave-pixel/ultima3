@@ -4,6 +4,7 @@ import { combat, loadArena } from '../src/game/combat.ts';
 import { autoCombatKeys } from '../src/game/autocombat.ts';
 import { MapValue, Shape } from '../src/game/tiles.ts';
 import { Key } from '../src/game/io.ts';
+import { PlayerOffset } from '../src/game/player.ts';
 import { BASERES } from '../src/data/resources.ts';
 import { World, type CombatState } from '../src/game/world.ts';
 
@@ -107,6 +108,25 @@ describe('auto-combat planning', () => {
     world.member(1).hitPoints = 40;
     monster(c, 0, 5, 2);
     expect(autoCombatKeys(world, 0)).toEqual(['C', 'C', '2']);
+  });
+
+  it("does not spend a strong party's fights healing a scratch, but heals real danger, the bigger heal for a big wound", () => {
+    const { world, c } = arena(MapValue.Skeleton >> 1);
+    const p = world.member(0);
+    p.bytes[23] = 'C'.charCodeAt(0);
+    p.mana = 30;
+    world.spellFlags.pontori = true;
+    for (const m of [p, world.member(1)]) {
+      m.bytes[PlayerOffset.MaxHitPointsHi] = 1000 >> 8;
+      m.bytes[PlayerOffset.MaxHitPointsLo] = 1000 & 255;
+      m.hitPoints = 550; // down 450, but four of the heaviest blows from death and more
+    }
+    monster(c, 0, 5, 2);
+    expect(autoCombatKeys(world, 0)).not.toContain('C');
+    world.member(1).hitPoints = 60;
+    expect(autoCombatKeys(world, 0)).toEqual(['C', 'C', '2']); // Sanctu: no mana for Sanctu Mani
+    p.mana = 60;
+    expect(autoCombatKeys(world, 0)).toEqual(['C', 'K', '2']);
   });
 
   it('neither attacks nor fires diagonally in classic mode', () => {

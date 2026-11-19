@@ -73,6 +73,21 @@ describe('the auto-map in play', () => {
     expect(cellVisible(world, 4, 1)).toBe(false);
   });
 
+  it('records a level as visited, lit or not, and shows another level only as seen', async () => {
+    const { world, io } = dungeonWorld();
+    io.keys = [Key.Up, Key.Down, 'K'];
+    await runDungeon(world, io);
+    const id = world.current.id;
+    expect(world.autoMap.levelVisited(id, 0)).toBe(true); // in the dark: nothing seen, but been on
+    expect(world.autoMap.levelVisited(id, 1)).toBe(false);
+    world.autoMap.mark(id, 2, 8, 8); // a save from before levels were recorded: seen counts
+    expect(world.autoMap.levelVisited(id, 2)).toBe(true);
+    world.x = 8;
+    world.y = 8;
+    expect(cellVisible(world, 9, 8, 2)).toBe(true);
+    expect(cellVisible(world, 9, 8, 1)).toBe(false); // no feeling the way on a level the party is not on
+  });
+
   it('records the 3x3 around each step taken with a torch lit', async () => {
     const { world, io } = dungeonWorld();
     world.party.torches = 1;

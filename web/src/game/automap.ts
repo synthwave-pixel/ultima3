@@ -141,6 +141,19 @@ export class AutoMap {
     return mask ? mask.reduce((n, v) => n + v, 0) : 0;
   }
 
+  /** Record that the party has stood on a level, lit or not (`levelVisited`). */
+  visitLevel(dungeon: number, level: number): void {
+    this.visit(`level:${dungeon}:${level}`);
+  }
+
+  /**
+   * Whether the party has been on a level, if only for a moment (fallen through it in the dark, say): one the View
+   * map can turn to. A save from before levels were recorded counts those it saw any of.
+   */
+  levelVisited(dungeon: number, level: number): boolean {
+    return this.visited(`level:${dungeon}:${level}`) || this.seenCount(dungeon, level) > 0;
+  }
+
   /** Whether any level of a dungeon has been seen: the party has been in it. */
   hasDungeon(dungeon: number): boolean {
     for (const [key, mask] of this.seen) if (key.startsWith(`${dungeon}:`) && mask.some((v) => v === 1)) return true;
@@ -254,13 +267,14 @@ export class AutoMap {
 }
 
 /**
- * Whether the auto-map may show cell (x, y) of the current level: seen
- * before, or within the 3x3 around the party while it is dark (shown but
- * never recorded, so torches keep their worth).
+ * Whether the auto-map may show cell (x, y) of the current level (or
+ * `level`): seen before, or, on the party's own level, within the 3x3
+ * around it while it is dark (shown but never recorded, so torches keep
+ * their worth).
  */
-export function cellVisible(world: World, x: number, y: number): boolean {
-  if (world.autoMap.isSeen(world.current.id, world.dungeon.level, x, y)) return true;
-  if (world.dungeon.torch > 0) return false;
+export function cellVisible(world: World, x: number, y: number, level = world.dungeon.level): boolean {
+  if (world.autoMap.isSeen(world.current.id, level, x, y)) return true;
+  if (world.dungeon.torch > 0 || level !== world.dungeon.level) return false;
   const dx = Math.abs(((x - world.x) & 0x0f) === 15 ? -1 : (x - world.x) & 0x0f);
   const dy = Math.abs(((y - world.y) & 0x0f) === 15 ? -1 : (y - world.y) & 0x0f);
   return dx <= 1 && dy <= 1;

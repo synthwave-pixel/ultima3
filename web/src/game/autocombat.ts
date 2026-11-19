@@ -17,7 +17,8 @@
  *     type: cast Pontori once.
  *  3. A big threat and enough magic: the nameless wizard spell, or the
  *     cleric's ZXKUQYB against a bigger one.
- *  4. A cleric type with someone under 75 hit points: Sanctu on the weakest.
+ *  4. A cleric type with someone in real danger: a heal on whoever is
+ *     nearest death (this port's rule; see `HEAL_BLOWS`).
  *  5. A ranged weapon (or a wizard's Mittar): fire at a monster in line,
  *     else step to a square that lines one up next turn.
  *  6. A hand weapon: attack an adjacent monster, else step toward the nearest.
@@ -30,7 +31,7 @@
 import { World } from './world.ts';
 import { Shape } from './tiles.ts';
 import { Key } from './io.ts';
-import { monsterAt } from './combat.ts';
+import { monsterAt, heaviestBlow } from './combat.ts';
 
 /**
  * "Nearly dead": under a quarter of maximum hit points, at most 50. The
@@ -40,9 +41,15 @@ import { monsterAt } from './combat.ts';
 function nearlyDeadAt(maxHitPoints: number): number {
   return Math.min(50, Math.max(15, Math.floor(maxHitPoints / 4)));
 }
-/** Sanctu is worth a turn when someone is under this share of their maximum and down by at least 20. */
-const SANCTU_SHARE = 0.6;
-const SANCTU_MIN_LOSS = 20;
+/**
+ * A heal is worth a turn when someone is in real danger: under this many of the monsters' heaviest blows from death
+ * (a round can bring several), or twice "nearly dead", whichever is more. Not a share of their maximum: Sanctu heals
+ * 10 to 30, and a party with a thousand hit points spent its fights on it, a cleric at half healing a few points a
+ * turn and never fighting. The Mac healed anyone under 75.
+ */
+const HEAL_BLOWS = 4;
+/** Sanctu Mani (20 to 100, 50 mana) in place of Sanctu (10 to 30, 10 mana) once the wound is bigger than this. */
+const GREAT_HEAL_WOUND = 60;
 
 /** Monster shapes that poison, and so count double as a threat. */
 const POISONOUS = [0x1c, 0x3c, 0x38];
@@ -140,20 +147,26 @@ class Planner {
     if (magic >= 75 && isWizard && this.threatValue() > 60) return wizardCast('P');
     if (magic >= 70 && isCleric && this.threatValue() > 80) return clericCast('O');
 
-    // Sanctu for whoever needs it most, if anyone really does.
+    // A heal for whoever is nearest death, if anyone is in real danger.
     if (magic >= 10 && isCleric) {
-      let worst = 1;
+      let worst = Infinity;
       let lowest = -1;
       for (let m = 0; m < 4; m++) {
         if (!world.memberAlive(m)) continue;
         const q = world.member(m);
-        const share = q.hitPoints / Math.max(1, q.maxHitPoints);
-        if (share < worst && q.maxHitPoints - q.hitPoints >= SANCTU_MIN_LOSS) {
-          worst = share;
+        const danger = Math.max(2 * nearlyDeadAt(q.maxHitPoints), HEAL_BLOWS * heaviestBlow(world, m));
+        // How many dangers from death, so the nearest to it goes first whatever their maximum.
+        const margin = q.hitPoints / danger;
+        if (q.hitPoints < danger && q.hitPoints < q.maxHitPoints && margin < worst) {
+          worst = margin;
           lowest = m;
         }
       }
-      if (lowest >= 0 && worst < SANCTU_SHARE) return [...clericCast('C'), String(lowest + 1)];
+      if (lowest >= 0) {
+        const q = world.member(lowest);
+        const great = magic >= 50 && q.maxHitPoints - q.hitPoints > GREAT_HEAL_WOUND;
+        return [...clericCast(great ? 'K' : 'C'), String(lowest + 1)];
+      }
     }
 
     // Ranged attacks: a missile weapon, or Mittar for a wizard without a magic bow.

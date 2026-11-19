@@ -55,7 +55,17 @@ import { Shape } from '../game/tiles.ts';
 import { buildDungeonView, secretMessage } from '../game/dungeon.ts';
 import { recordView, MAP_SIDE } from '../game/automap.ts';
 import { aroundParty, wholeLevel } from '../game/dungeonLayout.ts';
-import { mapPages, marksOn, stepMark, pageTitle, isLandValue, type MapPage, type MapMark, type Direction } from '../game/worldMap.ts';
+import {
+  mapPages,
+  marksOn,
+  stepMark,
+  pageTitle,
+  isLandValue,
+  levelPage,
+  type MapPage,
+  type MapMark,
+  type Direction,
+} from '../game/worldMap.ts';
 import { drawChart, drawPlaceSign } from './chart.ts';
 import { MapId } from '../data/resources.ts';
 import {
@@ -1681,7 +1691,8 @@ export class Screen implements GameIO {
    * level as its auto-map - and the boxes beside it are its legend: the page's name, the mark the cursor is on, how
    * much of the map has been seen, and the keys. The d-pad (arrows) moves between the marks, A (Enter) opens the map
    * of a town or castle the party has been in and B (Backspace) comes back from it, Y (Space) comes back to the party,
-   * X turns to the next map, and B on the first page, Escape or # closes.
+   * X turns to the next map, and B on the first page, Escape or # closes. On a dungeon's level, where the party is the
+   * only mark, up and down turn to the levels above and below that it has been on (`levelPage`).
    */
   async showMap(): Promise<void> {
     const { world } = this;
@@ -1701,8 +1712,16 @@ export class Screen implements GameIO {
       art = page.kind === 'map' ? this.mapArt(page.id) : null;
     };
     show(page);
+    const levels = () => ({ up: levelPage(world, page, -1), down: levelPage(world, page, 1) });
     this.overlay = (time) =>
-      this.paintWorldMap(page, art, marks, selected, { back: back.length > 0, more: pages.length > 1, controller }, time);
+      this.paintWorldMap(
+        page,
+        art,
+        marks,
+        selected,
+        { back: back.length > 0, more: pages.length > 1, controller, levels: !!(levels().up || levels().down) },
+        time,
+      );
     this.wake();
     try {
       for (;;) {
@@ -1719,9 +1738,16 @@ export class Screen implements GameIO {
           show(back.pop()!);
         } else if (key === Key.Up || key === Key.Down || key === Key.Left || key === Key.Right) {
           const dir: Direction = key === Key.Up ? 'up' : key === Key.Down ? 'down' : key === Key.Left ? 'left' : 'right';
+          if (page.kind === 'dungeon') {
+            const next = dir === 'up' ? levels().up : dir === 'down' ? levels().down : null;
+            if (next) show(next);
+            continue;
+          }
           const wraps = page.kind === 'map' && (page.id === MapId.Sosaria || page.id === MapId.Ambrosia);
           selected = stepMark(marks, selected, dir, page.kind === 'map' ? MAP_SIDE : 16, wraps);
         } else if (key === Key.Y || key === Key.Space || letter === 'y') {
+          // On another of the dungeon's levels, back to the party's.
+          if (page.kind === 'dungeon' && page.level !== world.dungeon.level) show({ ...page, level: world.dungeon.level });
           selected = Math.max(
             0,
             marks.findIndex((m) => m.kind === 'party' || m.party),
@@ -1779,23 +1805,31 @@ export class Screen implements GameIO {
     art: HTMLCanvasElement | null,
     marks: MapMark[],
     selected: number,
-    can: { back: boolean; more: boolean; controller: boolean },
+    can: { back: boolean; more: boolean; controller: boolean; levels: boolean },
     time: number,
   ): void {
     const { ctx, cell, world } = this;
     this.black(1, 1, 22, 22);
     // Where a mark's square is, and how big a square is, on this page: a dungeon's level drawn whole and still, cut at
     // its seams (dungeonLayout.ts), in the middle of the window.
-    const dungeon = page.kind === 'dungeon';
-    const level = dungeon ? wholeLevel(world) : null;
+    const level = page.kind === 'dungeon' ? wholeLevel(world, page.level) : null;
     const sq = level ? cell : (22 * cell) / MAP_SIDE;
     const [left, top] = level
       ? [cell + Math.round(((22 - level.cols) * cell) / 2), cell + Math.round(((22 - level.rows) * cell) / 2)]
       : [cell, cell];
-    if (level) this.paintAutoMap((i, j) => level.at(i, j), [0, 0], [level.cols, level.rows], [left, top], level.party);
-    else if (art) ctx.drawImage(art, cell, cell, 22 * cell, 22 * cell);
+    if (level) {
+      this.paintAutoMap(
+        (i, j) => level.at(i, j),
+        [0, 0],
+        [level.cols, level.rows],
+        [left, top],
+        level.party,
+        [0, 0],
+        page.kind === 'dungeon' ? page.level : undefined,
+      );
+    } else if (art) ctx.drawImage(art, cell, cell, 22 * cell, 22 * cell);
     const corner = (m: MapMark) => {
-      const [x, y] = level && m.kind === 'party' ? level.party : [m.x, m.y];
+      const [x, y] = (m.kind === 'party' && level?.party) || [m.x, m.y];
       return [left + x * sq, top + y * sq];
     };
     // The towns known of but not yet seen, each a sign in the chart's ink.
@@ -1827,6 +1861,7 @@ export class Screen implements GameIO {
     // says where it is.
     const chosen = marks[selected];
     const places = marks.length > 1;
+    const away = page.kind === 'dungeon' && page.level !== world.dungeon.level;
     if (chosen && places) {
       const [x, y] = corner(chosen);
       const r = sq * 1.5;
@@ -1901,16 +1936,16 @@ export class Screen implements GameIO {
     // The keys that do something on this page: stepping between places and back to the party only where there are any.
     const keys = can.controller
       ? [
-          places ? 'D-pad: places' : '',
+          places ? 'D-pad: places' : can.levels ? 'D-pad: levels' : '',
           chosen?.opens !== undefined ? 'A: its map' : '',
-          places ? 'Y: the party' : '',
+          places || away ? 'Y: the party' : '',
           can.more ? 'X: next map' : '',
           can.back ? 'B: back' : 'B: close',
         ]
       : [
-          places ? 'Arrows: places' : '',
+          places ? 'Arrows: places' : can.levels ? 'Up/Down: levels' : '',
           chosen?.opens !== undefined ? 'Enter: its map' : '',
-          places ? 'Space: party' : '',
+          places || away ? 'Space: party' : '',
           can.more ? 'X: next map' : '',
           can.back ? 'Bksp: back' : 'Esc: close',
         ];
@@ -3132,15 +3167,17 @@ export class Screen implements GameIO {
    * same terms, is the figure of its first living member, standing still
    * (Peer's blinking diamond was a distraction on a map that stays up).
    * The cells, but not the party, are drawn `shift` pixels over: the level
-   * gliding under the party under Smooth motion.
+   * gliding under the party under Smooth motion. `level` is the party's own
+   * unless the View map has turned to another (where `party` is null).
    */
   private paintAutoMap(
     at: (i: number, j: number) => number,
     [i0, j0]: [number, number],
     [w, h]: [number, number],
     [left, top]: [number, number],
-    party: [number, number],
+    party: [number, number] | null,
     [sx, sy]: [number, number] = [0, 0],
+    level = this.world.dungeon.level,
   ): void {
     const { ctx, cell, world } = this;
     ctx.fillStyle = '#000';
@@ -3150,11 +3187,12 @@ export class Screen implements GameIO {
         const c = at(i0 + col, j0 + row);
         if (c < 0) continue;
         const [dx, dy] = [left + col * cell + sx, top + row * cell + sy];
-        const value = world.getXYDng(c & 0x0f, c >> 4);
+        const value = world.dungeon.tiles[level * 256 + c];
         if (value === DungeonCell.SecretDoor) ctx.drawImage(this.secretDoor(), dx, dy, cell, cell);
         else this.gfx.drawUiPiece(ctx, DUNGEON_MAP_PIECE_COLUMN + dungeonMapPiece(value), 1, dx, dy, cell);
       }
     }
+    if (!party) return;
     const [col, row] = [party[0] - i0, party[1] - j0];
     const leader = this.livingLeader();
     if (leader !== undefined && col >= 0 && col < w && row >= 0 && row < h) {

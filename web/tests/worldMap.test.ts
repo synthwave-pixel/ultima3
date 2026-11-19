@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { newWorld, FakeIO } from './helpers.ts';
 import { AutoMap, recordView, MAP_SIDE, type AutoMapStore } from '../src/game/automap.ts';
-import { coastSegments, mapPages, marksOn, pageTitle, stepMark, type MapMark } from '../src/game/worldMap.ts';
+import { coastSegments, levelPage, mapPages, marksOn, pageTitle, stepMark, type MapMark, type MapPage } from '../src/game/worldMap.ts';
 import { buildViewport } from '../src/game/viewport.ts';
 import { peerGem } from '../src/game/actions.ts';
 import { Location } from '../src/game/party.ts';
@@ -240,5 +240,29 @@ describe("the map's cursor and coasts", () => {
       expect(Math.abs(x2 - 1.5) + Math.abs(y2 - 1.5)).toBe(0.5);
     }
     expect(coastSegments(() => true, 4, true)).toEqual([]);
+  });
+});
+
+describe("the map's dungeon levels", () => {
+  it('turns up and down to the levels the party has been on, past those it fell through', () => {
+    const world = newWorld();
+    const id = 410;
+    world.autoMap.visitLevel(id, 0);
+    world.autoMap.visitLevel(id, 3); // fell from the first to the fourth
+    world.autoMap.visitLevel(id, 4);
+    world.dungeon.level = 3;
+    const page: MapPage = { kind: 'dungeon', id, level: 3 };
+    expect(levelPage(world, page, -1)).toEqual({ kind: 'dungeon', id, level: 0 });
+    expect(levelPage(world, page, 1)).toEqual({ kind: 'dungeon', id, level: 4 });
+    expect(levelPage(world, { ...page, level: 4 }, 1)).toBeNull();
+    expect(levelPage(world, { kind: 'map', id: MapId.Sosaria }, 1)).toBeNull();
+  });
+
+  it('marks the party on its own level only', () => {
+    const world = newWorld();
+    world.party.location = Location.Dungeon;
+    world.dungeon.level = 3;
+    expect(marksOn(world, { kind: 'dungeon', id: 410, level: 3 }).map((m) => m.kind)).toEqual(['party']);
+    expect(marksOn(world, { kind: 'dungeon', id: 410, level: 0 })).toEqual([]);
   });
 });
