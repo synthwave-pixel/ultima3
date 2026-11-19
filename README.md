@@ -153,11 +153,11 @@ the open one forward, so two copies never write over each other's save.
 
 The desktop app looks for a newer release each time it starts, the game
 playing on meanwhile, and keeps itself up to date where it can (as the
-Ultima V port does). The Windows installer's copy, the AppImage and the Flatpak update
-themselves: the new version comes down in the background and is
+Ultima V port does). The Windows installer's copy, the Mac app, the AppImage and the Flatpak
+update themselves: the new version comes down in the background and is
 installed when you quit, or at once with Restart now. The portable `.exe`
-and the Mac app can't be replaced that way, so they say a newer release
-is out and offer its page to download it from. Either way the title says
+can't be replaced that way, so it says a newer release is out and offers
+its page to download it from. Either way the title says
 so once, in a box of its own, and its menu offers "Update (x.y.z)" from
 then on; one that comes while you play is said in the message area, and
 the Pause menu says how to get to it, but a game is never restarted out
@@ -179,19 +179,17 @@ options).
   them in `%APPDATA%\Ultima III`. The installed game updates itself; the
   portable `.exe` says when a newer release is out.
 - **macOS**: an Apple Silicon `.dmg`, for macOS 13 (Ventura) or later
-  (Intel Macs: use the web version). Signed by no Apple developer, so the
-  first launch is refused. Try to open the app once, then open System
-  Settings, choose Privacy & Security, scroll down to Security and click
-  Open Anyway beside Ultima III; it opens normally from then on. Or, in
-  Terminal, once: `xattr -dr com.apple.quarantine "/Applications/Ultima III.app"`.
-  If macOS later asks to let Ultima III use the microphone (it can when
-  the sound plays through a USB microphone or a headset), choose Don't
-  Allow: the game never uses it, and the sound plays on. macOS lets an
-  app replace itself only when an Apple developer signed it, so the Mac
-  app says when a newer release is out and offers its page; download
-  the new `.dmg` and drag it over the old one.
-
-  <img src="docs/macos-open-anyway.png" alt="System Settings, Privacy &amp; Security: under Security, &quot;Ultima III&quot; was blocked to protect your Mac, with the Open Anyway button beside it" width="600">
+  (Intel Macs: use the web version). From v1.0.88 it is signed with a
+  Developer ID and notarized by Apple, so it opens like any downloaded
+  app, and run from Applications it updates itself as the Windows
+  installer's copy does. If macOS asks to let Ultima III use the
+  microphone (it can when the sound plays through a USB microphone or a
+  headset), choose Don't Allow: the game never uses it, and the sound
+  plays on. A copy older than v1.0.88 was signed by no developer: macOS
+  refused its first launch until Open Anyway was clicked in System
+  Settings, Privacy & Security, and it could only point to the release
+  page. Download v1.0.88 once and drag it over the old one; it keeps
+  itself up to date from then on.
 
 - **Linux and SteamOS**: the Flatpak repository, installed as under
   Installation above, is the way on a Steam Deck and on any Linux with
@@ -207,7 +205,13 @@ options).
   to Steam from the Non-Steam Game list, and in
   the shortcut's controller settings pick a Gamepad template. The app
   sees the controller as a gamepad and switches to controller mode on the
-  first press, and starts full screen when Steam launches it. In Game
+  first press, and starts full screen when Steam launches it. In Desktop
+  Mode, start it from that Steam shortcut too, not from the application
+  menu or a file manager: a program Steam did not launch gets Steam's
+  Desktop Configuration, which turns the controls into keys (A Enter, B
+  Escape, Y Space, X Steam's on-screen keyboard), so the game sees no
+  gamepad and X and Y do the wrong things. Game Mode always launches it
+  through Steam. In Game
   Mode it also turns off GPU acceleration and the browser sandbox, which
   have hung other Electron apps under gamescope. The `.flatpak` bundle on
   the Releases page is the same build for an offline install
