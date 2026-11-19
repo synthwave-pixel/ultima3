@@ -22,7 +22,7 @@ function metainfo(version, date) {
     <name>synthwave-pixel</name>
   </developer>
   <description>
-    <p>The 1983 role-playing game Ultima III: Exodus, rebuilt from LairWare's Macintosh port. Play it close to the original in any of its period looks - the Apple II, the Commodore 64, the NES, the PC's CGA to VGA, the Ultima V look and the Macintosh - or in the Standard experience, with new art and sound.</p>
+    <p>The 1983 role-playing game Ultima III: Exodus, rebuilt from LairWare's Macintosh port. Play it close to the original in any of its period looks - the Apple II, the Commodore 64, the NES, the PC's CGA to VGA, the Ultima V look and the Macintosh - or in the new Remastered and U3 2026 looks, with new art and sound.</p>
     <p>Play it with a controller, a keyboard or a touch screen, with a map of Sosaria as the party has seen it, a journal of the quest, tips, and settings to tweak.</p>
   </description>
   <launchable type="desktop-id">${ID}.desktop</launchable>
@@ -31,7 +31,10 @@ function metainfo(version, date) {
   <url type="vcs-browser">${REPO}</url>
   <screenshots>
     <screenshot type="default">
-      <image>https://raw.githubusercontent.com/synthwave-pixel/ultima3/main/promo/features.jpg</image>
+      <image>https://raw.githubusercontent.com/synthwave-pixel/ultima3/main/promo/features-1.jpg</image>
+    </screenshot>
+    <screenshot>
+      <image>https://raw.githubusercontent.com/synthwave-pixel/ultima3/main/promo/features-2.jpg</image>
     </screenshot>
   </screenshots>
   <categories>

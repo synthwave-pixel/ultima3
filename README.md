@@ -25,9 +25,13 @@ changes:
    port's) and U3 2026 (called Standard before v1.0.88), with controller
    play, new art and sound, and tweakable settings.
 
-![The Remastered look: Sosaria in its blue frame, a town in copper with its talk in sentence case, a fight with the snap target marked, a bolt spell being aimed, a character's sheet with the appearance editor, a dungeon in first person with the map beside it and top down, the map of Sosaria as the party has seen it, the quest journal, a controller's spell list with the spells of no use greyed, the Visuals menu in the Legible font, and Ambrosia in its gold frame](promo/features.jpg)
+![The Remastered look, the world: Sosaria in its blue frame with its shores and whirlpool, a town in copper with its talk in sentence case, Ambrosia in gold, a dungeon in its own red brick with the map beside the view, the level top down, and the map of Sosaria as the party has seen it](promo/features-1.jpg)
 
-![Thirteen tile sets, Remastered and U3 2026 first, each at the opening, in combat and in a dungeon](promo/tile-sets.jpg)
+![The Remastered look, playing it: a fight with the snap target marked, a bolt spell being aimed, a controller's spell list with the spells of no use greyed, a character's sheet with the appearance editor, the quest journal, and the Visuals menu in the Legible font](promo/features-2.jpg)
+
+![Seven tile sets, each at the opening, in combat and in a dungeon: Remastered, U3 2026, PC VGA, PC Ultima V, PC MCGA, PC EGA and PC CGA](promo/tile-sets-1.jpg)
+
+![Six more: Lairware (the Macintosh's colour), Macintosh B&W, Apple II Color, Apple II Mono, Commodore 64 and Nintendo](promo/tile-sets-2.jpg)
 
 The following were design principles for the updated looks:
 

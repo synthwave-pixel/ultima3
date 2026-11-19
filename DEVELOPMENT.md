@@ -35,10 +35,11 @@ the development build in a browser with a controller's keys only, and
 The READMEs open with the banner, `promo/banner.jpg`: the wide capsule at
 twice its size. It, the logo (`promo/logo.png`), the Steam artwork and the
 boot screen are made by `web/tools/key-art.mjs` from the box (see
-[its README](web/art/box/README.md)). The two sheets after the banner are
-in [`promo/`](promo/): twelve screenshots of the Remastered look, and each
-of the thirteen tile sets at the opening, in one fight and in one dungeon
-corridor. The shots are taken in a development build by
+[its README](web/art/box/README.md)). The four sheets after the banner are
+in [`promo/`](promo/): twelve screenshots of the Remastered look, six to a
+sheet (the world, then playing it), and the thirteen tile sets at the
+opening, in one fight and in one dungeon corridor, over two sheets (the new
+looks and the PC's, then the Macintosh, Apple II, Commodore 64 and NES). The shots are taken in a development build by
 `web/tools/promo/shots.js`, pasted into the console as the pilot is: a shot
 is the game canvas with the letters layer drawn in (`promo.shot(name)`),
 and `promo.tileSets()` sets each scene up once and redraws it in every

@@ -1,4 +1,4 @@
-// The README's screenshots (promo/features.jpg, promo/tile-sets.jpg), taken from a development build. With the dev server
+// The README's screenshots (promo/features-*.jpg, promo/tile-sets-*.jpg), taken from a development build. With the dev server
 // running, the screenshot server too (node web/tools/pilot/shots.mjs), and a page of the game open, in the console:
 //
 //     (0, eval)(await (await fetch('/tools/promo/shots.js')).text())
