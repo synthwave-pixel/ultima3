@@ -729,6 +729,18 @@ Every release, with the desktop and Android downloads, is on the
 web version is updated with each release, so it runs the same game as the
 apps.
 
+### v1.0.89, November 18, 2026
+
+- The PC VGA tile set is in its real colours. LairWare's sheet held only
+  eight colours, each channel full on or off, so its greens, browns and
+  greys came out lime, yellow and white; it is now drawn from the Ultima
+  III Upgrade's own VGA tiles and palette (Voyager Dragon, The Exodus
+  Project), its monster variants recolours of those monsters.
+- New screenshots in the README and the Flatpak's listing, of Remastered
+  and of all thirteen tile sets.
+- The Steam Deck notes say to start the game from Steam in Desktop Mode
+  too: started from the desktop, Steam turns the controller into keys.
+
 ### v1.0.88, November 18, 2026
 
 - Remastered, a new look after the Ultima V port's, is where a new
