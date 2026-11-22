@@ -741,6 +741,23 @@ Every release, with the desktop and Android downloads, is on the
 web version is updated with each release, so it runs the same game as the
 apps.
 
+### v1.0.91, November 22, 2026
+
+- Thanks to tuono21 for a whole play-through's worth of bug reports and
+  ideas, which every change below comes from.
+- Controllers: only the pad played last is read, so a Bluetooth pad the
+  system keeps listing after it drops can no longer hold a direction down
+  (steps repeating on their own, then the controller ignored); only the
+  window with the focus answers the pad; and two directions held on the
+  d-pad go in turn, a diagonal of steps, as two arrow keys held do.
+- View map: on Sosaria's page, A on a dungeon the party has been in opens
+  its levels, up and down turning through those visited. A long
+  dungeon's name no longer cuts off its level number.
+- Poison says POISON! once a turn however many are poisoned, and flashes
+  their boxes together without holding up the game.
+- Chests and traps offer the first in marching order between members
+  equally nimble, rather than whoever has the most hit points.
+
 ### v1.0.90, November 19, 2026
 
 - View map in a dungeon turns between its levels: up and down on the
