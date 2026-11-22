@@ -49,17 +49,19 @@ function best(world: World, fits: (m: number) => boolean, score: (m: number) => 
 
 /**
  * The living member likeliest to pass a steal-and-disarm check (`knack`): for Get chest and Steal, and a dungeon's
- * trap, which nobody chooses to meet (the original asked the first in marching order, dead or alive). The first member
- * where none is living.
+ * trap, which nobody chooses to meet (the original asked the first in marching order, dead or alive). Between equals,
+ * the first in marching order, so the same member is offered chest after chest (by hit points, it moved with every
+ * wound). The first member where none is living.
  */
 export function nimblestMember(world: World): number {
-  return (
-    best(
-      world,
-      (m) => world.memberAlive(m),
-      (m) => knack(world, world.member(m)),
-    ) ?? 0
-  );
+  let pick: number | undefined;
+  let top = -Infinity;
+  for (let m = 0; m < 4; m++) {
+    if (world.party.memberSlot(m) < 0 || !world.memberAlive(m)) continue;
+    const k = knack(world, world.member(m));
+    if (k > top) [pick, top] = [m, k];
+  }
+  return pick ?? 0;
 }
 
 /** The living member missing the most hit points, for a heal (as spells.ts healPlan picks its patient). */

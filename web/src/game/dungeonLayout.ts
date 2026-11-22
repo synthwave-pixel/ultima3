@@ -25,7 +25,7 @@
 
 import type { World } from './world.ts';
 import { DungeonCell } from './world.ts';
-import { cellVisible } from './automap.ts';
+import { cellVisible, dungeonTiles, partyOn } from './automap.ts';
 
 const SIDE = 16;
 
@@ -51,10 +51,10 @@ export interface LevelShape {
   loops: boolean;
 }
 
-/** A level's 256 cells: the current one's, or `level`'s. */
-function levelCells(world: World, level = world.dungeon.level): Uint8Array {
+/** A level's 256 cells: the current one's, or `level`'s of dungeon `id`. */
+function levelCells(world: World, level = world.dungeon.level, id = world.current.id): Uint8Array {
   const from = level * SIDE * SIDE;
-  return world.dungeon.tiles.subarray(from, from + SIDE * SIDE);
+  return dungeonTiles(world, id).subarray(from, from + SIDE * SIDE);
 }
 
 /** Whether a piece of the passages, walked out from `start`, comes back to a cell at another place: round the level. */
@@ -174,12 +174,12 @@ export interface WholeLevel {
 /**
  * The whole level, still, for the View map: cut at its seams, each seam's wall drawn at both ends where it bounds a
  * passage shown beside it there; as it is kept along an edge its passages cross (a looping level's all round). The
- * party's level, or another of the dungeon's it has been on (`level`), where it is not.
+ * party's level, or another level it has been on (`level` of dungeon `id`: from the dungeon, or from Sosaria's map).
  */
-export function wholeLevel(world: World, level = world.dungeon.level): WholeLevel {
-  const cells = levelCells(world, level);
+export function wholeLevel(world: World, level = world.dungeon.level, id = world.current.id): WholeLevel {
+  const cells = levelCells(world, level, id);
   const shape = levelShape(cells);
-  const shown = (c: number): boolean => cellVisible(world, c & 15, c >> 4, level);
+  const shown = (c: number): boolean => cellVisible(world, c & 15, c >> 4, level, id);
   const axis = (seam: number | null) => {
     const cut = seam !== null && !shape.loops;
     return {
@@ -195,7 +195,7 @@ export function wholeLevel(world: World, level = world.dungeon.level): WholeLeve
   return {
     cols: x.size,
     rows: y.size,
-    party: level === world.dungeon.level ? [x.place(world.x), y.place(world.y)] : null,
+    party: partyOn(world, id, level) ? [x.place(world.x), y.place(world.y)] : null,
     at(col, row) {
       const c = at16(x.grid(col), y.grid(row));
       if (!shown(c)) return -1;

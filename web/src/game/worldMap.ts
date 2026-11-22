@@ -17,7 +17,7 @@ import type { World } from './world.ts';
 import { MapId } from '../data/resources.ts';
 import { Location } from './party.ts';
 import { MapValue } from './tiles.ts';
-import { MAP_SIDE } from './automap.ts';
+import { MAP_SIDE, partyOn } from './automap.ts';
 
 export type MarkKind = 'party' | 'castle' | 'towne' | 'dungeon' | 'moongate' | 'shrine';
 
@@ -29,8 +29,10 @@ export interface MapMark {
   label: string;
   /** A line on it: where the party is, or what A does. */
   detail: string;
-  /** The map A opens from it: a town or castle the party has been in. */
+  /** The map A opens from it: a town, castle or dungeon the party has been in. */
   opens?: number;
+  /** A dungeon's: the level A opens it at, the first the party has been on (up and down turn to the others). */
+  opensLevel?: number;
   /** A moongate's moon phase (the Trammel phase it opens at), for its mark. */
   phase?: number;
   /** The party is here: in this place, where it is inside one (its mark blinks, as the party's own does). */
@@ -59,6 +61,18 @@ export function mapPages(world: World): MapPage[] {
 
 /** A dungeon's eight levels. */
 const LEVELS = 8;
+
+/** The first level of dungeon `id` the party has been on, if any. */
+export function firstLevel(world: World, id: number): number | undefined {
+  for (let level = 0; level < LEVELS; level++) if (world.autoMap.levelVisited(id, level)) return level;
+  return undefined;
+}
+
+/** The page A opens from a mark, if any: a town's or castle's map, or a dungeon's first level the party has been on. */
+export function openedPage(mark: MapMark | undefined): MapPage | null {
+  if (mark?.opens === undefined) return null;
+  return mark.opensLevel !== undefined ? { kind: 'dungeon', id: mark.opens, level: mark.opensLevel } : { kind: 'map', id: mark.opens };
+}
 
 /**
  * The dungeon page a level up (`step` -1) or down (+1) from `page`: the nearest the party has been on that way, if only
@@ -126,7 +140,7 @@ export function marksOn(world: World, page: MapPage): MapMark[] {
   const marks: MapMark[] = [];
   const seen = (x: number, y: number) => world.autoMap.squareSeen(page.id, x, y);
   const inDungeon = world.party.location === Location.Dungeon;
-  if ((page.kind === 'dungeon' && page.level === world.dungeon.level) || (!inDungeon && world.current.id === page.id)) {
+  if ((page.kind === 'dungeon' && partyOn(world, page.id, page.level)) || (!inDungeon && world.current.id === page.id)) {
     marks.push({ kind: 'party', x: world.x, y: world.y, label: 'The party', detail: 'You are here' });
   }
   // Inside a town, castle or dungeon, on Sosaria the party is that place's mark (below), shown seen or not.
@@ -143,7 +157,8 @@ export function marksOn(world: World, page: MapPage): MapMark[] {
       // Dawn stands only while both moons are new: its mark is there while it stands, or once the party has been in.
       if (id === DAWN && !known && world.surface.tiles[y * MAP_SIDE + x] !== MapValue.Town) continue;
       const kind = placeKind(id);
-      const opens = known && kind !== 'dungeon' ? id : undefined;
+      const opensLevel = kind === 'dungeon' ? firstLevel(world, id) : undefined;
+      const opens = known && (kind !== 'dungeon' || opensLevel !== undefined) ? id : undefined;
       const looks = kind === 'castle' ? 'Castle?' : kind === 'dungeon' ? 'Dungeon?' : 'Towne?';
       const detail = here
         ? 'Party inside'
@@ -161,6 +176,7 @@ export function marksOn(world: World, page: MapPage): MapMark[] {
         label: known ? placeName(world, id) : looks,
         detail,
         opens,
+        opensLevel: opens !== undefined ? opensLevel : undefined,
         party: here || undefined,
         unseen: unseen || undefined,
       };

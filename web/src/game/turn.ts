@@ -131,6 +131,8 @@ export async function ageChars(world: World, io: GameIO): Promise<void> {
   const [, cleric, wizard, , paladin, , lark, illusionist, druid, alchemist, ranger] = Array.from({ length: 11 }, (_, i) => classAt(i));
 
   let starving = false;
+  /** The members poison stung this tick: one line and one flash of their boxes for them all, nothing waited on. */
+  const stung: number[] = [];
   for (let m = 3; m >= 0; m--) {
     if (world.party.memberSlot(m) < 0) continue;
     const p = world.member(m);
@@ -154,10 +156,15 @@ export async function ageChars(world: World, io: GameIO): Promise<void> {
     }
     if (p.status === 'P' && (world.poisonKills || p.hitPoints > 1)) {
       if (p.subtractHitPoints(1)) io.sound(p.sex === 'F' ? Sound.DeathFemale : Sound.DeathMale);
-      await io.flashMember(m);
-      io.printMessage(Msg.Poison);
+      stung.push(m);
     }
     if (world.ageTimer[1] === 0) p.addHitPoints(1);
+  }
+  // The original flashed each poisoned member's box in turn and printed POISON! for each, the game waiting on every
+  // flash: with three poisoned, three lines and a stall every turn, enough to break a held diagonal (issue #40).
+  if (stung.length > 0) {
+    io.flashMembers(stung);
+    io.printMessage(Msg.Poison);
   }
   if (starving) {
     io.printMessage(Msg.Starving);

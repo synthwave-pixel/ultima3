@@ -253,7 +253,8 @@ the web version from Safari's Share menu with Add to Home Screen instead.
 The default; a gamepad button press also switches back to it from keyboard
 mode. A tap on a touch screen shows a virtual controller, sized to an NES
 pad on any screen. Holding a direction, on a gamepad or the virtual pad,
-keeps walking as a held key does.
+keeps walking as a held key does; two held together (up and right, say)
+go in turn, a diagonal of steps, as two arrow keys held do.
 
     D-pad   move, or move the cursor in a menu
     A       open the command menu; choose
@@ -376,9 +377,13 @@ These apply whatever tile set and sound set are chosen.
   on the member the command most likely wants: the nimblest for a chest
   or a theft, the most hurt for a heal, the poisoned, dead or ashes for a
   cure, resurrection or recall, the caster with the most mana for Cast,
-  and someone without the mark who can bear its burn for a rod.
+  and someone without the mark who can bear its burn for a rod. Between
+  members equally nimble, the first in marching order.
 - A virtual controller on touch screens, a gamepad through the Gamepad
-  API, and an on-screen keyboard for names.
+  API, and an on-screen keyboard for names. With more than one pad
+  listed, the one played last is read, so a Bluetooth pad the system
+  keeps listing after it drops cannot hold a direction down; and only
+  the window with the focus answers the pad.
 
 #### Journal, map and hints
 
@@ -433,7 +438,8 @@ These apply whatever tile set and sound set are chosen.
   its edges. View map shows the whole level, still, as a page with the
   rest of the map; up and down on the d-pad (or the arrows) turn to the
   levels above and below that the party has been on, if only for a
-  moment, and Y (Space) comes back to the party's.
+  moment, and Y (Space) comes back to the party's. From Sosaria's page,
+  A on a dungeon the party has been in opens its levels the same way.
 
 #### Party and inventory
 
@@ -455,7 +461,9 @@ These apply whatever tile set and sound set are chosen.
 #### Difficulty and settings
 
 - Poison kills, off by default: poison stops at one hit point so a member
-  limps home; on, it kills as on the Apple II.
+  limps home; on, it kills as on the Apple II. However many are poisoned,
+  a turn says POISON! once and flashes their boxes together, without the
+  game waiting on each in turn.
 - Starvation: Classic (the Apple II's, to the death), Mild (stops at half
   hit points, the default) or None.
 - Timer: Fast (the Apple II's turn timer), Slow, or Off, which makes the

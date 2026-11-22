@@ -268,16 +268,30 @@ export class AutoMap {
 
 /**
  * Whether the auto-map may show cell (x, y) of the current level (or
- * `level`): seen before, or, on the party's own level, within the 3x3
- * around it while it is dark (shown but never recorded, so torches keep
- * their worth).
+ * `level` of dungeon `id`): seen before, or, on the party's own level,
+ * within the 3x3 around it while it is dark (shown but never recorded, so
+ * torches keep their worth).
  */
-export function cellVisible(world: World, x: number, y: number, level = world.dungeon.level): boolean {
-  if (world.autoMap.isSeen(world.current.id, level, x, y)) return true;
-  if (world.dungeon.torch > 0 || level !== world.dungeon.level) return false;
+export function cellVisible(world: World, x: number, y: number, level = world.dungeon.level, id = world.current.id): boolean {
+  if (world.autoMap.isSeen(id, level, x, y)) return true;
+  if (world.dungeon.torch > 0 || !partyOn(world, id, level)) return false;
   const dx = Math.abs(((x - world.x) & 0x0f) === 15 ? -1 : (x - world.x) & 0x0f);
   const dy = Math.abs(((y - world.y) & 0x0f) === 15 ? -1 : (y - world.y) & 0x0f);
   return dx <= 1 && dy <= 1;
+}
+
+/** Whether the party stands on `level` of dungeon `id`. */
+export function partyOn(world: World, id: number, level: number): boolean {
+  return world.party.location === Location.Dungeon && world.current.id === id && world.dungeon.level === level;
+}
+
+/**
+ * A dungeon's eight levels: as they are now, where the party is in it, else as the game keeps them (a dungeon is
+ * entered afresh each time, its chests and traps back as they were).
+ */
+export function dungeonTiles(world: World, id: number): Uint8Array {
+  if (world.party.location === Location.Dungeon && world.current.id === id) return world.dungeon.tiles;
+  return world.resources.maps.get(id)?.subarray(0, 2048) ?? new Uint8Array(2048);
 }
 
 /** The next map mode after `mode`, cycling off -> small -> full -> off. */

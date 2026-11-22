@@ -155,17 +155,19 @@ describe('a trap', () => {
     return { io, hurt: world.member(0).hitPoints < hp };
   };
 
-  it('names the likeliest member: the best knack, then the most hit points, then marching order', () => {
+  it('names the likeliest member: the best knack, then the first in marching order', () => {
     const { world } = dungeonWorld();
     expect(nimblestMember(world)).toBe(0); // Tatiana, the thief
     world.member(0).status = 'D';
     expect(nimblestMember(world)).toBe(1); // Roderic, a ranger: dexterity 15 and a ranger's 64
     world.member(1).status = 'D';
-    // Norric the cleric and Ghiselle the wizard, dexterity 10 each and no bonus: the more hit points, then the first.
+    // Norric the cleric and Ghiselle the wizard, dexterity 10 each and no bonus: the first, however hurt (#39: by hit
+    // points the offer moved with every wound).
     world.member(3).hitPoints = 90;
     expect(nimblestMember(world)).toBe(2);
-    world.member(2).hitPoints = 50;
-    expect(nimblestMember(world)).toBe(3);
+    world.member(2).hitPoints = 5;
+    world.member(2).status = 'P';
+    expect(nimblestMember(world)).toBe(2);
   });
 
   it('is met by the nimblest living member, not whoever leads', async () => {

@@ -1,7 +1,18 @@
 import { describe, it, expect } from 'vitest';
 import { newWorld, FakeIO } from './helpers.ts';
 import { AutoMap, recordView, MAP_SIDE, type AutoMapStore } from '../src/game/automap.ts';
-import { coastSegments, levelPage, mapPages, marksOn, pageTitle, stepMark, type MapMark, type MapPage } from '../src/game/worldMap.ts';
+import {
+  coastSegments,
+  levelPage,
+  mapPages,
+  marksOn,
+  openedPage,
+  pageTitle,
+  stepMark,
+  type MapMark,
+  type MapPage,
+} from '../src/game/worldMap.ts';
+import { wholeLevel } from '../src/game/dungeonLayout.ts';
 import { buildViewport } from '../src/game/viewport.ts';
 import { peerGem } from '../src/game/actions.ts';
 import { Location } from '../src/game/party.ts';
@@ -149,7 +160,26 @@ describe("the map's marks", () => {
     world.autoMap.mark(412, 0, 1, 1);
     const marks = marksOn(world, { kind: 'map', id: MapId.Sosaria });
     expect(marks.find((m) => m.opens === YEW)).toMatchObject({ label: 'Yew', detail: 'A: its map' });
-    expect(marks.find((m) => m.kind === 'dungeon')).toMatchObject({ label: 'Dungeon Doom', opens: undefined, detail: 'Been in' });
+    expect(marks.find((m) => m.kind === 'dungeon')).toMatchObject({ label: 'Dungeon Doom', opens: 412, detail: 'A: its map' });
+  });
+
+  it('opens a dungeon from Sosaria at the first level the party has been on, its levels drawn as the game keeps them', () => {
+    const world = newWorld();
+    world.autoMap = new AutoMap();
+    world.autoMap.markSquares(MapId.Sosaria, [at(world, 412)]);
+    world.autoMap.visitLevel(412, 2); // fell in from the first, which was dark
+    world.autoMap.mark(412, 2, 4, 4);
+    world.autoMap.visitLevel(412, 5);
+    const doom = marksOn(world, { kind: 'map', id: MapId.Sosaria }).find((m) => m.kind === 'dungeon');
+    const page = openedPage(doom);
+    expect(page).toEqual({ kind: 'dungeon', id: 412, level: 2 });
+    expect(levelPage(world, page!, 1)).toEqual({ kind: 'dungeon', id: 412, level: 5 });
+    expect(marksOn(world, page!)).toEqual([]); // the party is not in it
+    const whole = wholeLevel(world, 2, 412);
+    expect(whole.party).toBeNull();
+    let shown = 0;
+    for (let row = 0; row < whole.rows; row++) for (let col = 0; col < whole.cols; col++) if (whole.at(col, row) >= 0) shown++;
+    expect(shown).toBeGreaterThan(0);
   });
 
   it('names the town by Lord British\'s castle Britain, not "LCB Towne" as the game\'s files do', () => {
@@ -260,9 +290,11 @@ describe("the map's dungeon levels", () => {
 
   it('marks the party on its own level only', () => {
     const world = newWorld();
+    world.enterDungeon(410);
     world.party.location = Location.Dungeon;
     world.dungeon.level = 3;
     expect(marksOn(world, { kind: 'dungeon', id: 410, level: 3 }).map((m) => m.kind)).toEqual(['party']);
     expect(marksOn(world, { kind: 'dungeon', id: 410, level: 0 })).toEqual([]);
+    expect(marksOn(world, { kind: 'dungeon', id: 412, level: 3 })).toEqual([]); // another dungeon
   });
 });

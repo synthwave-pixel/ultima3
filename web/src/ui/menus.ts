@@ -15,7 +15,8 @@ import { VIEW_MAP_KEY } from '../game/context.ts';
 import { SNAP_KEY } from '../game/snap.ts';
 import { GraphicsSet } from './graphics.ts';
 import { HOLD_FIRST_MS, INPUT_PACES, Keyboard } from './input.ts';
-import { axis, browserPads, connectedPads, pressed, type PadList } from './pads.ts';
+import { browserPads, connectedPads, pressed, Played, type PadList } from './pads.ts';
+import { windowFocused } from './windowFocus.ts';
 
 /**
  * How keyboard keys stand in for the controller when in controller mode.
@@ -418,9 +419,6 @@ export function applyMenuKey(menu: MenuWindow, options: MenuOption[], visible: M
   return options[byKey].disabled ? { kind: 'refused' } : { kind: 'choose', index: byKey };
 }
 
-/** How near its centre a stick axis must come to count as at rest (`GamepadReader`). */
-export const STICK_REST = 0.25;
-
 /**
  * Reads gamepads through the Gamepad API and pushes button presses into the
  * keyboard queue as keys. Standard mapping: buttons 0-3 are A, B, X, Y and
@@ -435,24 +433,35 @@ export const STICK_REST = 0.25;
  * -1, and a worn stick drifts, either of which would be a direction held
  * for ever.
  *
- * Every connected pad is read as one (issue #27): a button is down if it is
- * down on any, a stick the one pushed furthest. The browser may list another
- * device as a pad ahead of the one played with (a Shield's remote), and a
- * Steam Deck's own controls and a pad plugged into it are both played with.
+ * Every connected pad is watched (issue #27: the browser may list another
+ * device ahead of the one played with, a Shield's remote, and a Steam Deck's
+ * own controls and a pad plugged into it are both played with), but only the
+ * one played last is read (pads.ts `Played`, issue #40): read as one, a pad
+ * the browser kept listing after it stopped answering held a way for good.
+ *
+ * Two ways held at once (up and right, say) go in turn, as two arrow keys
+ * held do (issue #40): of the ways held and due, the one that has waited
+ * longest repeats. The first in the list took every repeat, and a diagonal
+ * on the d-pad went one way only.
+ *
+ * Only the window with the focus is answered (windowFocus.ts): the browser
+ * hands a pad's state to every page it shows. What is held as the focus
+ * comes back counts once let go and pressed again.
  */
 export class GamepadReader {
   /** For each key held: when it went down, when it last counted, and whether a new scene has spent it. */
   private held = new Map<string, { since: number; last: number; spent: boolean }>();
   /** The keyboard's `holdBreaks` when last read: a new count spends every direction held. */
   private breaks = 0;
-  /** The stick axes seen at rest, by pad and axis: only these steer. */
-  private rested = new Set<string>();
+  /** The pad played last, and each pad's stick axes seen at rest: only these steer. */
+  private played = new Played();
 
   constructor(
     private readonly keyboard: Pick<Keyboard, 'push' | 'waiting'> & Partial<Pick<Keyboard, 'pace' | 'holdBreaks'>>,
     private readonly onActivity: () => void,
     private readonly now: () => number = () => performance.now(),
     private readonly pads: () => PadList = browserPads,
+    private readonly focused: () => boolean = windowFocused,
   ) {}
 
   /** Whether any pad is connected: the screen reads them only while one is (screen.ts `readPads`). */
@@ -469,19 +478,13 @@ export class GamepadReader {
       for (const was of this.held.values()) was.spent = true;
     }
     const pace = this.keyboard.pace ?? INPUT_PACES.medium;
-    const pads = connectedPads(this.pads());
-    // Every pad as one: a button down on any, and each stick axis the one pushed furthest of those seen at rest.
-    const down = (button: number): boolean => pads.some((pad) => pressed(pad, button));
-    const stick = (n: number): number => {
-      let furthest = 0;
-      pads.forEach((pad, place) => {
-        const value = axis(pad, n);
-        const id = `${typeof pad.index === 'number' ? pad.index : place}:${pad.id}:${n}`;
-        if (Math.abs(value) < STICK_REST) this.rested.add(id);
-        if (this.rested.has(id) && Math.abs(value) > Math.abs(furthest)) furthest = value;
-      });
-      return furthest;
-    };
+    const all = connectedPads(this.pads());
+    // The pad played last: its buttons, and its stick axes once seen at rest.
+    const read = this.played.pick(all);
+    const down = (button: number): boolean => !!read && pressed(read.pad, button);
+    const stick = (n: number): number => (read ? this.played.rest.axis(read.pad, read.place, n) : 0);
+    // Out of focus nothing is sent, and what is held is spent: let go and pressed again to count.
+    const away = !this.focused();
     const [x, y] = [stick(0), stick(1)];
     const map: [string, boolean][] = [
       [Key.A, down(0)],
@@ -499,10 +502,17 @@ export class GamepadReader {
       [Key.Left, down(14) || x < -0.5],
       [Key.Right, down(15) || x > 0.5],
     ];
+    // The held ways due a repeat: of these, the one that has waited longest goes (two held go in turn).
+    let due: { key: string; last: number } | null = null;
     for (const [key, isDown] of map) {
       const was = this.held.get(key);
       if (!isDown) {
         this.held.delete(key);
+        continue;
+      }
+      if (away) {
+        if (was) was.spent = true;
+        else this.held.set(key, { since: t, last: t, spent: true });
         continue;
       }
       if (!was) {
@@ -512,12 +522,15 @@ export class GamepadReader {
         continue;
       }
       const repeats = DIRECTION_KEYS.includes(key);
-      if (repeats && !was.spent && t - was.since >= HOLD_FIRST_MS && t - was.last >= pace && this.keyboard.waiting) {
-        was.last = t;
-        this.keyboard.push(key, 'gamepad');
+      if (repeats && !was.spent && t - was.since >= HOLD_FIRST_MS && t - was.last >= pace && (!due || was.last < due.last)) {
+        due = { key, last: was.last };
       }
     }
-    return pads.length > 0;
+    if (due && this.keyboard.waiting) {
+      this.held.get(due.key)!.last = t;
+      this.keyboard.push(due.key, 'gamepad');
+    }
+    return all.length > 0;
   }
 }
 

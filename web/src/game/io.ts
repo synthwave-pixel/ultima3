@@ -256,6 +256,8 @@ export interface GameIO {
   flashSpell(kind: SpellFlash, member: number, sound: string): Promise<void>;
   /** Briefly highlight one member's stats box. (`InverseChar`) */
   flashMember(member: number): Promise<void>;
+  /** Briefly highlight several members' stats boxes at once, without waiting for it (poison's sting each turn). */
+  flashMembers(members: number[]): void;
   /** Keep one member's stats box highlighted (combat turn marker). (`InverseChnum`) */
   highlightMember(member: number, on: boolean): void;
   /** Redraw the four character stat boxes if anything changed. (`ShowChars`) */

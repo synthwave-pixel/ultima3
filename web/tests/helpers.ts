@@ -197,6 +197,11 @@ export class FakeIO implements GameIO {
     this.sounds.push(sound);
   }
   async flashMember(): Promise<void> {}
+  /** The members whose boxes flashed together, each time (flashMembers). */
+  memberFlashes: number[][] = [];
+  flashMembers(members: number[]): void {
+    this.memberFlashes.push([...members]);
+  }
   highlightMember(): void {}
   updateStats(): void {}
   showWind(): void {}
