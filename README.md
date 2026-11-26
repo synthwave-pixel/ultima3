@@ -741,6 +741,15 @@ Every release, with the desktop and Android downloads, is on the
 web version is updated with each release, so it runs the same game as the
 apps.
 
+### v1.0.92, November 26, 2026
+
+- A browser that can't run the game says so instead of showing only the
+  boot screen: what it lacks, and that updating it (on Android, the Android
+  System WebView app) should fix it. An error that stops the game starting
+  is shown too, and a game that hasn't started after 20 seconds says so.
+- Development starts: `?at=fight:` links fight the monster they name, even
+  on a long-played save.
+
 ### v1.0.91, November 22, 2026
 
 - Thanks to tuono21 for a whole play-through's worth of bug reports and
