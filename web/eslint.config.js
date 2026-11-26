@@ -4,6 +4,7 @@
 import js from '@eslint/js';
 import tseslint from 'typescript-eslint';
 import prettier from 'eslint-config-prettier';
+import * as espree from 'espree';
 
 export default tseslint.config(
   { ignores: ['dist/', 'node_modules/', 'public/'] },
@@ -44,6 +45,20 @@ export default tseslint.config(
         KeyboardEvent: 'readonly',
       },
     },
+  },
+  // The page's first script (src/compat.js) tells a browser too old for the game so: it must run in any browser, so it
+  // is held to ES5, parsed by ESLint's own parser.
+  {
+    files: ['src/compat.js'],
+    extends: [tseslint.configs.disableTypeChecked],
+    languageOptions: {
+      parser: espree,
+      ecmaVersion: 5,
+      sourceType: 'script',
+      globals: {},
+    },
+    // ES5 has no catch without its binding.
+    rules: { '@typescript-eslint/no-unused-vars': ['error', { caughtErrors: 'none' }] },
   },
   prettier,
 );

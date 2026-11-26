@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { defineConfig, type Plugin } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
@@ -18,11 +19,28 @@ function debugIndex(): Plugin {
   };
 }
 
+/**
+ * The browser check (src/compat.js, ES5) written into the game's page as its first classic script, after the boot
+ * screen and before the game's module runs: a browser that cannot run the game says so instead of showing the boot
+ * screen alone.
+ */
+function compatCheck(): Plugin {
+  const file = fileURLToPath(new URL('src/compat.js', import.meta.url));
+  return {
+    name: 'compat-check',
+    transformIndexHtml(_html, ctx) {
+      if (!ctx.filename.endsWith('index.html')) return;
+      return [{ tag: 'script', children: readFileSync(file, 'utf8'), injectTo: 'body' }];
+    },
+  };
+}
+
 export default defineConfig({
   // VITE_BASE lets a deployment under a sub-path (GitHub Pages) prefix asset URLs.
   base: process.env.VITE_BASE ?? '/',
   plugins: [
     debugIndex(),
+    compatCheck(),
     // An installable app that works offline: every asset is cached on first
     // visit (the whole site is a few megabytes), and a new build is fetched in
     // the background and offered from the title menu ("Update: restart").
